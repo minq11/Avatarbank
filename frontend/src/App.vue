@@ -7,16 +7,16 @@
       <nav class="center">
         <RouterLink to="/market" class="nav-link">마켓</RouterLink>
         <RouterLink to="/gallery" class="nav-link">갤러리</RouterLink>
-        <select v-model="locale" class="locale-select">
-          <option value="en">EN</option>
-          <option value="ko">KO</option>
-          <option value="ja">JA</option>
-        </select>
       </nav>
       <div class="right">
         <!-- TODO: 로그인 상태에 따라 분기 -->
         <button class="btn secondary">로그인</button>
         <button class="btn primary">회원가입</button>
+        <select v-model="locale" class="locale-select" aria-label="Language">
+          <option value="en">🇺🇸 EN</option>
+          <option value="ko">🇰🇷 KO</option>
+          <option value="ja">🇯🇵 JA</option>
+        </select>
       </div>
     </header>
 
@@ -52,13 +52,17 @@ const locale = ref<"en" | "ko" | "ja">("en");
 }
 
 .app-header {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
-  justify-content: space-between;
   padding: 1rem 2rem;
   border-bottom: 1px solid #e5e7eb;
   background: white;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.left {
+  justify-self: start;
 }
 
 .logo {
@@ -74,6 +78,7 @@ const locale = ref<"en" | "ko" | "ja">("en");
   display: flex;
   align-items: center;
   gap: 1rem;
+  justify-content: center;
 }
 
 .nav-link {
@@ -105,6 +110,8 @@ const locale = ref<"en" | "ko" | "ja">("en");
   display: flex;
   gap: 0.75rem;
   align-items: center;
+  justify-self: end;
+  flex-wrap: nowrap;
 }
 
 .btn {
@@ -115,6 +122,7 @@ const locale = ref<"en" | "ko" | "ja">("en");
   border: none;
   cursor: pointer;
   transition: all 0.2s;
+  white-space: nowrap;
 }
 
 .btn.primary {
