@@ -1,0 +1,58 @@
+# 로컬 개발 환경용 Docker Compose
+# NeonDB와 Upstash Redis 사용
+
+services:
+  # 백엔드 API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: avatarbank-backend
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - ENV=local
+      - JWT_SECRET_KEY=dev_secret_key_change_in_production
+      - JWT_ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=60
+      - REFRESH_TOKEN_EXPIRE_DAYS=7
+      - AWS_REGION=ap-northeast-2
+      - S3_BUCKET=avatarbank-images
+      - COMFYUI_BASE_URL=http://runpods-comfyui:8188
+      - RUNPODS_HMAC_SECRET=dev_hmac_secret
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - /app/venv  # 가상환경은 볼륨에서 제외
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # 프론트엔드
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: avatarbank-frontend
+    ports:
+      - "3000:80"
+    environment:
+      - VITE_API_BASE_URL=http://localhost:8000
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  default:
+    name: avatarbank-network

@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     RUNPODS_HMAC_SECRET: str = "CHANGE_ME_RUNPODS_HMAC"
 
     class Config:
-        env_file = "../.env"
+        env_file = [".env", "../.env"]  # 현재 디렉토리 또는 상위 디렉토리에서 .env 파일 찾기
         env_file_encoding = "utf-8"
         extra = "ignore"
 
