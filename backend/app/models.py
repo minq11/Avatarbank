@@ -33,9 +33,9 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
-    role = Column(String, nullable=False, default=UserRole.BUYER.value)
+    role = Column(String, nullable=False, default=UserRole.BUYER)
     credit_balance = Column(Integer, nullable=False, default=0)
-    status = Column(String, nullable=False, default=UserStatus.ACTIVE.value)
+    status = Column(String, nullable=False, default=UserStatus.ACTIVE)
     locale = Column(String, nullable=False, default="en")
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     updated_at = Column(
@@ -58,11 +58,16 @@ class Avatar(Base):
     influencer_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     title = Column(String, nullable=False)
     description = Column(Text, nullable=True)
+    nationality = Column(String, nullable=True)
+    gender = Column(String, nullable=True)
+    height = Column(Numeric(5, 2), nullable=True)
+    weight = Column(Numeric(5, 2), nullable=True)
+    special_notes = Column(Text, nullable=True)
     lora_path = Column(String, nullable=True)
     nsfw_allowed = Column(Boolean, nullable=False, default=False)
     is_public = Column(Boolean, nullable=False, default=False)
     preview_image_url = Column(String, nullable=True)
-    status = Column(String, nullable=False, default=AvatarStatus.PENDING.value)
+    status = Column(String, nullable=False, default=AvatarStatus.PENDING)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     updated_at = Column(
         DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
@@ -87,7 +92,7 @@ class Generation(Base):
     prompt = Column(Text, nullable=False)
     seed = Column(String, nullable=True)
     image_url = Column(String, nullable=True)
-    status = Column(String, nullable=False, default=GenerationStatus.PENDING.value)
+    status = Column(String, nullable=False, default=GenerationStatus.PENDING)
     fail_reason = Column(Text, nullable=True)
     nsfw_flag = Column(Boolean, nullable=False, default=False)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
@@ -127,7 +132,7 @@ class Task(Base):
     id = Column(Integer, primary_key=True, index=True)
     generation_id = Column(Integer, ForeignKey("generations.id"), nullable=False)
     task_type = Column(String, nullable=False)
-    status = Column(String, nullable=False, default=TaskStatus.QUEUED.value)
+    status = Column(String, nullable=False, default=TaskStatus.QUEUED)
     worker_id = Column(String, nullable=True)
     started_at = Column(DateTime, nullable=True)
     finished_at = Column(DateTime, nullable=True)
@@ -160,4 +165,73 @@ class PaymentWebhook(Base):
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     processed_at = Column(DateTime, nullable=True)
 
+
+class TrainingJob(Base):
+    __tablename__ = "training_jobs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    avatar_id = Column(Integer, ForeignKey("avatars.id"), nullable=False)
+    status = Column(String, nullable=False, default="pending")
+    started_at = Column(DateTime, nullable=True)
+    finished_at = Column(DateTime, nullable=True)
+    log_url = Column(String, nullable=True)
+    error_message = Column(Text, nullable=True)
+
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    action = Column(String, nullable=False)
+    target_type = Column(String, nullable=True)
+    target_id = Column(Integer, nullable=True)
+    metadata_json = Column("metadata", JSONB, nullable=True)  # DB 컬럼명은 metadata, Python 속성명은 metadata_json
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+
+class SharedGeneration(Base):
+    __tablename__ = "shared_generations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    generation_id = Column(Integer, ForeignKey("generations.id"), nullable=False)
+    share_token = Column(String, nullable=False, unique=True)
+    is_public = Column(Boolean, nullable=False, default=False)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    expired_at = Column(DateTime, nullable=True)
+
+
+class Like(Base):
+    __tablename__ = "likes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    generation_id = Column(Integer, ForeignKey("generations.id"), nullable=False)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+
+class Bookmark(Base):
+    __tablename__ = "bookmarks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    generation_id = Column(Integer, ForeignKey("generations.id"), nullable=False)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+
+class PayoutRequest(Base):
+    __tablename__ = "payout_requests"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    credits_requested = Column(Integer, nullable=False)
+    usd_amount = Column(Numeric(10, 2), nullable=False)
+    status = Column(String, nullable=False, default="pending")
+    admin_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    reason = Column(Text, nullable=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = Column(
+        DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+    payout_tx_id = Column(String, nullable=True)
 

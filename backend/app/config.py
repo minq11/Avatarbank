@@ -1,4 +1,5 @@
-from pydantic import BaseSettings, AnyUrl
+from pydantic import AnyUrl
+from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
@@ -27,8 +28,9 @@ class Settings(BaseSettings):
     RUNPODS_HMAC_SECRET: str = "CHANGE_ME_RUNPODS_HMAC"
 
     class Config:
-        env_file = ".env"
+        env_file = "../.env"
         env_file_encoding = "utf-8"
+        extra = "ignore"
 
 
 settings = Settings()
