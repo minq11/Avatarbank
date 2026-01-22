@@ -50,8 +50,8 @@ Avatarbank는 **인플루언서의 외형(얼굴/체형)을 기반으로 학습�
 1. **아바타 모델은 플랫폼 자산이다.**
 2. **Influencer만 환전 가능하다.**
 3. **Buyer는 크레딧을 벌 수 있으나 현금화는 불가하다.**
-4. **모든 생성은 Z IMAGE TURBO + ComfyUI로만 처리한다.**
-5. **모든 이미지 생성은 서버 측에서만 수행한다.**
+4. **모든 생성은 Z IMAGE TURBO 유료 API(fal.ai)로만 처리한다.**
+5. **모든 이미지 생성은 서버 측에서만 수행하며, 클라이언트의 직접 API 호출은 금지한다.**
 
 ---
 
@@ -78,9 +78,8 @@ Avatarbank는 **인플루언서의 외형(얼굴/체형)을 기반으로 학습�
 
 ### 4.1 AI
 
-- **Z IMAGE TURBO**
-- **ComfyUI**
-- **LoRA 기반 개인 모델 학습**
+- **Z IMAGE TURBO (fal.ai 유료 API)**
+- **LoRA 기반 개인 모델 학습(LoRA는 API 사용 가능 형태로 관리)**
 
 ### 4.2 Backend
 
@@ -95,7 +94,7 @@ Avatarbank는 **인플루언서의 외형(얼굴/체형)을 기반으로 학습�
 - **Webhook Listener**: **PayPal Webhook** 수신/검증 엔드포인트
   - 결제 완료 이벤트 → 크레딧 지급/트랜잭션 기록
 
-> 구현 언어를 Python으로 통일하여, Backend/Celery Worker/RunPods Worker(요청/결과 처리)까지 동일한 개발 경험을 유지한다.
+> 구현 언어를 Python으로 통일하여, Backend/Celery Worker/외부 API 연동(요청/결과 처리)까지 동일한 개발 경험을 유지한다.
 
 ### 4.3 Infra
 
@@ -105,8 +104,8 @@ Avatarbank는 **인플루언서의 외형(얼굴/체형)을 기반으로 학습�
   - 사용자/아바타/생성/트랜잭션/태스크/로그 테이블 저장
 - **오브젝트 스토리지**: **AWS S3**
   - 생성 이미지 및 학습 산출물(로그/모델 경로 등) 저장
-- **GPU Worker**: **RunPods (A40 GPU)**
-  - ComfyUI + Z IMAGE TURBO 실행 환경
+- **외부 AI API**: **fal.ai Z IMAGE TURBO**
+  - 이미지 생성은 외부 API로 처리
 - **Queue**: **Redis**
   - Celery broker/결과 저장 및 캐시(운영 선택)
 
@@ -121,9 +120,7 @@ Avatarbank는 **인플루언서의 외형(얼굴/체형)을 기반으로 학습�
    ↓
 [Celery Queue]
    ↓
-[RunPods GPU Worker]
-   ↓
-[ComfyUI + Z IMAGE TURBO]
+[fal.ai Z IMAGE TURBO API]
    ↓
 [S3 저장]
    ↓
@@ -154,35 +151,18 @@ Avatarbank는 **인플루언서의 외형(얼굴/체형)을 기반으로 학습�
   - 방식: Celery task publish (Redis broker)
   - Backend는 요청 검증/크레딧 처리 후 태스크를 큐에 넣고 즉시 응답(비동기)
 
-- **Celery Worker ↔ RunPods GPU Worker**
-  - 방식: RunPods 환경에서 **ComfyUI API** 호출(HTTP, 필요 시 WebSocket)
+- **Celery Worker ↔ Z IMAGE TURBO API(fal.ai)**
+  - 방식: fal.ai REST API 호출(HTTPS)
   - 태스크 내용:
-    - 워크플로우 템플릿에 prompt/seed/옵션을 주입
-    - ComfyUI에 job 제출 → 완료 확인(폴링/WS) → 산출물(이미지) 처리 → S3 업로드/DB 반영
-
-- **GPU Worker ↔ ComfyUI**
-  - 방식: ComfyUI의 API를 사용해 워크플로우를 실행한다.
-    - HTTP: 워크플로우 제출(예: `/prompt`) + 결과 폴링(예: `/history/{id}`)
-    - (선택) WebSocket: 실행 진행/완료 이벤트 수신
-  - 결과:
-    - ComfyUI는 일반적으로 워커 로컬에 이미지를 저장하고(예: output 디렉토리), API로 결과 메타데이터를 제공한다.
-    - 최종 산출물은 **S3에 업로드**되어 Frontend에 URL로 제공된다.
+    - prompt/seed/옵션/LoRA를 API 요청에 포함
+    - API 응답으로 이미지 URL/메타데이터 수신
+    - 이미지 다운로드 → S3 업로드 → DB 반영
 
 - **S3 저장 및 결과 반영**
-  - **업로드 방식은 A안을 기본(초기 필수)으로 구현한다.**
-  - **A안(기본/필수): RunPods(GPU) → S3 Presigned URL로 직접 업로드**
-    - **Presigned PUT URL 발급 주체**: **FastAPI(API Server)**가 발급
-    - Celery Worker가 ComfyUI 실행 전에 FastAPI를 호출해 Presigned URL을 받음
-    - RunPods GPU Worker가 ComfyUI 산출물(이미지 파일)을 Presigned URL로 직접 업로드
-    - **업로드 완료 검증**: RunPods가 HMAC 서명된 콜백을 Backend로 전송 → Worker가 콜백 수신 시 성공 처리
-    - **폴백**: 콜백 실패/타임아웃 시 Worker가 S3에 HEAD 요청으로 파일 존재 확인
+  - **기본 방식: API 결과 URL 다운로드 → S3 업로드**
+    - Celery Worker가 API 응답의 이미지 URL을 다운로드
+    - boto3 등으로 S3에 업로드
     - 업로드 완료 후 Celery Worker가 `generations.image_url` 및 상태를 업데이트
-    - 장점: 대용량 이미지/배치 업로드에 유리, EC2로 이미지가 역전송되지 않음
-  - **B안(후순위 대안): RunPods → Celery Worker → S3 업로드**
-    - Celery Worker가 ComfyUI API로 산출물(파일/바이너리)을 가져온 뒤(bulk 다운로드),
-      boto3 등으로 S3에 업로드한다.
-    - 장점: AWS 자격 증명/업로드 로직을 EC2에만 둠
-    - 단점: RunPods→EC2→S3로 데이터가 1번 더 이동(트래픽/시간 증가)
   - 업로드 후 공통 처리:
     - `tasks.status` / `generations.status`를 `success` 또는 `failed`로 업데이트
     - 성공 시 `generations.image_url` 업데이트
@@ -197,8 +177,8 @@ Avatarbank는 **인플루언서의 외형(얼굴/체형)을 기반으로 학습�
   - 인증/인가, 정책/프롬프트 검증, 크레딧 차감/분배, 결제/환전 처리, 작업 생성/상태 제공
 - **Celery/Worker**
   - 장시간 작업(생성/학습) 처리, 재시도/에러 로그 기록
-- **GPU Worker(ComfyUI)**
-  - 실제 이미지 생성 실행, 생성 산출물 수집/전달
+- **외부 AI API(fal.ai)**
+  - 이미지 생성 실행, 결과 이미지 URL 반환
 
 ---
 
@@ -211,7 +191,7 @@ Avatarbank는 **인플루언서의 외형(얼굴/체형)을 기반으로 학습�
 **서버 “대수” 관점(초창기 최소)**
 
 - **EC2 1대**: FastAPI + Celery Worker(동일 머신)
-- **RunPods GPU 1대**: ComfyUI + Z IMAGE TURBO
+- **외부 AI API(fal.ai)**: Z IMAGE TURBO 이미지 생성
 - **Redis 1개**, **PostgreSQL(NeonDB) 1개**, **S3 1개**
 - Frontend는 정적 호스팅/서버리스(선택) 또는 동일 도메인에서 제공
 
@@ -224,7 +204,7 @@ Avatarbank는 **인플루언서의 외형(얼굴/체형)을 기반으로 학습�
 | Redis | Celery broker/캐시 | **1개** | 관리형 또는 단일 Redis |
 | PostgreSQL(NeonDB) | DB | **1개** | 관리형(Neon) |
 | S3 | 이미지/산출물 저장 | **1개** | 오브젝트 스토리지 |
-| RunPods GPU Worker | 이미지 생성 실행 | **GPU 1대** | ComfyUI + Z IMAGE TURBO |
+| 외부 AI API(fal.ai) | 이미지 생성 | 해당 없음(관리형) | Z IMAGE TURBO 유료 API |
 
 **도식(초창기 최소)**
 
@@ -250,13 +230,12 @@ Avatarbank는 **인플루언서의 외형(얼굴/체형)을 기반으로 학습�
           │ PostgreSQL      │   │ Redis (Broker) │
           │ NeonDB (Managed)│   │ (Managed/EC2)  │
           └────────────────┘   └────────┬───────┘
-                                        │ HTTP (ComfyUI API)
+                                        │ HTTPS (fal.ai API)
                                         ▼
                         ┌──────────────────────────┐
-                        │ RunPods GPU Worker (A40) │
-                        │  ComfyUI + Z IMAGE TURBO │
+                        │  fal.ai Z IMAGE TURBO API │
                         └───────────┬──────────────┘
-                                    │ Upload
+                                    │ 결과 URL → 업로드
                                     ▼
                              ┌────────────┐
                              │   AWS S3    │
@@ -270,7 +249,7 @@ Avatarbank는 **인플루언서의 외형(얼굴/체형)을 기반으로 학습�
 **서버 “대수” 관점(이후 권장)**
 
 - **EC2 2대**: API Server 1대 + Worker Server 1대 (둘 다 단일로 시작)
-- **RunPods GPU 1대**에서 시작 → 수요에 따라 **N대로 수평 확장**
+- **외부 AI API(fal.ai)**: Z IMAGE TURBO 이미지 생성
 - 나머지(Redis/DB/S3)는 그대로 유지
 
 **필요 서버/서비스(이후 분리/확장)**
@@ -283,7 +262,7 @@ Avatarbank는 **인플루언서의 외형(얼굴/체형)을 기반으로 학습�
 | Redis | Celery broker/캐시 | 1 | 관리형/성능 확장 |
 | PostgreSQL(NeonDB) | DB | 1 | 관리형/성능 확장 |
 | S3 | 이미지/산출물 저장 | 1 | 그대로 |
-| RunPods GPU Worker | 이미지 생성 실행 | 1 | **N대로 수평 확장** |
+| 외부 AI API(fal.ai) | 이미지 생성 | 해당 없음(관리형) | 사용량/요금에 따라 플랜 조정 |
 
 **도식(이후 분리/확장)**
 
@@ -315,13 +294,12 @@ Avatarbank는 **인플루언서의 외형(얼굴/체형)을 기반으로 학습�
                          │  Worker Server (EC2)    │
                          │     Celery Worker       │
                          └───────────┬────────────┘
-                                     │ HTTP (ComfyUI API)
+                                     │ HTTPS (fal.ai API)
                                      ▼
                         ┌──────────────────────────┐
-                        │ RunPods GPU Worker (A40) │
-                        │  ComfyUI + Z IMAGE TURBO │
+                        │  fal.ai Z IMAGE TURBO API │
                         └───────────┬──────────────┘
-                                    │ Upload
+                                    │ 결과 URL → 업로드
                                     ▼
                              ┌────────────┐
                              │   AWS S3    │
@@ -332,7 +310,7 @@ Avatarbank는 **인플루언서의 외형(얼굴/체형)을 기반으로 학습�
 
 - **API 병목**: API 응답 지연/CPU 상승 시 → API Server 수평 확장(2→N) + 로드밸런서
 - **큐 지연 증가**: `tasks`가 queued에 오래 머무르면 → Celery Worker 수평 확장(1→N)
-- **GPU 병목**: 생성 대기시간 증가 시 → RunPods GPU Worker 수평 확장(1→N)
+- **외부 API 병목/요금**: 호출 제한 또는 단가 상승 시 → 플랜 상향 또는 자체 GPU 전환 검토
 
 
 ## 6. 크레딧 시스템
@@ -434,31 +412,21 @@ Avatarbank는 **인플루언서의 외형(얼굴/체형)을 기반으로 학습�
    - Redis에서 task consume
    - `tasks.status` → `running`
    - `generations.status` → `processing`
-   - **S3 Presigned PUT URL 발급 요청** (FastAPI 호출)
 
-6. **S3 Presigned URL 발급** (FastAPI)
-   - boto3로 Presigned PUT URL 생성(만료: 30분)
-   - URL을 Celery Worker에 반환
+6. **Z IMAGE TURBO API 호출** (Celery Worker → fal.ai)
+   - prompt/seed/옵션/LoRA를 포함해 API 요청
+   - 완료 시 이미지 URL/메타데이터 수신
 
-7. **ComfyUI Workflow 실행** (Celery Worker → RunPods)
-   - ComfyUI API에 워크플로우 제출(프롬프트/시드/옵션 주입)
-   - **HTTP 폴링**으로 완료 대기(최대 10분 타임아웃)
-   - 완료 시 이미지 파일 경로 수신
+7. **이미지 다운로드 및 S3 업로드** (Celery Worker)
+   - API 응답의 이미지 URL 다운로드
+   - S3 업로드
 
-8. **S3 업로드** (RunPods GPU Worker)
-   - 생성된 이미지 파일을 **Presigned URL로 직접 업로드**
-   - 업로드 완료 후 **HMAC 서명된 콜백**을 Backend로 전송
-
-9. **업로드 완료 검증** (Celery Worker)
-   - 콜백 수신 시 `generations.status` → `success`
-   - 콜백 실패/타임아웃 시 **S3 HEAD 요청으로 폴백 검증**
-
-10. **DB 기록 및 결과 반환** (Celery Worker)
+8. **DB 기록 및 결과 반영** (Celery Worker)
     - `generations.image_url` 업데이트(S3 경로)
     - `tasks.status` → `success`
     - 필요 시 `transactions` 기록(이미 처리된 경우 생략)
 
-11. **Frontend 결과 수신** (Frontend)
+9. **Frontend 결과 수신** (Frontend)
     - 생성 상태 조회 API 폴링 또는 WebSocket/SSE(향후)
     - 성공 시 이미지 URL 및 메타데이터 표시
 
@@ -595,7 +563,7 @@ DB는 크게 **핵심 도메인 테이블**, **태스크/파이프라인 관리 
 | `generation_id`   | 연결된 이미지 생성 ID (FK → generations.id)                     |                                                  |
 | `task_type`       | 태스크 종류                                                      | generation / lora_training 등                     |
 | `status`          | 태스크 상태                                                      | queued / running / success / failed / canceled   |
-| `worker_id`       | 작업을 처리한 워커 식별자                                       | RunPods 인스턴스 ID 등                            |
+| `worker_id`       | 작업을 처리한 워커 식별자                                       | Celery Worker 인스턴스 ID 또는 외부 API 요청 ID 등 |
 | `started_at`      | 태스크 시작 시각                                                 |                                                  |
 | `finished_at`     | 태스크 종료 시각                                                 |                                                  |
 | `retry_count`     | 재시도 횟수                                                      | 장애/안정성 분석용                                |
@@ -720,15 +688,11 @@ DB는 크게 **핵심 도메인 테이블**, **태스크/파이프라인 관리 
 - Access Token은 HTTP-only 쿠키 또는 Authorization 헤더로 전달
 - Refresh Token은 HTTP-only 쿠키로만 전달(보안 강화)
 
-#### 14.2.2 RunPods ↔ Backend 통신 보안
+#### 14.2.2 외부 AI API 통신 보안
 
-- **RunPods가 Backend로 콜백(업로드 완료/실패) 보낼 때**: **HMAC 서명(공유 시크릿)** 사용
-  - Backend가 RunPods에 공유 시크릿을 사전 전달(환경변수/시크릿 매니저)
-  - RunPods가 콜백 요청 시 `X-Signature` 헤더에 HMAC-SHA256 서명 포함
-  - Backend가 서명 검증 후 처리(위조/재전송 공격 방지)
-- **RunPods의 ComfyUI 접근 방식**: **외부 공개 + 접근제어(토큰/Basic Auth) + IP 제한(가능하면)**
-  - ComfyUI API는 인증 토큰 또는 Basic Auth로 보호
-  - EC2 Worker의 IP만 허용하도록 방화벽 규칙 설정(가능한 경우)
+- **API Key/토큰은 서버 환경변수/시크릿 매니저로 관리**
+  - 클라이언트 노출 금지, Backend/Celery에서만 사용
+- **모든 API 호출은 HTTPS로만 수행**
 
 ### 14.3 크레딧 처리 규칙(원자성/중복 방지)
 
@@ -757,8 +721,8 @@ DB는 크게 **핵심 도메인 테이블**, **태스크/파이프라인 관리 
 - **상태값**: `pending` → `processing` → `success` / `failed` / `canceled`
 - **전이 규칙**:
   - `pending`: 생성 요청 직후(크레딧 차감 완료, 큐 대기)
-  - `processing`: Celery Worker가 ComfyUI에 작업 제출 후
-  - `success`: S3 업로드 완료 + DB 업데이트 완료
+  - `processing`: Celery Worker가 외부 API 호출 중
+  - `success`: 외부 API 결과 수신 + S3 업로드 완료
   - `failed`: 생성 실패/타임아웃/정책 위반 등
   - `canceled`: 유저/Admin이 수동 취소
 
@@ -768,7 +732,7 @@ DB는 크게 **핵심 도메인 테이블**, **태스크/파이프라인 관리 
 - **전이 규칙**:
   - `queued`: Redis 큐에 등록됨
   - `running`: Celery Worker가 작업 시작
-  - `success`: ComfyUI 실행 완료 + S3 업로드 완료
+  - `success`: 외부 API 호출 완료 + S3 업로드 완료
   - `failed`: 네트워크/실행 실패(재시도 가능) 또는 정책 위반(재시도 불가)
   - `canceled`: 수동 취소 또는 타임아웃
 
@@ -778,25 +742,24 @@ DB는 크게 **핵심 도메인 테이블**, **태스크/파이프라인 관리 
 - **정책 위반/프롬프트 필터링 실패는 재시도 없음** (즉시 `failed`)
 - 재시도 간격: 지수 백오프(예: 5초 → 10초 → 20초)
 
-### 14.5 ComfyUI 연동 세부사항
+### 14.5 Z IMAGE TURBO API 연동 세부사항
 
 #### 14.5.1 완료 확인 방식
 
-- **방식**: **HTTP 폴링(기본)** + 타임아웃/재시도 로직
-- Celery Worker가 ComfyUI API의 `/history/{prompt_id}` 엔드포인트를 주기적으로 폴링(예: 2초 간격)
+- **방식**: **API 요청 후 결과 수신(기본 동기)** + 타임아웃/재시도 로직
 - **타임아웃**: **10분** (10분 내 완료 안 되면 `failed` 처리)
 
 #### 14.5.2 S3 업로드 완료 검증
 
-- **방식**: **RunPods 콜백 + Worker의 S3 HEAD 폴백**
-  1. RunPods가 S3 업로드 완료 후 Backend로 HMAC 서명된 콜백 전송
-  2. Worker가 콜백 수신 시 `generations.status`를 `success`로 업데이트
-  3. 콜백 실패/타임아웃 시 Worker가 S3에 HEAD 요청으로 파일 존재 확인(폴백)
+- **방식**: **Celery Worker가 다운로드/업로드 성공 여부 확인**
+  1. API 응답 이미지 URL 다운로드 성공 여부 확인
+  2. S3 업로드 성공 시 `generations.status`를 `success`로 업데이트
+  3. 실패/타임아웃 시 재시도 후 `failed` 처리
 
 #### 14.5.3 이미지 포맷
 
 - **기본 포맷**: **PNG**
-- **다른 포맷 지원**: WEBP, JPEG 등도 가능(ComfyUI 출력 설정에 따라)
+- **다른 포맷 지원**: WEBP, JPEG 등도 가능(API 옵션에 따라)
 - S3 Key 확장자는 실제 포맷에 맞춰 저장
 
 #### 14.5.4 S3/배포 공개 정책
