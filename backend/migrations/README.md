@@ -8,12 +8,13 @@
 backend/
 ├── migrations/              # 마이그레이션 스크립트
 │   ├── README.md           # 이 파일
+│   ├── QUICKSTART.md       # 빠른 시작 가이드
 │   ├── create_tables.py    # 모든 테이블 생성 스크립트
 │   └── create_missing_tables.py  # 누락된 테이블만 생성
-├── alembic/                # Alembic 마이그레이션 (향후 사용)
-│   ├── versions/           # 마이그레이션 버전 파일들
-│   └── env.py
-└── alembic.ini             # Alembic 설정 파일
+└── app/                    # 애플리케이션 코드
+    ├── models.py           # 데이터베이스 모델
+    ├── db.py               # 데이터베이스 연결
+    └── config.py           # 환경 변수 설정
 ```
 
 ## 🚀 새 환경에서 데이터베이스 설정하기
@@ -42,7 +43,6 @@ pip install -r requirements.txt
 필수 패키지:
 - `sqlalchemy` - ORM
 - `psycopg2-binary` - PostgreSQL 드라이버
-- `alembic` - 마이그레이션 도구 (향후 사용)
 
 ### 3. 데이터베이스 테이블 생성
 
@@ -88,7 +88,7 @@ python migrations/create_missing_tables.py
 
 ```bash
 cd backend
-python -c "from app.db import engine; from sqlalchemy import inspect; inspector = inspect(engine); tables = inspector.get_table_names(); print('생성된 테이블:', sorted([t for t in tables if t != 'alembic_version']))"
+python -c "from app.db import engine; from sqlalchemy import inspect; inspector = inspect(engine); tables = inspector.get_table_names(); print('생성된 테이블:', sorted(tables))"
 ```
 
 또는 NeonDB 콘솔에서 직접 확인:
@@ -99,49 +99,12 @@ WHERE table_schema = 'public'
 ORDER BY table_name;
 ```
 
-## 🔄 향후 마이그레이션 (Alembic 사용)
-
-프로젝트가 성장하면서 스키마 변경이 필요할 때는 Alembic을 사용합니다.
-
-### Alembic 마이그레이션 생성
-
-모델 변경 후:
-
-```bash
-cd backend
-python -m alembic revision --autogenerate -m "마이그레이션 설명"
-```
-
-### 마이그레이션 실행
-
-```bash
-cd backend
-python -m alembic upgrade head
-```
-
-### 마이그레이션 롤백
-
-```bash
-cd backend
-python -m alembic downgrade -1  # 이전 버전으로
-python -m alembic downgrade base  # 모든 마이그레이션 취소
-```
-
-### 마이그레이션 상태 확인
-
-```bash
-cd backend
-python -m alembic current  # 현재 버전
-python -m alembic history  # 전체 히스토리
-```
-
 ## ⚠️ 주의사항
 
 ### 1. 프로덕션 환경
 
-- **절대 `create_tables.py`를 프로덕션에서 직접 실행하지 마세요**
-- 프로덕션에서는 반드시 Alembic 마이그레이션을 사용하세요
-- 마이그레이션 전에 **반드시 백업**을 수행하세요
+- 프로덕션에서 테이블 생성 전에 **반드시 백업**을 수행하세요
+- 스키마 변경 시 신중하게 진행하세요
 
 ### 2. 환경 변수
 
@@ -188,7 +151,6 @@ psycopg2.errors.UndefinedTable: relation "xxx" does not exist
 ## 📚 추가 리소스
 
 - [SQLAlchemy 문서](https://docs.sqlalchemy.org/)
-- [Alembic 문서](https://alembic.sqlalchemy.org/)
 - [NeonDB 문서](https://neon.tech/docs/)
 
 ## 🔗 관련 파일
@@ -196,4 +158,3 @@ psycopg2.errors.UndefinedTable: relation "xxx" does not exist
 - `backend/app/models.py` - 데이터베이스 모델 정의
 - `backend/app/db.py` - 데이터베이스 연결 설정
 - `backend/app/config.py` - 환경 변수 설정
-- `backend/alembic/` - Alembic 마이그레이션 파일들
