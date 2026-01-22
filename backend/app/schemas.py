@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field
 
 
 class TokenPair(BaseModel):
@@ -12,12 +12,41 @@ class TokenPair(BaseModel):
 
 class UserBase(BaseModel):
     id: int
+    email: str
     role: str
     locale: str
     credit_balance: int
 
     class Config:
         from_attributes = True
+
+
+class UserRegisterRequest(BaseModel):
+    email: EmailStr
+    password: str = Field(..., min_length=8, max_length=100)
+    role: str = Field(default="buyer", pattern="^(buyer|influencer)$")
+    locale: str = Field(default="en", pattern="^(en|ko|ja)$")
+
+
+class UserLoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+
+
+class UserLoginResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+    user: UserBase
+
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
+
+
+class RefreshTokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
 
 
 class GenerationCreateRequest(BaseModel):

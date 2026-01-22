@@ -44,9 +44,9 @@
             </div>
 
             <!-- Auth Buttons -->
-            <div v-if="!isLoggedIn" class="auth-buttons">
-              <button class="btn-login">Login</button>
-              <button class="btn-signup">Sign up</button>
+            <div v-if="!authStore.isLoggedIn" class="auth-buttons">
+              <button @click="openLoginModal" class="btn-login">Login</button>
+              <button @click="openRegisterModal" class="btn-signup">Sign up</button>
             </div>
 
             <!-- User Info (when logged in) -->
@@ -56,7 +56,7 @@
                   <circle cx="12" cy="12" r="10"/>
                   <path d="M12 6v12M15 9a3 3 0 1 0-6 0 3 3 0 0 0 6 0z"/>
                 </svg>
-                <span>1,250</span>
+                <span>{{ formatCredit(authStore.creditBalance) }}</span>
               </div>
               <div class="profile-wrapper">
                 <button
@@ -72,7 +72,7 @@
                   <a href="#profile" class="dropdown-item">Profile</a>
                   <a href="#settings" class="dropdown-item">Settings</a>
                   <div class="dropdown-divider"></div>
-                  <a href="#logout" class="dropdown-item">Log out</a>
+                  <a href="#" @click.prevent="handleLogout" class="dropdown-item">Log out</a>
                 </div>
               </div>
             </div>
@@ -84,6 +84,13 @@
     <main class="app-main">
       <RouterView />
     </main>
+
+    <!-- Auth Modal -->
+    <AuthModal
+      :is-open="showAuthModal"
+      :initial-mode="authModalMode"
+      @close="closeAuthModal"
+    />
 
     <footer class="app-footer">
       <div class="footer-container">
@@ -150,13 +157,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { RouterLink, RouterView } from "vue-router";
+import { useAuthStore } from "./stores/auth";
+import AuthModal from "./components/AuthModal.vue";
+
+const authStore = useAuthStore();
 
 const locale = ref<"en" | "ko" | "ja">("en");
 const showLanguageMenu = ref(false);
 const showProfileMenu = ref(false);
-const isLoggedIn = ref(false);
+const showAuthModal = ref(false);
+const authModalMode = ref<"login" | "register">("login");
 
 const languages = [
   { value: "en", label: "EN", flagCode: "gb" },
@@ -173,6 +185,32 @@ const selectLanguage = (value: "en" | "ko" | "ja") => {
   showLanguageMenu.value = false;
 };
 
+// 인증 모달 관련
+const openLoginModal = () => {
+  authModalMode.value = "login";
+  showAuthModal.value = true;
+};
+
+const openRegisterModal = () => {
+  authModalMode.value = "register";
+  showAuthModal.value = true;
+};
+
+const closeAuthModal = () => {
+  showAuthModal.value = false;
+};
+
+// 로그아웃
+const handleLogout = () => {
+  authStore.logout();
+  showProfileMenu.value = false;
+};
+
+// 크레딧 포맷팅
+const formatCredit = (amount: number): string => {
+  return new Intl.NumberFormat("en-US").format(amount);
+};
+
 // 외부 클릭 시 드롭다운 닫기
 const handleClickOutside = (event: MouseEvent) => {
   const target = event.target as HTMLElement;
@@ -184,10 +222,12 @@ const handleClickOutside = (event: MouseEvent) => {
   }
 };
 
-// 컴포넌트 마운트 시 이벤트 리스너 추가
-import { onMounted, onUnmounted } from "vue";
-onMounted(() => {
+// 컴포넌트 마운트 시 이벤트 리스너 추가 및 인증 초기화
+import { onUnmounted } from "vue";
+onMounted(async () => {
   document.addEventListener("click", handleClickOutside);
+  // 저장된 토큰이 있으면 사용자 정보 가져오기
+  await authStore.initialize();
 });
 onUnmounted(() => {
   document.removeEventListener("click", handleClickOutside);

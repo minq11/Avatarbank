@@ -29,6 +29,7 @@
 1. 프로젝트 루트에 `.env` 파일 생성:
 ```env
 DATABASE_URL=postgresql://username:password@host/database?sslmode=require
+JWT_SECRET_KEY=your-secret-key-here
 ```
 
 2. 테이블 생성:
@@ -37,7 +38,25 @@ cd backend
 python migrations/create_tables.py
 ```
 
+**기존 테이블이 있는 경우 (인증 필드 추가):**
+```bash
+cd backend
+python migrations/add_auth_fields.py
+```
+
 자세한 가이드는 [`migrations/README.md`](migrations/README.md)를 참고하세요.
+
+### 인증 API
+
+로그인, 회원가입, JWT 토큰 관리 기능이 구현되어 있습니다.
+
+**주요 엔드포인트:**
+- `POST /auth/register` - 회원가입
+- `POST /auth/login` - 로그인
+- `POST /auth/refresh` - Access Token 갱신
+- `GET /auth/me` - 현재 사용자 정보
+
+자세한 API 문서는 [`API_AUTH.md`](API_AUTH.md)를 참고하세요.
 
 ### 로컬 실행 (예시)
 
