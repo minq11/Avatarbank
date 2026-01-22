@@ -2,7 +2,19 @@
 """
 NeonDB에 직접 테이블 생성 스크립트
 Alembic 없이 SQLAlchemy로 직접 테이블 생성
+
+사용법:
+    cd backend
+    python migrations/create_tables.py
 """
+
+import sys
+from pathlib import Path
+
+# backend 폴더를 Python 경로에 추가
+backend_dir = Path(__file__).parent.parent
+if str(backend_dir) not in sys.path:
+    sys.path.insert(0, str(backend_dir))
 
 from app.db import engine, Base
 # 모든 모델을 import하여 Base.metadata에 등록

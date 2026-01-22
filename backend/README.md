@@ -22,6 +22,23 @@
   - `/generations` (생성 요청, 크레딧 선차감 + Celery 태스크 enqueue)
   - `/generations/{id}` (상태 조회)
 
+### 데이터베이스 마이그레이션
+
+**새 환경에서 처음 설정할 때:**
+
+1. 프로젝트 루트에 `.env` 파일 생성:
+```env
+DATABASE_URL=postgresql://username:password@host/database?sslmode=require
+```
+
+2. 테이블 생성:
+```bash
+cd backend
+python migrations/create_tables.py
+```
+
+자세한 가이드는 [`migrations/README.md`](migrations/README.md)를 참고하세요.
+
 ### 로컬 실행 (예시)
 
 ```bash
