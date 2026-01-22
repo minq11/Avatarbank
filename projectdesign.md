@@ -116,17 +116,17 @@ Avatarbank는 **인플루언서의 외형(얼굴/체형)을 기반으로 학습�
 
 ```text
 [Frontend]
-   ↓
+  ↓
 [FastAPI Backend]
-   ↓
+  ↓
 [Celery Queue]
-   ↓
+  ↓
 [RunPods GPU Worker]
-   ↓
+  ↓
 [ComfyUI + Z IMAGE TURBO]
-   ↓
+  ↓
 [S3 저장]
-   ↓
+  ↓
 [결과 반환]
 ```
 
@@ -548,6 +548,11 @@ DB는 크게 **핵심 도메인 테이블**, **태스크/파이프라인 관리 
 | `influencer_id`   | 아바타 소유 인플루언서 사용자 ID (FK → users.id)          |                                           |
 | `title`           | 아바타 이름                                               | 마켓/리스트에서 표시                      |
 | `description`     | 아바타 설명                                               | 컨셉, 사용 가이드 등                      |
+| `nationality`     | 국적                                                       | ISO 3166-1 alpha-2 코드 (예: US, KR, JP) |
+| `gender`          | 성별                                                       | male / female / other / unspecified       |
+| `height`          | 키 (cm)                                                    | nullable, 숫자형                          |
+| `weight`          | 몸무게 (kg)                                                | nullable, 숫자형                          |
+| `special_notes`   | 특이사항                                                   | nullable, 텍스트 필드 (외모 특징, 스타일 등) |
 | `lora_path`       | LoRA 모델 파일 경로                                      | S3 경로 또는 스토리지 키                  |
 | `nsfw_allowed`    | NSFW 생성 허용 여부                                       | true 시 NSFW 프롬프트 일부 허용           |
 | `is_public`       | 마켓/갤러리 노출 여부                                     | false 시 비공개 아바타                    |
