@@ -94,6 +94,24 @@ export const useAuthStore = defineStore("auth", () => {
     }
   };
 
+  // Seller로 업그레이드
+  const upgradeToSeller = async () => {
+    try {
+      const updatedUser = await authApi.upgradeToSeller();
+      setUser(updatedUser);
+      return { success: true };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.detail || "Upgrade failed",
+      };
+    }
+  };
+
+  // Buyer인지 확인
+  const isBuyer = computed(() => userRole.value === "buyer");
+  const isSeller = computed(() => userRole.value === "influencer");
+
   return {
     // State
     user,
@@ -103,6 +121,8 @@ export const useAuthStore = defineStore("auth", () => {
     isLoggedIn,
     userRole,
     creditBalance,
+    isBuyer,
+    isSeller,
     // Actions
     login,
     register,
@@ -110,5 +130,6 @@ export const useAuthStore = defineStore("auth", () => {
     fetchUser,
     initialize,
     setUser,
+    upgradeToSeller,
   };
 });

@@ -136,4 +136,9 @@ export const authApi = {
     const response = await api.get<User>("/auth/me");
     return response.data;
   },
+
+  upgradeToSeller: async (): Promise<User> => {
+    const response = await api.post<User>("/auth/upgrade-to-seller");
+    return response.data;
+  },
 };

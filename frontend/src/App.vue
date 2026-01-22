@@ -51,6 +51,23 @@
 
             <!-- User Info (when logged in) -->
             <div v-else class="user-info">
+              <!-- Seller 업그레이드 버튼 (Buyer만 보임) -->
+              <button
+                v-if="authStore.isBuyer"
+                @click="handleUpgradeToSeller"
+                :disabled="isUpgrading"
+                class="upgrade-btn"
+              >
+                <svg class="upgrade-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                  <path d="M2 17l10 5 10-5M2 12l10 5 10-5"/>
+                </svg>
+                <span>{{ isUpgrading ? 'Upgrading...' : 'Become a Seller' }}</span>
+                <svg v-if="!isUpgrading" class="upgrade-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M5 12h14M12 5l7 7-7 7"/>
+                </svg>
+              </button>
+
               <div class="credit-badge">
                 <svg class="coin-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <circle cx="12" cy="12" r="10"/>
@@ -169,6 +186,7 @@ const showLanguageMenu = ref(false);
 const showProfileMenu = ref(false);
 const showAuthModal = ref(false);
 const authModalMode = ref<"login" | "register">("login");
+const isUpgrading = ref(false);
 
 const languages = [
   { value: "en", label: "EN", flagCode: "gb" },
@@ -204,6 +222,27 @@ const closeAuthModal = () => {
 const handleLogout = () => {
   authStore.logout();
   showProfileMenu.value = false;
+};
+
+// Seller로 업그레이드
+const handleUpgradeToSeller = async () => {
+  if (isUpgrading.value) return;
+  
+  isUpgrading.value = true;
+  try {
+    const result = await authStore.upgradeToSeller();
+    if (result.success) {
+      // 성공 메시지 (선택사항)
+      console.log("Successfully upgraded to seller!");
+    } else {
+      alert(result.error || "Failed to upgrade to seller");
+    }
+  } catch (error) {
+    console.error("Upgrade error:", error);
+    alert("An error occurred while upgrading");
+  } finally {
+    isUpgrading.value = false;
+  }
 };
 
 // 크레딧 포맷팅
@@ -442,6 +481,106 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+}
+
+/* Seller Upgrade Button */
+.upgrade-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  border-radius: 0.75rem;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 6px -1px rgba(102, 126, 234, 0.3), 0 2px 4px -1px rgba(102, 126, 234, 0.2);
+}
+
+.upgrade-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.upgrade-btn:hover::before {
+  left: 100%;
+}
+
+.upgrade-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(102, 126, 234, 0.4), 0 4px 6px -2px rgba(102, 126, 234, 0.3);
+}
+
+.upgrade-btn:active {
+  transform: translateY(0);
+}
+
+.upgrade-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.upgrade-icon {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.1);
+  }
+}
+
+.upgrade-arrow {
+  width: 0.875rem;
+  height: 0.875rem;
+  flex-shrink: 0;
+  transition: transform 0.3s;
+}
+
+.upgrade-btn:hover .upgrade-arrow {
+  transform: translateX(4px);
+}
+
+.upgrade-btn:disabled .upgrade-arrow {
+  display: none;
+}
+
+/* 모바일 반응형 */
+@media (max-width: 768px) {
+  .upgrade-btn {
+    padding: 0.625rem;
+    font-size: 0.8125rem;
+    border-radius: 0.5rem;
+  }
+
+  .upgrade-btn span {
+    display: none;
+  }
+
+  .upgrade-icon {
+    width: 1.125rem;
+    height: 1.125rem;
+  }
 }
 
 .credit-badge {

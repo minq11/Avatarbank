@@ -162,6 +162,36 @@ def get_current_user_info(
     return UserBase.model_validate(current_user)
 
 
+@app.post("/auth/upgrade-to-seller", response_model=UserBase, tags=["auth"])
+def upgrade_to_seller(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> UserBase:
+    """Buyer를 Seller(Influencer)로 업그레이드"""
+    from .models import UserRole
+
+    # 이미 seller인 경우
+    if current_user.role == UserRole.INFLUENCER.value:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User is already a seller",
+        )
+
+    # buyer만 업그레이드 가능
+    if current_user.role != UserRole.BUYER.value:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only buyers can upgrade to seller",
+        )
+
+    # 역할 업그레이드
+    current_user.role = UserRole.INFLUENCER.value
+    db.commit()
+    db.refresh(current_user)
+
+    return UserBase.model_validate(current_user)
+
+
 @app.post("/generations", response_model=GenerationResponse, tags=["generation"])
 def create_generation(
     payload: GenerationCreateRequest,

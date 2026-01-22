@@ -85,18 +85,6 @@
             />
           </div>
 
-          <div class="form-group">
-            <label for="register-role">I want to</label>
-            <select
-              id="register-role"
-              v-model="registerRole"
-              class="form-input"
-            >
-              <option value="buyer">Buy images (Buyer)</option>
-              <option value="influencer">Sell my avatar (Influencer)</option>
-            </select>
-          </div>
-
           <div v-if="registerError" class="error-message">
             {{ registerError }}
           </div>
@@ -144,7 +132,6 @@ const loginPassword = ref("");
 // 회원가입 폼 데이터
 const registerEmail = ref("");
 const registerPassword = ref("");
-const registerRole = ref<"buyer" | "influencer">("buyer");
 
 // 모달이 열릴 때 모드 초기화
 watch(
@@ -158,7 +145,6 @@ watch(
       loginPassword.value = "";
       registerEmail.value = "";
       registerPassword.value = "";
-      registerRole.value = "buyer";
     }
   }
 );
@@ -195,7 +181,7 @@ const handleRegister = async () => {
   const result = await authStore.register(
     registerEmail.value,
     registerPassword.value,
-    registerRole.value
+    "buyer" // 항상 buyer로 가입
   );
 
   if (result.success) {
