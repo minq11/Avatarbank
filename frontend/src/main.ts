@@ -5,7 +5,7 @@ import App from "./App.vue";
 import router from "./router";
 
 import "./style.css";
-import "flag-icons/css/flag-icons.min.css";
+import "flag-icons/css/flag-icons.css";
 
 const app = createApp(App);
 
