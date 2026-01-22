@@ -154,15 +154,17 @@ Avatarbank는 **인플루언서의 외형(얼굴/체형)을 기반으로 학습�
 - **Celery Worker ↔ Z IMAGE TURBO API(fal.ai)**
   - 방식: fal.ai REST API 호출(HTTPS)
   - 태스크 내용:
-    - prompt/seed/옵션/LoRA를 API 요청에 포함
-    - API 응답으로 이미지 URL/메타데이터 수신
-    - 이미지 다운로드 → S3 업로드 → DB 반영
+    - prompt/seed/옵션/LoRA를 API 요청에 포함(필요 시 webhookUrl 지정)
+    - API 응답으로 request_id 및 (동기 모드의 경우) 이미지 URL/메타데이터 수신
+    - 동기 모드: 이미지 다운로드 → S3 업로드 → DB 반영
+    - 웹훅 모드: webhook 수신 후 후속 태스크로 동일 처리
 
 - **S3 저장 및 결과 반영**
   - **기본 방식: API 결과 URL 다운로드 → S3 업로드**
     - Celery Worker가 API 응답의 이미지 URL을 다운로드
     - boto3 등으로 S3에 업로드
     - 업로드 완료 후 Celery Worker가 `generations.image_url` 및 상태를 업데이트
+  - **웹훅 모드에서도 동일 로직을 사용** (webhook 수신 후 후속 태스크에서 수행)
   - 업로드 후 공통 처리:
     - `tasks.status` / `generations.status`를 `success` 또는 `failed`로 업데이트
     - 성공 시 `generations.image_url` 업데이트
@@ -414,19 +416,25 @@ Avatarbank는 **인플루언서의 외형(얼굴/체형)을 기반으로 학습�
    - `generations.status` → `processing`
 
 6. **Z IMAGE TURBO API 호출** (Celery Worker → fal.ai)
-   - prompt/seed/옵션/LoRA를 포함해 API 요청
-   - 완료 시 이미지 URL/메타데이터 수신
+   - prompt/seed/옵션/LoRA를 포함해 API 요청(필요 시 webhookUrl 포함)
+   - 응답으로 request_id 및 (동기 모드의 경우) 이미지 URL/메타데이터 수신
 
-7. **이미지 다운로드 및 S3 업로드** (Celery Worker)
-   - API 응답의 이미지 URL 다운로드
+7. **웹훅 수신(옵션)** (Backend)
+   - webhook payload의 request_id로 generation/task 매칭
+   - 중복 webhook 무시(최초 1회만 처리)
+   - 필요 시 API로 결과 확인 후 후속 처리 태스크 enqueue
+
+8. **이미지 다운로드 및 S3 업로드** (Celery Worker)
+   - 동기 모드: 6단계 응답 이미지 URL을 바로 다운로드
+   - 웹훅 모드: 7단계 후속 태스크에서 이미지 URL 조회/다운로드
    - S3 업로드
 
-8. **DB 기록 및 결과 반영** (Celery Worker)
+9. **DB 기록 및 결과 반영** (Celery Worker)
     - `generations.image_url` 업데이트(S3 경로)
     - `tasks.status` → `success`
     - 필요 시 `transactions` 기록(이미 처리된 경우 생략)
 
-9. **Frontend 결과 수신** (Frontend)
+10. **Frontend 결과 수신** (Frontend)
     - 생성 상태 조회 API 폴링 또는 WebSocket/SSE(향후)
     - 성공 시 이미지 URL 및 메타데이터 표시
 
@@ -436,6 +444,10 @@ Avatarbank는 **인플루언서의 외형(얼굴/체형)을 기반으로 학습�
   - `generations.status` → `failed`
   - `tasks.status` → `failed`
   - **크레딧 전액 환불** (14.3.2 정책)
+
+- **웹훅 미수신(타임아웃)**:
+  - webhookUrl 사용 시 일정 시간 내 미수신 → API 상태 조회 후 실패 처리
+  - 실패 처리 시 전액 환불(정책 위반 제외)
 
 - **정책 위반(프롬프트 필터링 실패)**:
   - 즉시 `failed` 처리(재시도 없음)
@@ -563,7 +575,8 @@ DB는 크게 **핵심 도메인 테이블**, **태스크/파이프라인 관리 
 | `generation_id`   | 연결된 이미지 생성 ID (FK → generations.id)                     |                                                  |
 | `task_type`       | 태스크 종류                                                      | generation / lora_training 등                     |
 | `status`          | 태스크 상태                                                      | queued / running / success / failed / canceled   |
-| `worker_id`       | 작업을 처리한 워커 식별자                                       | Celery Worker 인스턴스 ID 또는 외부 API 요청 ID 등 |
+| `worker_id`       | 작업을 처리한 워커 식별자                                       | Celery Worker 인스턴스 ID 등                      |
+| `provider_request_id` | 외부 API 요청 ID                                            | fal.ai request_id 등                               |
 | `started_at`      | 태스크 시작 시각                                                 |                                                  |
 | `finished_at`     | 태스크 종료 시각                                                 |                                                  |
 | `retry_count`     | 재시도 횟수                                                      | 장애/안정성 분석용                                |
@@ -694,6 +707,15 @@ DB는 크게 **핵심 도메인 테이블**, **태스크/파이프라인 관리 
   - 클라이언트 노출 금지, Backend/Celery에서만 사용
 - **모든 API 호출은 HTTPS로만 수행**
 
+#### 14.2.3 외부 AI API Webhook 보안
+
+- **Webhook은 외부 입력이므로 검증/멱등 처리 필수**
+  - 지원되는 경우 **서명/시크릿 검증** 적용
+  - payload의 `request_id`를 DB에 저장된 값과 매칭
+  - 동일 `request_id` 재수신 시 **중복 처리 금지**
+- **Webhook 수신 시 즉시 처리하지 않고 후속 태스크로 위임**
+  - 이미지 다운로드/S3 업로드는 Celery 작업으로 처리
+
 ### 14.3 크레딧 처리 규칙(원자성/중복 방지)
 
 #### 14.3.1 크레딧 차감 시점
@@ -746,7 +768,7 @@ DB는 크게 **핵심 도메인 테이블**, **태스크/파이프라인 관리 
 
 #### 14.5.1 완료 확인 방식
 
-- **방식**: **API 요청 후 결과 수신(기본 동기)** + 타임아웃/재시도 로직
+- **방식**: **API 요청 후 결과 수신(기본 동기)** 또는 **webhook 수신(옵션)**
 - **타임아웃**: **10분** (10분 내 완료 안 되면 `failed` 처리)
 
 #### 14.5.2 S3 업로드 완료 검증
@@ -762,7 +784,15 @@ DB는 크게 **핵심 도메인 테이블**, **태스크/파이프라인 관리 
 - **다른 포맷 지원**: WEBP, JPEG 등도 가능(API 옵션에 따라)
 - S3 Key 확장자는 실제 포맷에 맞춰 저장
 
-#### 14.5.4 S3/배포 공개 정책
+#### 14.5.4 Webhook 처리(옵션)
+
+- **Webhook 수신 시 처리 흐름**
+  1. `request_id` 매칭 및 멱등 체크(이미 처리된 경우 무시)
+  2. 성공 상태인 경우 후속 Celery 태스크 enqueue
+  3. 후속 태스크가 API 결과 조회 → 이미지 다운로드 → S3 업로드 → 상태 업데이트 수행
+  4. 실패 상태인 경우 `failed` 처리 및 환불 규칙 적용
+
+#### 14.5.5 S3/배포 공개 정책
 
 - **S3 버킷**: **비공개(Private)**
 - **이미지 제공**: **CloudFront(또는 S3) 서명 URL로만 제공**
