@@ -1,18 +1,18 @@
 <template>
   <section>
-    <h2>인플루언서 대시보드</h2>
-    <p class="hint">수익/생성 통계는 추후 백엔드 연동 시 실제 데이터로 교체됩니다.</p>
+    <h2>Influencer Dashboard</h2>
+    <p class="hint">Revenue and generation stats will be replaced with live data after backend integration.</p>
     <div class="stats">
       <div class="stat-card">
-        <span class="label">누적 수익</span>
+        <span class="label">Total Revenue</span>
         <strong>120.0 USD</strong>
       </div>
       <div class="stat-card">
-        <span class="label">이번 달 수익</span>
+        <span class="label">This Month</span>
         <strong>24.0 USD</strong>
       </div>
       <div class="stat-card">
-        <span class="label">총 생성 횟수</span>
+        <span class="label">Total Generations</span>
         <strong>532</strong>
       </div>
     </div>

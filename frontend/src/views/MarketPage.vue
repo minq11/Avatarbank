@@ -1,12 +1,12 @@
 <template>
   <section>
-    <h2>아바타 마켓</h2>
-    <p class="hint">백엔드 연동 전까지는 목업 데이터로 렌더링합니다.</p>
+    <h2>Avatar Market</h2>
+    <p class="hint">Mock data is shown until the backend is connected.</p>
     <div class="filters">
-      <input type="text" placeholder="인플루언서, 태그 검색" />
+      <input type="text" placeholder="Search influencers or tags" />
       <label>
         <input type="checkbox" />
-        NSFW 포함
+        Include NSFW
       </label>
     </div>
     <div class="grid">
@@ -19,7 +19,7 @@
         <div class="thumb" />
         <h3>{{ avatar.title }}</h3>
         <p>{{ avatar.description }}</p>
-        <small>기본 1C + 옵션</small>
+        <small>Base 1C + options</small>
       </article>
     </div>
   </section>
@@ -27,8 +27,8 @@
 
 <script setup lang="ts">
 const mockAvatars = [
-  { id: 1, title: "Influencer A", description: "패션/라이프스타일 아바타" },
-  { id: 2, title: "Influencer B", description: "스포츠/피트니스 아바타" },
+  { id: 1, title: "Influencer A", description: "Fashion/Lifestyle avatar" },
+  { id: 2, title: "Influencer B", description: "Sports/Fitness avatar" },
 ];
 </script>
 

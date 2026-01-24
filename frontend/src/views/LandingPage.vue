@@ -31,7 +31,7 @@
                 placeholder="Describe the image you want to create..."
                 class="prompt-input"
               />
-              <button class="generate-btn">
+              <button class="generate-btn" type="button" @click="goToGenerate">
                 <svg class="generate-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .962 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.582a.5.5 0 0 1 0 .962L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.962 0L9.937 15.5Z"/>
                 </svg>
@@ -154,10 +154,11 @@
 
 <script setup lang="ts">
 import { ref } from "vue";
-import { RouterLink } from "vue-router";
+import { RouterLink, useRouter } from "vue-router";
 import instagramLogo from "@/assets/icons/Instagram_logo_2016.svg?url";
 
 const prompt = ref("");
+const router = useRouter();
 
 const galleryAvatars = [
   { instagram: "@model_anna" },
@@ -169,6 +170,14 @@ const galleryAvatars = [
   { instagram: "@elegant_maria" },
   { instagram: "@minimal_chris" },
 ];
+
+function goToGenerate() {
+  console.log("generate click", { prompt: prompt.value });
+  router.push({
+    name: "prompt-generate",
+    query: prompt.value ? { prompt: prompt.value } : {},
+  });
+}
 </script>
 
 <style scoped>

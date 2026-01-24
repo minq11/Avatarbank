@@ -1,13 +1,13 @@
 <template>
   <section>
-    <h2>내 생성물</h2>
-    <p class="hint">현재는 목업 데이터로 렌더링됩니다. 추후 /generations API 연동.</p>
+    <h2>My Generations</h2>
+    <p class="hint">Mock data is shown for now. /generations API integration is coming.</p>
     <div class="list">
       <article v-for="g in mockGenerations" :key="g.id" class="item">
         <div class="thumb" />
         <div class="meta">
           <h3>{{ g.prompt }}</h3>
-          <p>{{ g.avatarTitle }} · {{ g.creditsUsed }}C 사용</p>
+          <p>{{ g.avatarTitle }} · {{ g.creditsUsed }}C used</p>
           <small>{{ g.createdAt }}</small>
         </div>
       </article>

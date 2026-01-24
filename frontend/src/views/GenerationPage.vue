@@ -3,23 +3,23 @@
     <div class="layout">
       <div class="left">
         <div class="preview" />
-        <p class="note">샘플 프리뷰 (실제 이미지는 생성 후 표시)</p>
+        <p class="note">Sample preview (actual image will appear after generation)</p>
       </div>
       <div class="right">
-        <h2>아바타 상세 / 이미지 생성</h2>
-        <p class="sub">기본 1C는 플랫폼, 옵션 크레딧은 인플루언서에게 지급됩니다.</p>
+        <h2>Avatar Details / Image Generation</h2>
+        <p class="sub">The base 1C goes to the platform; option credits go to the influencer.</p>
 
         <label class="field">
-          <span>프롬프트</span>
-          <textarea v-model="prompt" rows="5" placeholder="원하는 이미지를 영어로 입력해 주세요." />
+          <span>Prompt</span>
+          <textarea v-model="prompt" rows="5" placeholder="Describe the image you want (English recommended)." />
         </label>
 
         <label class="field">
-          <span>옵션 크레딧 (0 ~ 10)</span>
+          <span>Option Credits (0–10)</span>
           <input type="range" min="0" max="10" v-model.number="optionCredits" />
           <div class="range-info">
             <span>{{ optionCredits }} C</span>
-            <span>총 비용: {{ 1 + optionCredits }} C</span>
+            <span>Total cost: {{ 1 + optionCredits }} C</span>
           </div>
         </label>
 
@@ -28,12 +28,12 @@
           :disabled="!canSubmit"
           @click="requestGeneration"
         >
-          이미지 생성
+          Generate Image
         </button>
 
         <p v-if="error" class="error">{{ error }}</p>
         <p v-if="generationId" class="info">
-          생성 요청 완료. ID: {{ generationId }} (상태 조회는 추후 구현)
+          Request submitted. ID: {{ generationId }} (status tracking coming soon)
         </p>
       </div>
     </div>
@@ -78,7 +78,7 @@ async function requestGeneration() {
     generationId.value = res.data.id;
   } catch (e: any) {
     error.value =
-      e?.response?.data?.detail ?? "이미지 생성 요청 중 오류가 발생했습니다.";
+      e?.response?.data?.detail ?? "Failed to submit the generation request.";
   } finally {
     loading.value = false;
   }
