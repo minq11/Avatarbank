@@ -44,13 +44,13 @@
             </div>
 
             <!-- Auth Buttons -->
-            <div v-if="!authStore.isLoggedIn" class="auth-buttons">
+            <div v-if="authStore.isInitialized && !authStore.isLoggedIn" class="auth-buttons">
               <button @click="openLoginModal" class="btn-login">Login</button>
               <button @click="openRegisterModal" class="btn-signup">Sign up</button>
             </div>
 
             <!-- User Info (when logged in) -->
-            <div v-else class="user-info">
+            <div v-else-if="authStore.isInitialized" class="user-info">
               <!-- Seller 업그레이드 버튼 (Buyer만 보임) -->
               <button
                 v-if="authStore.isBuyer"

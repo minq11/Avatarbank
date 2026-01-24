@@ -15,7 +15,8 @@ from .auth import (
 from .config import settings
 from .db import Base, engine, get_db
 from .dependencies import get_current_user
-from .models import Generation, GenerationStatus, Task, TaskStatus, Transaction, User
+from .models import Generation, GenerationStatus, Transaction, User
+from .fal_client import submit_generation, get_status, get_result
 from .schemas import (
     GenerationCreateRequest,
     GenerationResponse,
@@ -26,7 +27,6 @@ from .schemas import (
     UserRegisterRequest,
     UserBase,
 )
-from .tasks import run_generation_task
 
 app = FastAPI(title=settings.PROJECT_NAME)
 
@@ -130,8 +130,15 @@ def refresh_token(
             detail="Invalid refresh token",
         )
 
-    user_id = token_payload.get("sub")
-    if user_id is None:
+    user_id_raw = token_payload.get("sub")
+    if user_id_raw is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token payload",
+        )
+    try:
+        user_id = int(user_id_raw)
+    except (TypeError, ValueError):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token payload",
@@ -233,20 +240,32 @@ def create_generation(
         reference_id=None,
     )
     db.add(tx)
-    db.flush()
-
-    # 태스크 기록
-    task = Task(
-        generation_id=generation.id,
-        task_type="generation",
-        status=TaskStatus.QUEUED.value,
-    )
-    db.add(task)
     db.commit()
     db.refresh(generation)
 
-    # TODO: S3 Presigned URL 발급 후 Celery 태스크에 전달
-    run_generation_task.delay(generation.id, presigned_url="")  # 스켈레톤
+    try:
+        request_id = submit_generation(payload.prompt)
+        generation.request_id = request_id
+        db.commit()
+        db.refresh(generation)
+    except Exception as exc:
+        generation.status = GenerationStatus.FAILED.value
+        generation.fail_reason = str(exc)
+
+        refund_before = buyer.credit_balance
+        buyer.credit_balance += total_credits
+        tx_refund = Transaction(
+            user_id=buyer.id,
+            type="refund",
+            amount=total_credits,
+            currency="CREDIT",
+            credit_before=refund_before,
+            credit_after=buyer.credit_balance,
+            reference_id=str(generation.id),
+        )
+        db.add(tx_refund)
+        db.commit()
+        db.refresh(generation)
 
     return GenerationResponse.model_validate(generation)
 
@@ -259,6 +278,66 @@ def get_generation(
     generation = db.query(Generation).filter(Generation.id == generation_id).first()
     if not generation:
         raise HTTPException(status_code=404, detail="Generation not found.")
+
+    if generation.status not in (
+        GenerationStatus.SUCCESS.value,
+        GenerationStatus.FAILED.value,
+    ) and generation.request_id:
+        try:
+            status_payload = get_status(generation.request_id)
+            status_value = (
+                status_payload.get("status")
+                or status_payload.get("data", {}).get("status")
+                or ""
+            ).upper()
+
+            if status_value in {"COMPLETED", "SUCCESS"}:
+                result_payload = get_result(generation.request_id)
+                images = (
+                    result_payload.get("images")
+                    or result_payload.get("data", {}).get("images")
+                    or []
+                )
+                if images:
+                    generation.image_url = images[0].get("url")
+                generation.seed = (
+                    str(result_payload.get("seed"))
+                    if result_payload.get("seed") is not None
+                    else None
+                )
+                generation.nsfw_flag = any(
+                    result_payload.get("has_nsfw_concepts") or []
+                )
+                generation.status = GenerationStatus.SUCCESS.value
+                db.commit()
+                db.refresh(generation)
+            elif status_value in {"FAILED", "CANCELED"}:
+                generation.status = GenerationStatus.FAILED.value
+                generation.fail_reason = "fal.ai generation failed"
+
+                buyer = db.query(User).filter(User.id == generation.buyer_id).first()
+                if buyer:
+                    refund_before = buyer.credit_balance
+                    buyer.credit_balance += generation.credits_used
+                    tx_refund = Transaction(
+                        user_id=buyer.id,
+                        type="refund",
+                        amount=generation.credits_used,
+                        currency="CREDIT",
+                        credit_before=refund_before,
+                        credit_after=buyer.credit_balance,
+                        reference_id=str(generation.id),
+                    )
+                    db.add(tx_refund)
+
+                db.commit()
+                db.refresh(generation)
+        except Exception as exc:
+            generation.status = GenerationStatus.FAILED.value
+            generation.fail_reason = str(exc)
+            db.commit()
+            db.refresh(generation)
+
     return GenerationResponse.model_validate(generation)
 
 

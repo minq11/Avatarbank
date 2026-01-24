@@ -17,17 +17,24 @@
         </label>
 
         <div class="actions">
-          <button class="btn primary" :disabled="!prompt" @click="handleGenerate">
-            Generate Image
+          <button class="btn primary" :disabled="!canSubmit" @click="handleGenerate">
+            {{ isLoading ? "Submitting..." : "Generate Image" }}
           </button>
           <button class="btn ghost" type="button" @click="clearPrompt">
             Reset
           </button>
         </div>
 
-        <p v-if="submitted" class="notice">
-          Your request has been submitted. The results area will be connected later.
+        <p v-if="statusMessage" class="notice">
+          {{ statusMessage }}
         </p>
+        <p v-if="errorMessage" class="error">
+          {{ errorMessage }}
+        </p>
+
+        <div v-if="imageUrl" class="result">
+          <img :src="imageUrl" alt="Generated result" />
+        </div>
       </div>
 
       <div class="tips">
@@ -43,12 +50,20 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { computed, onUnmounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
+import { api } from "@/services/api";
 
 const route = useRoute();
 const prompt = ref((route.query.prompt as string) ?? "");
-const submitted = ref(false);
+const isLoading = ref(false);
+const statusMessage = ref("");
+const errorMessage = ref("");
+const generationId = ref<number | null>(null);
+const imageUrl = ref("");
+let pollTimer: number | null = null;
+
+const canSubmit = computed(() => !!prompt.value && !isLoading.value);
 
 watch(
   () => route.query.prompt,
@@ -59,15 +74,89 @@ watch(
   },
 );
 
-function handleGenerate() {
-  if (!prompt.value) return;
-  submitted.value = true;
+async function handleGenerate() {
+  if (!canSubmit.value) return;
+  isLoading.value = true;
+  statusMessage.value = "";
+  errorMessage.value = "";
+  imageUrl.value = "";
+  generationId.value = null;
+
+  try {
+    const idempotencyKey = crypto.randomUUID();
+    const response = await api.post("/generations", {
+      avatar_id: 1,
+      prompt: prompt.value,
+      option_credits: 0,
+      idempotency_key: idempotencyKey,
+    });
+
+    generationId.value = response.data.id;
+    statusMessage.value = "Request submitted. Waiting for results...";
+    startPolling();
+  } catch (error: any) {
+    if (error?.response?.status === 401) {
+      errorMessage.value = "Please log in to generate images.";
+    } else {
+      errorMessage.value =
+        error?.response?.data?.detail ?? "Failed to submit the request.";
+    }
+  } finally {
+    isLoading.value = false;
+  }
 }
 
 function clearPrompt() {
   prompt.value = "";
-  submitted.value = false;
+  statusMessage.value = "";
+  errorMessage.value = "";
+  imageUrl.value = "";
+  generationId.value = null;
+  stopPolling();
 }
+
+function startPolling() {
+  stopPolling();
+  if (!generationId.value) return;
+
+  pollTimer = window.setInterval(async () => {
+    if (!generationId.value) return;
+
+    try {
+      const res = await api.get(`/generations/${generationId.value}`);
+      const data = res.data;
+      const status = data.status;
+
+      if (status === "success") {
+        imageUrl.value = data.image_url || "";
+        statusMessage.value = "Generation complete.";
+        stopPolling();
+      } else if (status === "failed") {
+        errorMessage.value = data.fail_reason || "Generation failed.";
+        statusMessage.value = "";
+        stopPolling();
+      } else {
+        statusMessage.value = "Generating...";
+      }
+    } catch (error: any) {
+      errorMessage.value =
+        error?.response?.data?.detail ?? "Failed to fetch generation status.";
+      statusMessage.value = "";
+      stopPolling();
+    }
+  }, 2000);
+}
+
+function stopPolling() {
+  if (pollTimer !== null) {
+    window.clearInterval(pollTimer);
+    pollTimer = null;
+  }
+}
+
+onUnmounted(() => {
+  stopPolling();
+});
 </script>
 
 <style scoped>
@@ -178,6 +267,24 @@ textarea:focus {
   margin-top: 1rem;
   color: #16a34a;
   font-size: 0.95rem;
+}
+
+.error {
+  margin-top: 0.75rem;
+  color: #dc2626;
+  font-size: 0.95rem;
+}
+
+.result {
+  margin-top: 1.5rem;
+  border-radius: 1rem;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+}
+
+.result img {
+  width: 100%;
+  display: block;
 }
 
 .tips {

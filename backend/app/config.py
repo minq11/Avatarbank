@@ -27,6 +27,11 @@ class Settings(BaseSettings):
     COMFYUI_BASE_URL: str = "http://runpods-comfyui:8188"
     RUNPODS_HMAC_SECRET: str = "CHANGE_ME_RUNPODS_HMAC"
 
+    # fal.ai (text-to-image)
+    FAL_API_KEY: str = ""
+    FAL_API_BASE_URL: str = "https://fal.run"
+    FAL_MODEL: str = "fal-ai/z-image/turbo/lora"
+
     class Config:
         env_file = [".env", "../.env"]  # 현재 디렉토리 또는 상위 디렉토리에서 .env 파일 찾기
         env_file_encoding = "utf-8"

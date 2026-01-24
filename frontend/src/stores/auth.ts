@@ -11,6 +11,7 @@ export const useAuthStore = defineStore("auth", () => {
   const user = ref<User | null>(null);
   const accessToken = ref<string | null>(localStorage.getItem("access_token"));
   const refreshToken = ref<string | null>(localStorage.getItem("refresh_token"));
+  const isInitialized = ref(false);
 
   // Getters
   const isLoggedIn = computed(() => !!user.value && !!accessToken.value);
@@ -81,9 +82,12 @@ export const useAuthStore = defineStore("auth", () => {
     try {
       const userData = await authApi.getMe();
       setUser(userData);
-    } catch (error) {
-      // 토큰이 유효하지 않으면 로그아웃
-      clearAuth();
+    } catch (error: any) {
+      const status = error?.response?.status;
+      // 인증 실패(401)일 때만 로그아웃
+      if (status === 401) {
+        clearAuth();
+      }
     }
   };
 
@@ -92,6 +96,7 @@ export const useAuthStore = defineStore("auth", () => {
     if (accessToken.value) {
       await fetchUser();
     }
+    isInitialized.value = true;
   };
 
   // Seller로 업그레이드
@@ -123,6 +128,7 @@ export const useAuthStore = defineStore("auth", () => {
     creditBalance,
     isBuyer,
     isSeller,
+    isInitialized,
     // Actions
     login,
     register,

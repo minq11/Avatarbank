@@ -6,6 +6,8 @@ JWT 토큰 생성, 비밀번호 해싱, 토큰 검증 등
 from datetime import datetime, timedelta
 from typing import Optional
 
+import logging
+
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
@@ -15,6 +17,7 @@ from .models import User
 
 # 비밀번호 해싱 컨텍스트
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+logger = logging.getLogger(__name__)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -30,6 +33,8 @@ def get_password_hash(password: str) -> str:
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     """Access Token 생성"""
     to_encode = data.copy()
+    if "sub" in to_encode:
+        to_encode["sub"] = str(to_encode["sub"])
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
@@ -46,6 +51,8 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 def create_refresh_token(data: dict) -> str:
     """Refresh Token 생성"""
     to_encode = data.copy()
+    if "sub" in to_encode:
+        to_encode["sub"] = str(to_encode["sub"])
     expire = datetime.utcnow() + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
     to_encode.update({"exp": expire, "type": "refresh"})
     encoded_jwt = jwt.encode(
@@ -64,7 +71,8 @@ def verify_token(token: str, token_type: str = "access") -> Optional[dict]:
         if payload.get("type") != token_type:
             return None
         return payload
-    except JWTError:
+    except JWTError as exc:
+        logger.warning("JWT verification failed: %s", exc)
         return None
 
 

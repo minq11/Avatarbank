@@ -25,6 +25,7 @@ api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("access_token");
     if (token) {
+      config.headers = config.headers || {};
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
@@ -59,10 +60,9 @@ api.interceptors.response.use(
           return api(originalRequest);
         }
       } catch (refreshError) {
-        // Refresh Token도 만료된 경우 로그아웃
+        // Refresh Token도 만료된 경우 토큰 정리만 수행
         localStorage.removeItem("access_token");
         localStorage.removeItem("refresh_token");
-        window.location.href = "/";
         return Promise.reject(refreshError);
       }
     }

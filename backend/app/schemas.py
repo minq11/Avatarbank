@@ -62,9 +62,12 @@ class GenerationResponse(BaseModel):
     buyer_id: int
     credits_used: int
     prompt: str
+    request_id: Optional[str] = None
     image_url: Optional[str]
+    seed: Optional[str] = None
     status: str
     fail_reason: Optional[str]
+    nsfw_flag: Optional[bool] = None
     created_at: datetime
 
     class Config:

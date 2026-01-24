@@ -93,6 +93,7 @@ class Generation(Base):
     credits_used = Column(Integer, nullable=False)
     prompt = Column(Text, nullable=False)
     seed = Column(String, nullable=True)
+    request_id = Column(String, nullable=True)
     image_url = Column(String, nullable=True)
     status = Column(String, nullable=False, default=GenerationStatus.PENDING)
     fail_reason = Column(Text, nullable=True)
