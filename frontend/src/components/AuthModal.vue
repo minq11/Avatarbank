@@ -7,7 +7,7 @@
         </svg>
       </button>
 
-      <!-- 로그인 폼 -->
+      <!-- Login Form -->
       <div v-if="mode === 'login'" class="auth-form">
         <h2 class="form-title">Login</h2>
         <p class="form-subtitle">Welcome back! Please login to your account.</p>
@@ -54,7 +54,7 @@
         </form>
       </div>
 
-      <!-- 회원가입 폼 -->
+      <!-- Register Form -->
       <div v-else class="auth-form">
         <h2 class="form-title">Sign Up</h2>
         <p class="form-subtitle">Create a new account to get started.</p>
@@ -139,16 +139,16 @@ const isLoading = ref(false);
 const loginError = ref("");
 const registerError = ref("");
 
-// 로그인 폼 데이터
+// Login form data
 const loginEmail = ref("");
 const loginPassword = ref("");
 
-// 회원가입 폼 데이터
+// Register form data
 const registerEmail = ref("");
 const registerPassword = ref("");
 const registerNickname = ref("");
 
-// 모달이 열릴 때 모드 초기화
+// Initialize mode when modal opens
 watch(
   () => props.isOpen,
   (isOpen) => {
@@ -198,7 +198,7 @@ const handleRegister = async () => {
     registerEmail.value,
     registerNickname.value,
     registerPassword.value,
-    "buyer" // 항상 buyer로 가입
+    "buyer" // Always register as buyer
   );
 
   if (result.success) {

@@ -68,21 +68,19 @@
                   </svg>
                 </button>
                 <div v-if="showProfileMenu" class="profile-dropdown">
-                  <button
-                    v-if="authStore.isBuyer"
-                    type="button"
-                    class="dropdown-item upgrade-item"
-                    @click="openInfluencerGuide"
-                  >
-                    <img :src="crownUpgradeIcon" alt="" class="upgrade-crown" />
-                    Become an Influencer
-                  </button>
                   <RouterLink
                     to="/my/generations"
                     class="dropdown-item"
                     @click="showProfileMenu = false"
                   >
                     My creations
+                  </RouterLink>
+                  <RouterLink
+                    to="/my/avatars"
+                    class="dropdown-item"
+                    @click="showProfileMenu = false"
+                  >
+                    My Avatars
                   </RouterLink>
                   <a href="#profile" class="dropdown-item">Profile</a>
                   <a href="#settings" class="dropdown-item">Settings</a>
@@ -106,49 +104,6 @@
       :initial-mode="authModalMode"
       @close="closeAuthModal"
     />
-
-    <div v-if="showInfluencerModal" class="modal-overlay">
-      <div class="modal-card">
-        <div class="modal-header">
-          <h3>Become an Influencer</h3>
-          <button class="modal-close" type="button" @click="closeInfluencerGuide">×</button>
-        </div>
-        <div class="modal-body">
-          <p class="modal-lead">
-            Want to become an influencer and start earning?
-            <br />
-            DM us on Instagram.
-          </p>
-          <div class="modal-step">
-            <p class="modal-label">DM template</p>
-            <div class="modal-box">
-              <p>I want to register my real identity (face, body, etc.) on Avatarbank.</p>
-              <p>My Avatarbank nickname: [YOUR_NICKNAME]</p>
-            </div>
-          </div>
-          <p class="modal-note">
-            After approval, you'll get access to a photo upload screen. Once your identity is verified,
-            we will train an AI model exclusively for you.
-          </p>
-          <ul class="modal-list">
-            <li>Influencers must have at least 2,000 followers.</li>
-            <li>We do not train models using anyone else's face.</li>
-            <li>We will respond within 10 minutes to 8 hours.</li>
-          </ul>
-        </div>
-        <div class="modal-footer">
-          <a
-            class="modal-secondary"
-            href="https://www.instagram.com/avatarbank_official/"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <img :src="instagramIcon" alt="" class="instagram-icon" />
-            DM on Instagram
-          </a>
-        </div>
-      </div>
-    </div>
 
     <footer class="app-footer">
       <div class="footer-container">
@@ -220,8 +175,6 @@ import { RouterLink, RouterView } from "vue-router";
 import { useAuthStore } from "./stores/auth";
 import AuthModal from "./components/AuthModal.vue";
 import diamondIcon from "./assets/icons/diamond_credit_icon.svg";
-import crownUpgradeIcon from "./assets/icons/crown_upgrade.svg";
-import instagramIcon from "./assets/icons/Instagram_logo_2016.svg";
 
 const authStore = useAuthStore();
 
@@ -230,7 +183,6 @@ const showLanguageMenu = ref(false);
 const showProfileMenu = ref(false);
 const showAuthModal = ref(false);
 const authModalMode = ref<"login" | "register">("login");
-const showInfluencerModal = ref(false);
 
 const languages = [
   { value: "en", label: "EN", flagCode: "gb" },
@@ -247,7 +199,7 @@ const selectLanguage = (value: "en" | "ko" | "ja") => {
   showLanguageMenu.value = false;
 };
 
-// 인증 모달 관련
+// Auth modal related
 const openLoginModal = () => {
   authModalMode.value = "login";
   showAuthModal.value = true;
@@ -262,26 +214,18 @@ const closeAuthModal = () => {
   showAuthModal.value = false;
 };
 
-// 로그아웃
+// Logout
 const handleLogout = () => {
   authStore.logout();
   showProfileMenu.value = false;
 };
 
-const openInfluencerGuide = () => {
-  showInfluencerModal.value = true;
-};
-
-const closeInfluencerGuide = () => {
-  showInfluencerModal.value = false;
-};
-
-// 크레딧 포맷팅
+// Credit formatting
 const formatCredit = (amount: number): string => {
   return new Intl.NumberFormat("en-US").format(amount);
 };
 
-// 외부 클릭 시 드롭다운 닫기
+// Close dropdown on outside click
 const handleClickOutside = (event: MouseEvent) => {
   const target = event.target as HTMLElement;
   if (!target.closest(".language-wrapper")) {
@@ -292,11 +236,11 @@ const handleClickOutside = (event: MouseEvent) => {
   }
 };
 
-// 컴포넌트 마운트 시 이벤트 리스너 추가 및 인증 초기화
+// Add event listeners and initialize auth on component mount
 import { onUnmounted } from "vue";
 onMounted(async () => {
   document.addEventListener("click", handleClickOutside);
-  // 저장된 토큰이 있으면 사용자 정보 가져오기
+  // Fetch user info if token exists
   await authStore.initialize();
 });
 onUnmounted(() => {
@@ -659,7 +603,7 @@ onUnmounted(() => {
   box-shadow: 0 10px 15px -10px rgba(79, 70, 229, 0.6);
 }
 
-/* 모바일 반응형 */
+/* Mobile Responsive */
 
 .credit-badge {
   display: flex;

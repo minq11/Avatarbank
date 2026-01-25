@@ -63,7 +63,7 @@ async function requestGeneration() {
     const res = await axios.post(
       "/api/generations",
       {
-        avatar_id: 1, // TODO: 라우터 params에서 실제 ID 사용
+        avatar_id: 1, // TODO: Use actual ID from router params
         prompt: prompt.value,
         option_credits: optionCredits.value,
         idempotency_key: idempotencyKey,

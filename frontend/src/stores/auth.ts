@@ -1,5 +1,5 @@
 /**
- * 인증 상태 관리 Store (Pinia)
+ * Authentication State Management Store (Pinia)
  */
 
 import { defineStore } from "pinia";
@@ -61,7 +61,7 @@ export const useAuthStore = defineStore("auth", () => {
   ) => {
     try {
       await authApi.register({ email, nickname, password, role, locale });
-      // 회원가입 후 자동 로그인
+      // Auto login after registration
       return await login(email, password);
     } catch (error: any) {
       return {
@@ -85,14 +85,14 @@ export const useAuthStore = defineStore("auth", () => {
       setUser(userData);
     } catch (error: any) {
       const status = error?.response?.status;
-      // 인증 실패(401)일 때만 로그아웃
+      // Only logout on authentication failure (401)
       if (status === 401) {
         clearAuth();
       }
     }
   };
 
-  // 초기화: 저장된 토큰이 있으면 사용자 정보 가져오기
+  // Initialize: Fetch user info if token exists
   const initialize = async () => {
     if (accessToken.value) {
       await fetchUser();
@@ -100,7 +100,7 @@ export const useAuthStore = defineStore("auth", () => {
     isInitialized.value = true;
   };
 
-  // Buyer인지 확인
+  // Check if user is Buyer
   const isBuyer = computed(() => userRole.value === "buyer");
   const isSeller = computed(() => userRole.value === "influencer");
 

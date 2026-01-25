@@ -81,3 +81,39 @@ class GenerationResponse(BaseModel):
         from_attributes = True
 
 
+# TrainingRequest 스키마
+class TrainingRequestResponse(BaseModel):
+    id: int
+    avatar_name: str
+    status: str
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# Avatar 스키마
+class AvatarResponse(BaseModel):
+    id: int
+    title: str
+    description: Optional[str] = None
+    nationality: Optional[str] = None
+    gender: Optional[str] = None
+    preview_image_url: Optional[str] = None
+    credit_per_generation: Optional[int] = None
+    negative_prompt: Optional[str] = None
+    status: str
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class AvatarUpdateRequest(BaseModel):
+    title: Optional[str] = None
+    credit_per_generation: Optional[int] = None
+    description: Optional[str] = None
+
+

@@ -1,18 +1,18 @@
 /**
- * API 서비스
- * axios 인스턴스 및 API 호출 함수들
+ * API Service
+ * axios instance and API call functions
  */
 
 import axios, { AxiosInstance, AxiosError } from "axios";
 
-// API 기본 URL
-// 개발 환경: Vite proxy 사용 (/api)
-// 프로덕션: 환경 변수 또는 기본값
+// API base URL
+// Development: Use Vite proxy (/api)
+// Production: Environment variable or default value
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
   (import.meta.env.DEV ? "/api" : "http://localhost:8000");
 
-// axios 인스턴스 생성
+// Create axios instance
 export const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -20,7 +20,7 @@ export const api: AxiosInstance = axios.create({
   },
 });
 
-// 요청 인터셉터: Access Token 자동 추가
+// Request interceptor: Automatically add Access Token
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("access_token");
@@ -35,13 +35,13 @@ api.interceptors.request.use(
   }
 );
 
-// 응답 인터셉터: 401 에러 시 토큰 갱신 시도
+// Response interceptor: Try token refresh on 401 error
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     const originalRequest = error.config as any;
 
-    // 401 에러이고 아직 재시도하지 않은 경우
+    // 401 error and not yet retried
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
@@ -55,12 +55,12 @@ api.interceptors.response.use(
           const { access_token } = response.data;
           localStorage.setItem("access_token", access_token);
 
-          // 원래 요청 재시도
+          // Retry original request
           originalRequest.headers.Authorization = `Bearer ${access_token}`;
           return api(originalRequest);
         }
       } catch (refreshError) {
-        // Refresh Token도 만료된 경우 토큰 정리만 수행
+        // If Refresh Token is also expired, only clear tokens
         localStorage.removeItem("access_token");
         localStorage.removeItem("refresh_token");
         return Promise.reject(refreshError);
@@ -71,12 +71,12 @@ api.interceptors.response.use(
   }
 );
 
-// API 응답 타입
+// API response types
 export interface ApiError {
   detail: string;
 }
 
-// 인증 API
+// Authentication API
 export interface RegisterRequest {
   email: string;
   nickname: string;
@@ -115,7 +115,7 @@ export interface RefreshTokenResponse {
   token_type: string;
 }
 
-// 인증 API 함수들
+// Authentication API functions
 export const authApi = {
   register: async (data: RegisterRequest): Promise<User> => {
     const response = await api.post<User>("/auth/register", data);
@@ -159,6 +159,111 @@ export interface GenerationItem {
 export const generationsApi = {
   getMyGenerations: async (): Promise<GenerationItem[]> => {
     const response = await api.get<GenerationItem[]>("/my/generations");
+    return response.data;
+  },
+};
+
+// Training Requests API
+export interface TrainingRequestItem {
+  id: number;
+  avatar_name: string;
+  status: "requested" | "approved_training" | "rejected";
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateTrainingRequestData {
+  avatar_name: string;
+  negative_prompt: string;
+  credit_per_generation: number;
+  national: string;
+  gender: string;
+  description: string;
+  is_real_person: boolean;
+  instagram_id?: string;
+  preview_image: File;
+  front_photos: File[];
+  side_photos: File[];
+  fullbody_photos: File[];
+  other_photos: File[];
+}
+
+export const trainingRequestsApi = {
+  getMyRequests: async (): Promise<TrainingRequestItem[]> => {
+    const response = await api.get<TrainingRequestItem[]>("/my/training-requests");
+    return response.data;
+  },
+
+  createRequest: async (data: CreateTrainingRequestData): Promise<TrainingRequestItem> => {
+    const formData = new FormData();
+    formData.append("avatar_name", data.avatar_name);
+    formData.append("negative_prompt", data.negative_prompt);
+    formData.append("credit_per_generation", data.credit_per_generation.toString());
+    formData.append("national", data.national);
+    formData.append("gender", data.gender);
+    formData.append("description", data.description);
+    formData.append("is_real_person", data.is_real_person.toString());
+    if (data.instagram_id) {
+      formData.append("instagram_id", data.instagram_id);
+    }
+    formData.append("preview_image", data.preview_image);
+    
+    data.front_photos.forEach((file, index) => {
+      formData.append(`front_photos`, file);
+    });
+    data.side_photos.forEach((file, index) => {
+      formData.append(`side_photos`, file);
+    });
+    data.fullbody_photos.forEach((file, index) => {
+      formData.append(`fullbody_photos`, file);
+    });
+    data.other_photos.forEach((file, index) => {
+      formData.append(`other_photos`, file);
+    });
+
+    const response = await api.post<TrainingRequestItem>("/my/training-requests", formData);
+    return response.data;
+  },
+};
+
+// Avatars API
+export interface AvatarItem {
+  id: number;
+  title: string;
+  description: string | null;
+  nationality: string | null;
+  gender: string | null;
+  preview_image_url: string | null;
+  credit_per_generation: number | null;
+  negative_prompt: string | null;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UpdateAvatarData {
+  title?: string;
+  credit_per_generation?: number;
+  description?: string;
+  preview_image?: File;
+}
+
+export const avatarsApi = {
+  getMyAvatars: async (): Promise<AvatarItem[]> => {
+    const response = await api.get<AvatarItem[]>("/my/avatars");
+    return response.data;
+  },
+
+  updateAvatar: async (id: number, data: UpdateAvatarData): Promise<AvatarItem> => {
+    const formData = new FormData();
+    if (data.title) formData.append("title", data.title);
+    if (data.credit_per_generation !== undefined) {
+      formData.append("credit_per_generation", data.credit_per_generation.toString());
+    }
+    if (data.description) formData.append("description", data.description);
+    if (data.preview_image) formData.append("preview_image", data.preview_image);
+
+    const response = await api.put<AvatarItem>(`/my/avatars/${id}`, formData);
     return response.data;
   },
 };

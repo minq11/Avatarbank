@@ -59,6 +59,7 @@ class Avatar(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     influencer_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    training_request_id = Column(Integer, ForeignKey("training_requests.id"), nullable=True)  # 학습 요청과 연결
     title = Column(String, nullable=False)
     description = Column(Text, nullable=True)
     nationality = Column(String, nullable=True)
@@ -66,6 +67,8 @@ class Avatar(Base):
     height = Column(Numeric(5, 2), nullable=True)
     weight = Column(Numeric(5, 2), nullable=True)
     special_notes = Column(Text, nullable=True)
+    negative_prompt = Column(Text, nullable=True)  # 네거티브 프롬프트
+    credit_per_generation = Column(Integer, nullable=True)  # 생성당 크레딧
     lora_path = Column(String, nullable=True)
     nsfw_allowed = Column(Boolean, nullable=False, default=False)
     is_public = Column(Boolean, nullable=False, default=False)
@@ -238,4 +241,38 @@ class PayoutRequest(Base):
         DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
     )
     payout_tx_id = Column(String, nullable=True)
+
+
+class TrainingRequestStatus(str, Enum):
+    REQUESTED = "requested"
+    APPROVED_TRAINING = "approved_training"
+    REJECTED = "rejected"
+
+
+class TrainingRequest(Base):
+    __tablename__ = "training_requests"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    avatar_name = Column(String, nullable=False)
+    negative_prompt = Column(Text, nullable=True)
+    credit_per_generation = Column(Integer, nullable=False)
+    national = Column(String, nullable=True)
+    gender = Column(String, nullable=True)
+    description = Column(Text, nullable=True)
+    is_real_person = Column(Boolean, nullable=False, default=False)
+    instagram_id = Column(String, nullable=True)
+    preview_image_url = Column(String, nullable=True)
+    # 사진 URL들을 JSON 배열로 저장
+    front_photos_urls = Column(JSONB, nullable=True)
+    side_photos_urls = Column(JSONB, nullable=True)
+    fullbody_photos_urls = Column(JSONB, nullable=True)
+    other_photos_urls = Column(JSONB, nullable=True)
+    status = Column(String, nullable=False, default=TrainingRequestStatus.REQUESTED.value)
+    admin_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # 승인/반려한 관리자
+    admin_notes = Column(Text, nullable=True)  # 관리자 메모
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = Column(
+        DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
 

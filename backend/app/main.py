@@ -1,6 +1,7 @@
 from datetime import datetime
+from typing import List
 
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
@@ -16,14 +17,17 @@ from .auth import (
 from .config import settings
 from .db import Base, engine, get_db
 from .dependencies import get_current_user
-from .models import Avatar, Generation, GenerationStatus, Transaction, User
+from .models import Avatar, Generation, GenerationStatus, Transaction, TrainingRequest, User
 from .fal_client import run_generation_sync
 from .schemas import (
     AdminUpgradeRequest,
+    AvatarResponse,
+    AvatarUpdateRequest,
     GenerationCreateRequest,
     GenerationResponse,
     RefreshTokenRequest,
     RefreshTokenResponse,
+    TrainingRequestResponse,
     UserLoginRequest,
     UserLoginResponse,
     UserRegisterRequest,
@@ -356,5 +360,243 @@ def list_my_generations(
         .all()
     )
     return [GenerationResponse.model_validate(g) for g in generations]
+
+
+# Training Requests API
+@app.get("/my/training-requests", response_model=list[TrainingRequestResponse], tags=["training"])
+def list_my_training_requests(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> list[TrainingRequestResponse]:
+    """내 학습 요청 목록 조회"""
+    requests = (
+        db.query(TrainingRequest)
+        .filter(TrainingRequest.user_id == current_user.id)
+        .order_by(TrainingRequest.created_at.desc())
+        .all()
+    )
+    return [TrainingRequestResponse.model_validate(r) for r in requests]
+
+
+@app.post(
+    "/my/training-requests",
+    response_model=TrainingRequestResponse,
+    status_code=status.HTTP_201_CREATED,
+    tags=["training"],
+)
+async def create_training_request(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    avatar_name: str = Form(...),
+    negative_prompt: str = Form(...),
+    credit_per_generation: int = Form(...),
+    national: str = Form(...),
+    gender: str = Form(...),
+    description: str = Form(...),
+    is_real_person: bool = Form(False),
+    instagram_id: str = Form(None),
+    preview_image: UploadFile = File(...),
+    front_photos: List[UploadFile] = File(...),
+    side_photos: List[UploadFile] = File(...),
+    fullbody_photos: List[UploadFile] = File(...),
+    other_photos: List[UploadFile] = File(...),
+):
+    """학습 요청 생성"""
+    from fastapi import UploadFile, File, Form
+    from io import BytesIO
+    from .s3_utils import upload_file_to_s3, upload_multiple_files_to_s3
+    from .models import TrainingRequestStatus
+
+    # 실존인물인 경우 Instagram ID 필수
+    if is_real_person and not instagram_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Instagram ID is required for real person avatars",
+        )
+
+    # 최소 사진 개수 검증
+    if len(front_photos) < 4:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="At least 4 front photos are required",
+        )
+    if len(side_photos) < 4:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="At least 4 side photos are required",
+        )
+    if len(fullbody_photos) < 1:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="At least 1 full body photo is required",
+        )
+    if len(other_photos) < 1:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="At least 1 other photo is required",
+        )
+
+    # 이미지 업로드
+    preview_image_url = None
+    front_photos_urls = []
+    side_photos_urls = []
+    fullbody_photos_urls = []
+    other_photos_urls = []
+
+    try:
+        # 대표 이미지 업로드
+        preview_content = await preview_image.read()
+        preview_image_url = upload_file_to_s3(
+            BytesIO(preview_content),
+            preview_image.filename or "preview.jpg",
+            folder="training-requests",
+            content_type=preview_image.content_type or "image/jpeg",
+        )
+
+        # 정면 사진들 업로드
+        if front_photos:
+            front_contents = [await photo.read() for photo in front_photos]
+            front_filenames = [photo.filename or f"front_{i}.jpg" for i, photo in enumerate(front_photos)]
+            front_photos_urls = upload_multiple_files_to_s3(
+                [BytesIO(content) for content in front_contents],
+                front_filenames,
+                folder="training-requests",
+            )
+
+        # 측면 사진들 업로드
+        if side_photos:
+            side_contents = [await photo.read() for photo in side_photos]
+            side_filenames = [photo.filename or f"side_{i}.jpg" for i, photo in enumerate(side_photos)]
+            side_photos_urls = upload_multiple_files_to_s3(
+                [BytesIO(content) for content in side_contents],
+                side_filenames,
+                folder="training-requests",
+            )
+
+        # 전신 사진들 업로드
+        if fullbody_photos:
+            fullbody_contents = [await photo.read() for photo in fullbody_photos]
+            fullbody_filenames = [photo.filename or f"fullbody_{i}.jpg" for i, photo in enumerate(fullbody_photos)]
+            fullbody_photos_urls = upload_multiple_files_to_s3(
+                [BytesIO(content) for content in fullbody_contents],
+                fullbody_filenames,
+                folder="training-requests",
+            )
+
+        # 기타 사진들 업로드
+        if other_photos:
+            other_contents = [await photo.read() for photo in other_photos]
+            other_filenames = [photo.filename or f"other_{i}.jpg" for i, photo in enumerate(other_photos)]
+            other_photos_urls = upload_multiple_files_to_s3(
+                [BytesIO(content) for content in other_contents],
+                other_filenames,
+                folder="training-requests",
+            )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to upload images: {str(e)}",
+        )
+
+    # TrainingRequest 생성
+    training_request = TrainingRequest(
+        user_id=current_user.id,
+        avatar_name=avatar_name,
+        negative_prompt=negative_prompt,
+        credit_per_generation=credit_per_generation,
+        national=national,
+        gender=gender,
+        description=description,
+        is_real_person=is_real_person,
+        instagram_id=instagram_id if is_real_person else None,
+        preview_image_url=preview_image_url,
+        front_photos_urls=front_photos_urls if front_photos_urls else None,
+        side_photos_urls=side_photos_urls if side_photos_urls else None,
+        fullbody_photos_urls=fullbody_photos_urls if fullbody_photos_urls else None,
+        other_photos_urls=other_photos_urls if other_photos_urls else None,
+        status=TrainingRequestStatus.REQUESTED.value,
+    )
+
+    db.add(training_request)
+    db.commit()
+    db.refresh(training_request)
+
+    return TrainingRequestResponse.model_validate(training_request)
+
+
+# Avatars API
+@app.get("/my/avatars", response_model=list[AvatarResponse], tags=["avatars"])
+def list_my_avatars(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> list[AvatarResponse]:
+    """내 아바타 목록 조회"""
+    avatars = (
+        db.query(Avatar)
+        .filter(Avatar.influencer_id == current_user.id)
+        .order_by(Avatar.created_at.desc())
+        .all()
+    )
+    return [AvatarResponse.model_validate(a) for a in avatars]
+
+
+@app.put("/my/avatars/{avatar_id}", response_model=AvatarResponse, tags=["avatars"])
+async def update_avatar(
+    avatar_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    title: str = Form(None),
+    credit_per_generation: int = Form(None),
+    description: str = Form(None),
+    preview_image: UploadFile = File(None),
+):
+    """아바타 수정"""
+    from fastapi import UploadFile, File, Form
+    from io import BytesIO
+    from .s3_utils import upload_file_to_s3
+
+    # 아바타 조회 및 권한 확인
+    avatar = db.query(Avatar).filter(Avatar.id == avatar_id).first()
+    if not avatar:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Avatar not found",
+        )
+
+    if avatar.influencer_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have permission to update this avatar",
+        )
+
+    # 수정 가능한 필드만 업데이트
+    if title is not None:
+        avatar.title = title
+    if credit_per_generation is not None:
+        avatar.credit_per_generation = credit_per_generation
+    if description is not None:
+        avatar.description = description
+
+    # 이미지 업로드
+    if preview_image:
+        try:
+            image_content = await preview_image.read()
+            preview_image_url = upload_file_to_s3(
+                BytesIO(image_content),
+                preview_image.filename or "preview.jpg",
+                folder="avatars",
+                content_type=preview_image.content_type or "image/jpeg",
+            )
+            avatar.preview_image_url = preview_image_url
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to upload image: {str(e)}",
+            )
+
+    db.commit()
+    db.refresh(avatar)
+
+    return AvatarResponse.model_validate(avatar)
 
 

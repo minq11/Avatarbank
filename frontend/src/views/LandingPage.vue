@@ -1,6 +1,6 @@
 <template>
   <div class="landing-page">
-    <!-- 히어로 섹션 -->
+    <!-- Hero Section -->
     <section class="hero-section">
       <div class="hero-container">
         <div class="hero-content">
@@ -42,19 +42,12 @@
 
           <!-- CTAs -->
           <div class="hero-actions">
-            <RouterLink to="/influencer/dashboard" class="btn-secondary">
-              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>
-                <polyline points="16 7 22 7 22 13"/>
-              </svg>
-              Become an influencer
-            </RouterLink>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- 갤러리 섹션 -->
+    <!-- Gallery Section -->
     <section class="gallery-section">
       <div class="container">
         <div class="section-header">
@@ -95,7 +88,7 @@
       </div>
     </section>
 
-    <!-- 인플루언서 섹션 -->
+    <!-- Influencer Section -->
     <section class="influencer-section">
       <div class="container">
         <div class="influencer-grid">
@@ -185,7 +178,7 @@ function goToGenerate() {
   width: 100%;
 }
 
-/* 히어로 섹션 */
+/* Hero Section */
 .hero-section {
   padding: 8rem 0 6rem;
   background: white;
@@ -349,7 +342,7 @@ function goToGenerate() {
   height: 1.25rem;
 }
 
-/* 갤러리 섹션 */
+/* Gallery Section */
 .gallery-section {
   padding: 6rem 0;
   background: #f9fafb;
@@ -522,7 +515,7 @@ function goToGenerate() {
   box-shadow: 0 20px 25px -5px rgba(147, 51, 234, 0.3);
 }
 
-/* 인플루언서 섹션 */
+/* Influencer Section */
 .influencer-section {
   padding: 6rem 0;
   background: white;
@@ -658,7 +651,7 @@ function goToGenerate() {
   font-weight: 600;
 }
 
-/* 반응형 */
+/* Responsive */
 @media (min-width: 640px) {
   .gallery-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));

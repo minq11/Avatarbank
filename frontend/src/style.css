@@ -1,4 +1,4 @@
-/* Avatarbank 기본 스타일 */
+/* Avatarbank Base Styles */
 
 * {
   margin: 0;
@@ -21,7 +21,7 @@ body {
   flex-direction: column;
 }
 
-/* 공통 유틸리티 */
+/* Common Utilities */
 .container {
   max-width: 1200px;
   margin: 0 auto;
@@ -61,7 +61,7 @@ body {
   cursor: not-allowed;
 }
 
-/* 헤더 스타일 */
+/* Header Styles */
 header {
   background-color: white;
   border-bottom: 1px solid #e0e0e0;
@@ -105,7 +105,7 @@ header .user-menu {
   gap: 15px;
 }
 
-/* 푸터 스타일 */
+/* Footer Styles */
 footer {
   background-color: #333;
   color: white;
@@ -128,7 +128,7 @@ footer a:hover {
   color: white;
 }
 
-/* 카드 스타일 */
+/* Card Styles */
 .card {
   background: white;
   border-radius: 8px;
@@ -136,7 +136,7 @@ footer a:hover {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-/* 그리드 레이아웃 */
+/* Grid Layout */
 .grid {
   display: grid;
   gap: 20px;
@@ -150,7 +150,7 @@ footer a:hover {
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
 }
 
-/* 폼 스타일 */
+/* Form Styles */
 input, textarea, select {
   width: 100%;
   padding: 10px;
@@ -170,7 +170,7 @@ label {
   font-weight: 500;
 }
 
-/* 로딩 스피너 */
+/* Loading Spinner */
 .loading {
   display: inline-block;
   width: 20px;
@@ -186,7 +186,7 @@ label {
   100% { transform: rotate(360deg); }
 }
 
-/* 언어 선택 콤보박스 */
+/* Language Selector ComboBox */
 .language-selector {
   padding: 5px 10px;
   border: 1px solid #ddd;
@@ -195,7 +195,7 @@ label {
   cursor: pointer;
 }
 
-/* RouterLink 스타일 */
+/* RouterLink Styles */
 a {
   color: inherit;
   text-decoration: none;
