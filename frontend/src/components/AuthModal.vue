@@ -61,6 +61,20 @@
 
         <form @submit.prevent="handleRegister" class="form">
           <div class="form-group">
+            <label for="register-nickname">Nickname</label>
+            <input
+              id="register-nickname"
+              v-model="registerNickname"
+              type="text"
+              required
+              minlength="3"
+              maxlength="20"
+              placeholder="Your nickname"
+              class="form-input"
+            />
+          </div>
+
+          <div class="form-group">
             <label for="register-email">Email</label>
             <input
               id="register-email"
@@ -132,6 +146,7 @@ const loginPassword = ref("");
 // 회원가입 폼 데이터
 const registerEmail = ref("");
 const registerPassword = ref("");
+const registerNickname = ref("");
 
 // 모달이 열릴 때 모드 초기화
 watch(
@@ -143,6 +158,7 @@ watch(
       registerError.value = "";
       loginEmail.value = "";
       loginPassword.value = "";
+      registerNickname.value = "";
       registerEmail.value = "";
       registerPassword.value = "";
     }
@@ -180,6 +196,7 @@ const handleRegister = async () => {
 
   const result = await authStore.register(
     registerEmail.value,
+    registerNickname.value,
     registerPassword.value,
     "buyer" // 항상 buyer로 가입
   );

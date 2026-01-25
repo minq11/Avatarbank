@@ -81,6 +81,7 @@ docker-compose -f docker-compose.dev.yml up --build
 
 # 재시작
 docker-compose -f docker-compose.dev.yml restart frontend
+docker-compose -f docker-compose.dev.yml restart backend
 
 # 백그라운드 실행
 docker-compose -f docker-compose.dev.yml up -d --build

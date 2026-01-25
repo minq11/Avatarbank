@@ -91,3 +91,8 @@ def authenticate_user(db: Session, email: str, password: str) -> Optional[User]:
 def get_user_by_email(db: Session, email: str) -> Optional[User]:
     """이메일로 사용자 조회"""
     return db.query(User).filter(User.email == email).first()
+
+
+def get_user_by_nickname(db: Session, nickname: str) -> Optional[User]:
+    """닉네임으로 사용자 조회"""
+    return db.query(User).filter(User.nickname == nickname).first()

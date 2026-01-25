@@ -13,6 +13,7 @@ class TokenPair(BaseModel):
 class UserBase(BaseModel):
     id: int
     email: str
+    nickname: str
     role: str
     locale: str
     credit_balance: int
@@ -23,6 +24,7 @@ class UserBase(BaseModel):
 
 class UserRegisterRequest(BaseModel):
     email: EmailStr
+    nickname: str = Field(..., min_length=3, max_length=20)
     password: str = Field(..., min_length=8, max_length=100)
     role: str = Field(default="buyer", pattern="^(buyer|influencer)$")
     locale: str = Field(default="en", pattern="^(en|ko|ja)$")
@@ -49,8 +51,13 @@ class RefreshTokenResponse(BaseModel):
     token_type: str = "bearer"
 
 
+class AdminUpgradeRequest(BaseModel):
+    user_id: Optional[int] = None
+    email: Optional[EmailStr] = None
+
+
 class GenerationCreateRequest(BaseModel):
-    avatar_id: int
+    avatar_id: Optional[int] = None
     prompt: str = Field(..., max_length=2000)
     option_credits: int = Field(ge=0, le=100)
     idempotency_key: str
@@ -58,7 +65,7 @@ class GenerationCreateRequest(BaseModel):
 
 class GenerationResponse(BaseModel):
     id: int
-    avatar_id: int
+    avatar_id: Optional[int] = None
     buyer_id: int
     credits_used: int
     prompt: str

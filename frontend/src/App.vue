@@ -51,29 +51,11 @@
 
             <!-- User Info (when logged in) -->
             <div v-else-if="authStore.isInitialized" class="user-info">
-              <!-- Seller 업그레이드 버튼 (Buyer만 보임) -->
-              <button
-                v-if="authStore.isBuyer"
-                @click="handleUpgradeToSeller"
-                :disabled="isUpgrading"
-                class="upgrade-btn"
-              >
-                <svg class="upgrade-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                  <path d="M2 17l10 5 10-5M2 12l10 5 10-5"/>
-                </svg>
-                <span>{{ isUpgrading ? 'Upgrading...' : 'Become a Seller' }}</span>
-                <svg v-if="!isUpgrading" class="upgrade-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M5 12h14M12 5l7 7-7 7"/>
-                </svg>
-              </button>
-
-              <div class="credit-badge">
-                <svg class="coin-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="10"/>
-                  <path d="M12 6v12M15 9a3 3 0 1 0-6 0 3 3 0 0 0 6 0z"/>
-                </svg>
-                <span>{{ formatCredit(authStore.creditBalance) }}</span>
+              <div v-if="authStore.user?.nickname" class="user-badge">
+                <span class="nickname-label">{{ authStore.user.nickname }}</span>
+                <span class="badge-separator">|</span>
+                <img :src="diamondIcon" alt="Credit" class="diamond-icon" />
+                <span class="credit-amount">{{ formatCredit(authStore.creditBalance) }}</span>
               </div>
               <div class="profile-wrapper">
                 <button
@@ -86,6 +68,22 @@
                   </svg>
                 </button>
                 <div v-if="showProfileMenu" class="profile-dropdown">
+                  <button
+                    v-if="authStore.isBuyer"
+                    type="button"
+                    class="dropdown-item upgrade-item"
+                    @click="openInfluencerGuide"
+                  >
+                    <img :src="crownUpgradeIcon" alt="" class="upgrade-crown" />
+                    Become an Influencer
+                  </button>
+                  <RouterLink
+                    to="/my/generations"
+                    class="dropdown-item"
+                    @click="showProfileMenu = false"
+                  >
+                    My creations
+                  </RouterLink>
                   <a href="#profile" class="dropdown-item">Profile</a>
                   <a href="#settings" class="dropdown-item">Settings</a>
                   <div class="dropdown-divider"></div>
@@ -108,6 +106,49 @@
       :initial-mode="authModalMode"
       @close="closeAuthModal"
     />
+
+    <div v-if="showInfluencerModal" class="modal-overlay">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3>Become an Influencer</h3>
+          <button class="modal-close" type="button" @click="closeInfluencerGuide">×</button>
+        </div>
+        <div class="modal-body">
+          <p class="modal-lead">
+            Want to become an influencer and start earning?
+            <br />
+            DM us on Instagram.
+          </p>
+          <div class="modal-step">
+            <p class="modal-label">DM template</p>
+            <div class="modal-box">
+              <p>I want to register my real identity (face, body, etc.) on Avatarbank.</p>
+              <p>My Avatarbank nickname: [YOUR_NICKNAME]</p>
+            </div>
+          </div>
+          <p class="modal-note">
+            After approval, you'll get access to a photo upload screen. Once your identity is verified,
+            we will train an AI model exclusively for you.
+          </p>
+          <ul class="modal-list">
+            <li>Influencers must have at least 2,000 followers.</li>
+            <li>We do not train models using anyone else's face.</li>
+            <li>We will respond within 10 minutes to 8 hours.</li>
+          </ul>
+        </div>
+        <div class="modal-footer">
+          <a
+            class="modal-secondary"
+            href="https://www.instagram.com/avatarbank_official/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <img :src="instagramIcon" alt="" class="instagram-icon" />
+            DM on Instagram
+          </a>
+        </div>
+      </div>
+    </div>
 
     <footer class="app-footer">
       <div class="footer-container">
@@ -178,6 +219,9 @@ import { ref, computed, onMounted } from "vue";
 import { RouterLink, RouterView } from "vue-router";
 import { useAuthStore } from "./stores/auth";
 import AuthModal from "./components/AuthModal.vue";
+import diamondIcon from "./assets/icons/diamond_credit_icon.svg";
+import crownUpgradeIcon from "./assets/icons/crown_upgrade.svg";
+import instagramIcon from "./assets/icons/Instagram_logo_2016.svg";
 
 const authStore = useAuthStore();
 
@@ -186,7 +230,7 @@ const showLanguageMenu = ref(false);
 const showProfileMenu = ref(false);
 const showAuthModal = ref(false);
 const authModalMode = ref<"login" | "register">("login");
-const isUpgrading = ref(false);
+const showInfluencerModal = ref(false);
 
 const languages = [
   { value: "en", label: "EN", flagCode: "gb" },
@@ -224,25 +268,12 @@ const handleLogout = () => {
   showProfileMenu.value = false;
 };
 
-// Seller로 업그레이드
-const handleUpgradeToSeller = async () => {
-  if (isUpgrading.value) return;
-  
-  isUpgrading.value = true;
-  try {
-    const result = await authStore.upgradeToSeller();
-    if (result.success) {
-      // 성공 메시지 (선택사항)
-      console.log("Successfully upgraded to seller!");
-    } else {
-      alert(result.error || "Failed to upgrade to seller");
-    }
-  } catch (error) {
-    console.error("Upgrade error:", error);
-    alert("An error occurred while upgrading");
-  } finally {
-    isUpgrading.value = false;
-  }
+const openInfluencerGuide = () => {
+  showInfluencerModal.value = true;
+};
+
+const closeInfluencerGuide = () => {
+  showInfluencerModal.value = false;
 };
 
 // 크레딧 포맷팅
@@ -325,7 +356,7 @@ onUnmounted(() => {
   font-size: 1.5rem;
   font-weight: 700;
   letter-spacing: -0.025em;
-  color: #111827;
+  color: #4f46e5;
   cursor: pointer;
   transition: opacity 0.2s;
 }
@@ -483,105 +514,152 @@ onUnmounted(() => {
   gap: 0.75rem;
 }
 
-/* Seller Upgrade Button */
-.upgrade-btn {
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.5);
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.625rem 1.25rem;
-  font-size: 0.875rem;
+  justify-content: center;
+  padding: 1.5rem;
+  z-index: 60;
+}
+
+.modal-card {
+  width: 100%;
+  max-width: 520px;
+  background: #ffffff;
+  border-radius: 1rem;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 20px 35px -15px rgba(15, 23, 42, 0.25);
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.modal-header h3 {
+  font-size: 1.125rem;
   font-weight: 600;
-  color: white;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #111827;
+}
+
+.modal-close {
+  border: none;
+  background: transparent;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: #6b7280;
+  cursor: pointer;
+}
+
+.modal-body {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.modal-lead {
+  font-size: 0.95rem;
+  color: #374151;
+}
+
+.modal-step {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.modal-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.modal-box {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.9rem;
+  color: #111827;
+}
+
+.modal-note {
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.modal-list {
+  margin: 0;
+  padding-left: 1.25rem;
+  font-size: 0.85rem;
+  color: #6b7280;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.modal-footer {
+  padding: 1rem 1.5rem 1.5rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.modal-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  padding: 0.6rem 1.25rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #111827;
+  background: #ffffff;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+  gap: 0.5rem;
+}
+
+.modal-secondary:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+}
+
+.instagram-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+}
+
+.modal-primary {
   border: none;
   border-radius: 0.75rem;
+  padding: 0.6rem 1.25rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #ffffff;
+  background: #4f46e5;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
-  overflow: hidden;
-  box-shadow: 0 4px 6px -1px rgba(102, 126, 234, 0.3), 0 2px 4px -1px rgba(102, 126, 234, 0.2);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.upgrade-btn::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-  transition: left 0.5s;
-}
-
-.upgrade-btn:hover::before {
-  left: 100%;
-}
-
-.upgrade-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 15px -3px rgba(102, 126, 234, 0.4), 0 4px 6px -2px rgba(102, 126, 234, 0.3);
-}
-
-.upgrade-btn:active {
-  transform: translateY(0);
-}
-
-.upgrade-btn:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.upgrade-icon {
-  width: 1rem;
-  height: 1rem;
-  flex-shrink: 0;
-  animation: pulse 2s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.8;
-    transform: scale(1.1);
-  }
-}
-
-.upgrade-arrow {
-  width: 0.875rem;
-  height: 0.875rem;
-  flex-shrink: 0;
-  transition: transform 0.3s;
-}
-
-.upgrade-btn:hover .upgrade-arrow {
-  transform: translateX(4px);
-}
-
-.upgrade-btn:disabled .upgrade-arrow {
-  display: none;
+.modal-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 15px -10px rgba(79, 70, 229, 0.6);
 }
 
 /* 모바일 반응형 */
-@media (max-width: 768px) {
-  .upgrade-btn {
-    padding: 0.625rem;
-    font-size: 0.8125rem;
-    border-radius: 0.5rem;
-  }
-
-  .upgrade-btn span {
-    display: none;
-  }
-
-  .upgrade-icon {
-    width: 1.125rem;
-    height: 1.125rem;
-  }
-}
 
 .credit-badge {
   display: flex;
@@ -592,7 +670,7 @@ onUnmounted(() => {
   border-radius: 0.5rem;
 }
 
-.coin-icon {
+.diamond-icon {
   width: 1rem;
   height: 1rem;
   color: #4f46e5;
@@ -602,6 +680,31 @@ onUnmounted(() => {
   font-size: 0.875rem;
   font-weight: 500;
   color: #111827;
+}
+
+.user-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  background: #f3f4f6;
+  color: #111827;
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.nickname-label {
+  color: inherit;
+}
+
+.badge-separator {
+  color: #9ca3af;
+}
+
+.credit-amount {
+  color: inherit;
 }
 
 .profile-wrapper {
@@ -652,6 +755,18 @@ onUnmounted(() => {
   color: #374151;
   text-decoration: none;
   transition: background-color 0.2s;
+}
+
+.upgrade-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.upgrade-crown {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
 }
 
 .dropdown-item:hover {
@@ -796,5 +911,39 @@ onUnmounted(() => {
 .social-icon svg {
   width: 1.25rem;
   height: 1.25rem;
+}
+
+@media (max-width: 768px) {
+  .header-container {
+    padding: 0 1rem;
+  }
+
+  .right-nav {
+    gap: 0.5rem;
+  }
+
+  .user-info {
+    gap: 0.5rem;
+  }
+
+  .user-badge {
+    padding: 0.2rem 0.6rem;
+    font-size: 0.8125rem;
+  }
+
+  .diamond-icon {
+    width: 0.875rem;
+    height: 0.875rem;
+  }
+
+  .profile-btn {
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+
+  .language-btn {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.8125rem;
+  }
 }
 </style>

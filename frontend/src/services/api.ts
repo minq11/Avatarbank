@@ -79,6 +79,7 @@ export interface ApiError {
 // 인증 API
 export interface RegisterRequest {
   email: string;
+  nickname: string;
   password: string;
   role?: "buyer" | "influencer";
   locale?: "en" | "ko" | "ja";
@@ -92,6 +93,7 @@ export interface LoginRequest {
 export interface User {
   id: number;
   email: string;
+  nickname: string;
   role: string;
   locale: string;
   credit_balance: number;
@@ -136,9 +138,27 @@ export const authApi = {
     const response = await api.get<User>("/auth/me");
     return response.data;
   },
+};
 
-  upgradeToSeller: async (): Promise<User> => {
-    const response = await api.post<User>("/auth/upgrade-to-seller");
+// Generations API
+export interface GenerationItem {
+  id: number;
+  avatar_id: number | null;
+  buyer_id: number;
+  credits_used: number;
+  prompt: string;
+  request_id: string | null;
+  image_url: string | null;
+  seed: string | null;
+  status: string;
+  fail_reason: string | null;
+  nsfw_flag: boolean | null;
+  created_at: string;
+}
+
+export const generationsApi = {
+  getMyGenerations: async (): Promise<GenerationItem[]> => {
+    const response = await api.get<GenerationItem[]>("/my/generations");
     return response.data;
   },
 };

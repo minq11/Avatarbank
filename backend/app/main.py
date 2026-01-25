@@ -10,14 +10,16 @@ from .auth import (
     create_refresh_token,
     get_password_hash,
     get_user_by_email,
+    get_user_by_nickname,
     verify_token,
 )
 from .config import settings
 from .db import Base, engine, get_db
 from .dependencies import get_current_user
-from .models import Generation, GenerationStatus, Transaction, User
-from .fal_client import submit_generation, get_status, get_result
+from .models import Avatar, Generation, GenerationStatus, Transaction, User
+from .fal_client import run_generation_sync
 from .schemas import (
+    AdminUpgradeRequest,
     GenerationCreateRequest,
     GenerationResponse,
     RefreshTokenRequest,
@@ -69,10 +71,17 @@ def register(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email already registered",
         )
+    existing_nickname = get_user_by_nickname(db, payload.nickname)
+    if existing_nickname:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Nickname already in use",
+        )
 
     # 새 사용자 생성
     new_user = User(
         email=payload.email,
+        nickname=payload.nickname,
         password_hash=get_password_hash(payload.password),
         role=payload.role,
         locale=payload.locale,
@@ -174,29 +183,62 @@ def upgrade_to_seller(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> UserBase:
-    """Buyer를 Seller(Influencer)로 업그레이드"""
+    """Deprecated: user-initiated upgrade is not allowed."""
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Only administrators can approve influencer upgrades.",
+    )
+
+
+def _is_admin_email(email: str) -> bool:
+    whitelist = {
+        value.strip().lower()
+        for value in settings.ADMIN_EMAIL_WHITELIST.split(",")
+        if value.strip()
+    }
+    return email.lower() in whitelist
+
+
+@app.post("/admin/influencer-approve", response_model=UserBase, tags=["admin"])
+def admin_approve_influencer(
+    payload: AdminUpgradeRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> UserBase:
     from .models import UserRole
 
-    # 이미 seller인 경우
-    if current_user.role == UserRole.INFLUENCER.value:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User is already a seller",
-        )
-
-    # buyer만 업그레이드 가능
-    if current_user.role != UserRole.BUYER.value:
+    if not _is_admin_email(current_user.email):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only buyers can upgrade to seller",
+            detail="Admin access required.",
         )
 
-    # 역할 업그레이드
-    current_user.role = UserRole.INFLUENCER.value
-    db.commit()
-    db.refresh(current_user)
+    if payload.user_id is None and payload.email is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="user_id or email is required.",
+        )
 
-    return UserBase.model_validate(current_user)
+    query = db.query(User)
+    if payload.user_id is not None:
+        target_user = query.filter(User.id == payload.user_id).first()
+    else:
+        target_user = query.filter(User.email == payload.email).first()
+
+    if not target_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found.",
+        )
+
+    if target_user.role == UserRole.INFLUENCER.value:
+        return UserBase.model_validate(target_user)
+
+    target_user.role = UserRole.INFLUENCER.value
+    db.commit()
+    db.refresh(target_user)
+
+    return UserBase.model_validate(target_user)
 
 
 @app.post("/generations", response_model=GenerationResponse, tags=["generation"])
@@ -216,6 +258,14 @@ def create_generation(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Insufficient credits.",
         )
+
+    if payload.avatar_id is not None:
+        avatar = db.query(Avatar).filter(Avatar.id == payload.avatar_id).first()
+        if not avatar:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Avatar not found. Please select an avatar first.",
+            )
 
     # 크레딧 선차감
     before = buyer.credit_balance
@@ -244,8 +294,19 @@ def create_generation(
     db.refresh(generation)
 
     try:
-        request_id = submit_generation(payload.prompt)
-        generation.request_id = request_id
+        response_payload = run_generation_sync(payload.prompt)
+        images = response_payload.get("images") or []
+        if images:
+            generation.image_url = images[0].get("url")
+        generation.seed = (
+            str(response_payload.get("seed"))
+            if response_payload.get("seed") is not None
+            else None
+        )
+        generation.nsfw_flag = any(
+            response_payload.get("has_nsfw_concepts") or []
+        )
+        generation.status = GenerationStatus.SUCCESS.value
         db.commit()
         db.refresh(generation)
     except Exception as exc:
@@ -279,65 +340,21 @@ def get_generation(
     if not generation:
         raise HTTPException(status_code=404, detail="Generation not found.")
 
-    if generation.status not in (
-        GenerationStatus.SUCCESS.value,
-        GenerationStatus.FAILED.value,
-    ) and generation.request_id:
-        try:
-            status_payload = get_status(generation.request_id)
-            status_value = (
-                status_payload.get("status")
-                or status_payload.get("data", {}).get("status")
-                or ""
-            ).upper()
-
-            if status_value in {"COMPLETED", "SUCCESS"}:
-                result_payload = get_result(generation.request_id)
-                images = (
-                    result_payload.get("images")
-                    or result_payload.get("data", {}).get("images")
-                    or []
-                )
-                if images:
-                    generation.image_url = images[0].get("url")
-                generation.seed = (
-                    str(result_payload.get("seed"))
-                    if result_payload.get("seed") is not None
-                    else None
-                )
-                generation.nsfw_flag = any(
-                    result_payload.get("has_nsfw_concepts") or []
-                )
-                generation.status = GenerationStatus.SUCCESS.value
-                db.commit()
-                db.refresh(generation)
-            elif status_value in {"FAILED", "CANCELED"}:
-                generation.status = GenerationStatus.FAILED.value
-                generation.fail_reason = "fal.ai generation failed"
-
-                buyer = db.query(User).filter(User.id == generation.buyer_id).first()
-                if buyer:
-                    refund_before = buyer.credit_balance
-                    buyer.credit_balance += generation.credits_used
-                    tx_refund = Transaction(
-                        user_id=buyer.id,
-                        type="refund",
-                        amount=generation.credits_used,
-                        currency="CREDIT",
-                        credit_before=refund_before,
-                        credit_after=buyer.credit_balance,
-                        reference_id=str(generation.id),
-                    )
-                    db.add(tx_refund)
-
-                db.commit()
-                db.refresh(generation)
-        except Exception as exc:
-            generation.status = GenerationStatus.FAILED.value
-            generation.fail_reason = str(exc)
-            db.commit()
-            db.refresh(generation)
-
     return GenerationResponse.model_validate(generation)
+
+
+@app.get("/my/generations", response_model=list[GenerationResponse], tags=["generation"])
+def list_my_generations(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> list[GenerationResponse]:
+    """현재 로그인 사용자가 생성한 이미지 목록 (최신순)"""
+    generations = (
+        db.query(Generation)
+        .filter(Generation.buyer_id == current_user.id)
+        .order_by(Generation.created_at.desc())
+        .all()
+    )
+    return [GenerationResponse.model_validate(g) for g in generations]
 
 

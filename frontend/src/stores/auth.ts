@@ -54,12 +54,13 @@ export const useAuthStore = defineStore("auth", () => {
 
   const register = async (
     email: string,
+    nickname: string,
     password: string,
     role: "buyer" | "influencer" = "buyer",
     locale: "en" | "ko" | "ja" = "en"
   ) => {
     try {
-      await authApi.register({ email, password, role, locale });
+      await authApi.register({ email, nickname, password, role, locale });
       // 회원가입 후 자동 로그인
       return await login(email, password);
     } catch (error: any) {
@@ -99,20 +100,6 @@ export const useAuthStore = defineStore("auth", () => {
     isInitialized.value = true;
   };
 
-  // Seller로 업그레이드
-  const upgradeToSeller = async () => {
-    try {
-      const updatedUser = await authApi.upgradeToSeller();
-      setUser(updatedUser);
-      return { success: true };
-    } catch (error: any) {
-      return {
-        success: false,
-        error: error.response?.data?.detail || "Upgrade failed",
-      };
-    }
-  };
-
   // Buyer인지 확인
   const isBuyer = computed(() => userRole.value === "buyer");
   const isSeller = computed(() => userRole.value === "influencer");
@@ -136,6 +123,5 @@ export const useAuthStore = defineStore("auth", () => {
     fetchUser,
     initialize,
     setUser,
-    upgradeToSeller,
   };
 });

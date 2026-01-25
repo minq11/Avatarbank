@@ -1,10 +1,10 @@
 from datetime import datetime
+from enum import Enum
 
 from sqlalchemy import (
     Boolean,
     Column,
     DateTime,
-    Enum,
     ForeignKey,
     Integer,
     Numeric,
@@ -34,6 +34,7 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, nullable=False, index=True)
+    nickname = Column(String, unique=True, nullable=False, index=True)
     password_hash = Column(String, nullable=False)
     role = Column(String, nullable=False, default=UserRole.BUYER)
     credit_balance = Column(Integer, nullable=False, default=0)
@@ -88,7 +89,7 @@ class Generation(Base):
     __tablename__ = "generations"
 
     id = Column(Integer, primary_key=True, index=True)
-    avatar_id = Column(Integer, ForeignKey("avatars.id"), nullable=False)
+    avatar_id = Column(Integer, ForeignKey("avatars.id"), nullable=True)
     buyer_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     credits_used = Column(Integer, nullable=False)
     prompt = Column(Text, nullable=False)

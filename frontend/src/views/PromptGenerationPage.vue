@@ -85,7 +85,6 @@ async function handleGenerate() {
   try {
     const idempotencyKey = crypto.randomUUID();
     const response = await api.post("/generations", {
-      avatar_id: 1,
       prompt: prompt.value,
       option_credits: 0,
       idempotency_key: idempotencyKey,

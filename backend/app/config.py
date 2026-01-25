@@ -30,7 +30,12 @@ class Settings(BaseSettings):
     # fal.ai (text-to-image)
     FAL_API_KEY: str = ""
     FAL_API_BASE_URL: str = "https://fal.run"
-    FAL_MODEL: str = "fal-ai/z-image/turbo/lora"
+    FAL_SYNC_BASE_URL: str = "https://fal.run"
+    FAL_MODEL: str = "fal-ai/z-image/turbo"
+    FAL_SUBPATH: str = "lora"
+
+    # Admin
+    ADMIN_EMAIL_WHITELIST: str = ""
 
     class Config:
         env_file = [".env", "../.env"]  # 현재 디렉토리 또는 상위 디렉토리에서 .env 파일 찾기
