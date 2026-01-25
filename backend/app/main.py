@@ -3,6 +3,7 @@ from typing import List
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 
 from .auth import (
@@ -48,6 +49,17 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# 로컬 스토리지 사용 시 정적 파일 서빙 설정
+if settings.STORAGE_TYPE == "local":
+    import os
+    from pathlib import Path
+    
+    upload_dir = Path(settings.UPLOAD_DIR)
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    
+    # /static 경로로 업로드된 파일 서빙
+    app.mount("/static", StaticFiles(directory=str(upload_dir)), name="static")
 
 
 @app.on_event("startup")
@@ -404,8 +416,14 @@ async def create_training_request(
     """학습 요청 생성"""
     from fastapi import UploadFile, File, Form
     from io import BytesIO
-    from .s3_utils import upload_file_to_s3, upload_multiple_files_to_s3
     from .models import TrainingRequestStatus
+    from .config import settings
+    
+    # 스토리지 타입에 따라 적절한 함수 선택
+    if settings.STORAGE_TYPE == "local":
+        from .local_storage import upload_file_to_local as upload_file, upload_multiple_files_to_local as upload_multiple_files
+    else:
+        from .s3_utils import upload_file_to_s3 as upload_file, upload_multiple_files_to_s3 as upload_multiple_files
 
     # 실존인물인 경우 Instagram ID 필수
     if is_real_person is True and not instagram_id:
@@ -467,7 +485,7 @@ async def create_training_request(
 
         # 대표 이미지 업로드
         preview_content = await preview_image.read()
-        preview_image_url = upload_file_to_s3(
+        preview_image_url = upload_file(
             BytesIO(preview_content),
             preview_image.filename or "preview.jpg",
             folder=folder_path,
@@ -478,7 +496,7 @@ async def create_training_request(
         if front_photos:
             front_contents = [await photo.read() for photo in front_photos]
             front_filenames = [photo.filename or f"front_{i}.jpg" for i, photo in enumerate(front_photos)]
-            front_photos_urls = upload_multiple_files_to_s3(
+            front_photos_urls = upload_multiple_files(
                 [BytesIO(content) for content in front_contents],
                 front_filenames,
                 folder=folder_path,
@@ -488,7 +506,7 @@ async def create_training_request(
         if side_photos:
             side_contents = [await photo.read() for photo in side_photos]
             side_filenames = [photo.filename or f"side_{i}.jpg" for i, photo in enumerate(side_photos)]
-            side_photos_urls = upload_multiple_files_to_s3(
+            side_photos_urls = upload_multiple_files(
                 [BytesIO(content) for content in side_contents],
                 side_filenames,
                 folder=folder_path,
@@ -498,7 +516,7 @@ async def create_training_request(
         if fullbody_photos:
             fullbody_contents = [await photo.read() for photo in fullbody_photos]
             fullbody_filenames = [photo.filename or f"fullbody_{i}.jpg" for i, photo in enumerate(fullbody_photos)]
-            fullbody_photos_urls = upload_multiple_files_to_s3(
+            fullbody_photos_urls = upload_multiple_files(
                 [BytesIO(content) for content in fullbody_contents],
                 fullbody_filenames,
                 folder=folder_path,
@@ -508,7 +526,7 @@ async def create_training_request(
         if other_photos:
             other_contents = [await photo.read() for photo in other_photos]
             other_filenames = [photo.filename or f"other_{i}.jpg" for i, photo in enumerate(other_photos)]
-            other_photos_urls = upload_multiple_files_to_s3(
+            other_photos_urls = upload_multiple_files(
                 [BytesIO(content) for content in other_contents],
                 other_filenames,
                 folder=folder_path,
@@ -565,7 +583,13 @@ async def update_avatar(
     """아바타 수정"""
     from fastapi import UploadFile, File, Form
     from io import BytesIO
-    from .s3_utils import upload_file_to_s3
+    from .config import settings
+    
+    # 스토리지 타입에 따라 적절한 함수 선택
+    if settings.STORAGE_TYPE == "local":
+        from .local_storage import upload_file_to_local as upload_file
+    else:
+        from .s3_utils import upload_file_to_s3 as upload_file
 
     # 아바타 조회 및 권한 확인
     avatar = db.query(Avatar).filter(Avatar.id == avatar_id).first()
@@ -594,7 +618,7 @@ async def update_avatar(
         try:
             image_content = await preview_image.read()
             folder_path = f"avatars/{avatar_id}"
-            preview_image_url = upload_file_to_s3(
+            preview_image_url = upload_file(
                 BytesIO(image_content),
                 preview_image.filename or "preview.jpg",
                 folder=folder_path,
