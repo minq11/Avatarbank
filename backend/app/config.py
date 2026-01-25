@@ -22,8 +22,8 @@ class Settings(BaseSettings):
     # S3
     AWS_ACCESS_KEY_ID: str = ""
     AWS_SECRET_ACCESS_KEY: str = ""
-    AWS_REGION: str = "ap-northeast-2"
-    S3_BUCKET: str = "avatarbank-images"
+    AWS_REGION: str = "us-east-1"  # 기본값: NeonDB와 같은 리전
+    S3_BUCKET: str = "avatarbank-storage-prd"  # 기본값: 프로덕션 버킷
 
     # RunPods / ComfyUI
     COMFYUI_BASE_URL: str = "http://runpods-comfyui:8188"

@@ -13,18 +13,19 @@ from .config import settings
 
 def get_s3_client():
     """S3 클라이언트 생성"""
-    client_config = {
+    # AWS 자격 증명이 있으면 사용, 없으면 환경 변수나 IAM 역할 사용
+    client_kwargs = {
         "service_name": "s3",
         "region_name": settings.AWS_REGION,
     }
     
     # AWS 자격 증명이 있으면 사용
     if hasattr(settings, "AWS_ACCESS_KEY_ID") and settings.AWS_ACCESS_KEY_ID:
-        client_config["aws_access_key_id"] = settings.AWS_ACCESS_KEY_ID
+        client_kwargs["aws_access_key_id"] = settings.AWS_ACCESS_KEY_ID
     if hasattr(settings, "AWS_SECRET_ACCESS_KEY") and settings.AWS_SECRET_ACCESS_KEY:
-        client_config["aws_secret_access_key"] = settings.AWS_SECRET_ACCESS_KEY
+        client_kwargs["aws_secret_access_key"] = settings.AWS_SECRET_ACCESS_KEY
     
-    return boto3.client(**client_config)
+    return boto3.client(**client_kwargs)
 
 
 def upload_file_to_s3(
@@ -64,11 +65,37 @@ def upload_file_to_s3(
             ExtraArgs={"ContentType": content_type},
         )
         
-        # S3 URL 생성
+        # S3 URL 생성 (버킷이 public이 아닐 수 있으므로 presigned URL 사용 고려)
+        # Virtual-hosted style URL
         s3_url = f"https://{settings.S3_BUCKET}.s3.{settings.AWS_REGION}.amazonaws.com/{s3_key}"
         return s3_url
         
     except ClientError as e:
+        error_code = e.response.get("Error", {}).get("Code", "Unknown")
+        error_message = e.response.get("Error", {}).get("Message", str(e))
+        
+        # 더 구체적인 에러 메시지 제공
+        if error_code == "NoSuchBucket":
+            raise Exception(
+                f"S3 bucket '{settings.S3_BUCKET}' does not exist. "
+                f"Please check your S3_BUCKET configuration in .env file."
+            )
+        elif error_code == "AccessDenied":
+            raise Exception(
+                f"Access denied to S3 bucket '{settings.S3_BUCKET}'. "
+                f"Please check your AWS credentials and bucket permissions."
+            )
+        elif error_code == "InvalidAccessKeyId":
+            raise Exception(
+                f"Invalid AWS access key. Please check your AWS_ACCESS_KEY_ID in .env file."
+            )
+        elif error_code == "SignatureDoesNotMatch":
+            raise Exception(
+                f"Invalid AWS secret key. Please check your AWS_SECRET_ACCESS_KEY in .env file."
+            )
+        else:
+            raise Exception(f"Failed to upload file to S3: {error_code} - {error_message}")
+    except Exception as e:
         raise Exception(f"Failed to upload file to S3: {str(e)}")
 
 

@@ -96,7 +96,7 @@
     </div>
 
     <!-- Training Request Modal -->
-    <div v-if="showTrainingRequestModal" class="modal-overlay" @click.self="closeTrainingRequestModal">
+    <div v-if="showTrainingRequestModal" class="modal-overlay">
       <div class="modal-card training-modal">
         <div class="modal-header">
           <h3>Avatar Training Request</h3>
@@ -240,17 +240,30 @@
           <!-- Real Person Based Avatar -->
           <div class="form-section">
             <div class="form-group">
-              <label class="checkbox-label">
-                <input
-                  v-model="trainingForm.isRealPerson"
-                  type="checkbox"
-                  class="checkbox-input"
-                />
-                <span>Real Person Based Avatar</span>
-              </label>
+              <label class="form-label">Is this avatar based on a real person? <span class="required">*</span></label>
+              <div class="radio-group">
+                <label class="radio-label">
+                  <input
+                    v-model="trainingForm.isRealPerson"
+                    type="radio"
+                    :value="true"
+                    class="radio-input"
+                  />
+                  <span>Yes</span>
+                </label>
+                <label class="radio-label">
+                  <input
+                    v-model="trainingForm.isRealPerson"
+                    type="radio"
+                    :value="false"
+                    class="radio-input"
+                  />
+                  <span>No</span>
+                </label>
+              </div>
             </div>
 
-            <template v-if="trainingForm.isRealPerson">
+            <template v-if="trainingForm.isRealPerson === true">
               <div class="form-group">
                 <label class="form-label">Instagram ID <span class="required">*</span></label>
                 <input
@@ -577,6 +590,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { avatarsApi, trainingRequestsApi, type AvatarItem, type TrainingRequestItem } from "@/services/api";
+import testfaceImage from "@/assets/testface.png";
 
 // Refs for file inputs
 const previewImageInput = ref<HTMLInputElement | null>(null);
@@ -602,7 +616,7 @@ const trainingForm = ref({
   description: "",
   previewImage: null as File | null,
   previewImageUrl: "",
-  isRealPerson: false,
+  isRealPerson: null as boolean | null,
   instagramId: "",
   frontPhotos: Array(4).fill(null).map(() => ({ file: null as File | null, url: "" })),
   sidePhotos: Array(4).fill(null).map(() => ({ file: null as File | null, url: "" })),
@@ -630,7 +644,8 @@ const isTrainingFormValid = computed(() => {
     form.gender !== "" &&
     form.description.trim() !== "" &&
     form.previewImage !== null &&
-    (!form.isRealPerson || form.instagramId.trim() !== "") &&
+    form.isRealPerson !== null &&
+    (form.isRealPerson === false || form.instagramId.trim() !== "") &&
     form.frontPhotos.filter(p => p.file !== null).length >= 4 &&
     form.sidePhotos.filter(p => p.file !== null).length >= 4 &&
     form.fullBodyPhotos.filter(p => p.file !== null).length >= 1 &&
@@ -701,9 +716,9 @@ function getStatusClass(status: string): string {
 }
 
 // Modal management
-function openTrainingRequestModal() {
+async function openTrainingRequestModal() {
   showTrainingRequestModal.value = true;
-  resetTrainingForm();
+  await resetTrainingForm();
 }
 
 function closeTrainingRequestModal() {
@@ -711,7 +726,15 @@ function closeTrainingRequestModal() {
   resetTrainingForm();
 }
 
-function resetTrainingForm() {
+// Load default image as File
+async function loadDefaultImage(): Promise<File> {
+  const response = await fetch(testfaceImage);
+  const blob = await response.blob();
+  return new File([blob], "testface.png", { type: blob.type });
+}
+
+async function resetTrainingForm() {
+  // Reset form fields first
   trainingForm.value = {
     avatarName: "",
     negativePrompt: "",
@@ -721,13 +744,39 @@ function resetTrainingForm() {
     description: "",
     previewImage: null,
     previewImageUrl: "",
-    isRealPerson: false,
+    isRealPerson: null,
     instagramId: "",
     frontPhotos: Array(4).fill(null).map(() => ({ file: null, url: "" })),
     sidePhotos: Array(4).fill(null).map(() => ({ file: null, url: "" })),
     fullBodyPhotos: Array(1).fill(null).map(() => ({ file: null, url: "" })),
     otherPhotos: Array(1).fill(null).map(() => ({ file: null, url: "" })),
   };
+  
+  // Load default image for preview
+  const defaultPreviewFile = await loadDefaultImage();
+  trainingForm.value.previewImage = defaultPreviewFile;
+  trainingForm.value.previewImageUrl = URL.createObjectURL(defaultPreviewFile);
+  
+  // Load default images for all photo slots
+  // Front photos (4 required)
+  for (let i = 0; i < 4; i++) {
+    const file = await loadDefaultImage();
+    trainingForm.value.frontPhotos[i] = { file, url: URL.createObjectURL(file) };
+  }
+  
+  // Side photos (4 required)
+  for (let i = 0; i < 4; i++) {
+    const file = await loadDefaultImage();
+    trainingForm.value.sidePhotos[i] = { file, url: URL.createObjectURL(file) };
+  }
+  
+  // Full body photos (1 required)
+  const fullBodyFile = await loadDefaultImage();
+  trainingForm.value.fullBodyPhotos[0] = { file: fullBodyFile, url: URL.createObjectURL(fullBodyFile) };
+  
+  // Other photos (1 required)
+  const otherFile = await loadDefaultImage();
+  trainingForm.value.otherPhotos[0] = { file: otherFile, url: URL.createObjectURL(otherFile) };
 }
 
 function openAvatarDetailModal(avatar: AvatarItem) {
@@ -808,8 +857,8 @@ async function submitTrainingRequest() {
       national: trainingForm.value.national,
       gender: trainingForm.value.gender,
       description: trainingForm.value.description,
-      is_real_person: trainingForm.value.isRealPerson,
-      instagram_id: trainingForm.value.isRealPerson ? trainingForm.value.instagramId : undefined,
+      is_real_person: trainingForm.value.isRealPerson === true,
+      instagram_id: trainingForm.value.isRealPerson === true ? trainingForm.value.instagramId : undefined,
       preview_image: trainingForm.value.previewImage!,
       front_photos: trainingForm.value.frontPhotos.filter(p => p.file).map(p => p.file!),
       side_photos: trainingForm.value.sidePhotos.filter(p => p.file).map(p => p.file!),
@@ -819,9 +868,11 @@ async function submitTrainingRequest() {
 
     closeTrainingRequestModal();
     await loadTrainingRequests();
-  } catch (error) {
+  } catch (error: any) {
     console.error("Failed to submit training request:", error);
-    alert("Failed to submit request. Please try again.");
+    const errorMessage = error?.response?.data?.detail || error?.message || "Failed to submit request. Please try again.";
+    console.error("Error details:", error?.response?.data);
+    alert(errorMessage);
   } finally {
     submitting.value = false;
   }

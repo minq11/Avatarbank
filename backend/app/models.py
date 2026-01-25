@@ -58,7 +58,7 @@ class Avatar(Base):
     __tablename__ = "avatars"
 
     id = Column(Integer, primary_key=True, index=True)
-    influencer_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     training_request_id = Column(Integer, ForeignKey("training_requests.id"), nullable=True)  # 학습 요청과 연결
     title = Column(String, nullable=False)
     description = Column(Text, nullable=True)
@@ -171,18 +171,6 @@ class PaymentWebhook(Base):
     error_message = Column(Text, nullable=True)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     processed_at = Column(DateTime, nullable=True)
-
-
-class TrainingJob(Base):
-    __tablename__ = "training_jobs"
-
-    id = Column(Integer, primary_key=True, index=True)
-    avatar_id = Column(Integer, ForeignKey("avatars.id"), nullable=False)
-    status = Column(String, nullable=False, default="pending")
-    started_at = Column(DateTime, nullable=True)
-    finished_at = Column(DateTime, nullable=True)
-    log_url = Column(String, nullable=True)
-    error_message = Column(Text, nullable=True)
 
 
 class AuditLog(Base):

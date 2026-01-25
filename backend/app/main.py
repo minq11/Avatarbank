@@ -396,10 +396,10 @@ async def create_training_request(
     is_real_person: bool = Form(False),
     instagram_id: str = Form(None),
     preview_image: UploadFile = File(...),
-    front_photos: List[UploadFile] = File(...),
-    side_photos: List[UploadFile] = File(...),
-    fullbody_photos: List[UploadFile] = File(...),
-    other_photos: List[UploadFile] = File(...),
+    front_photos: List[UploadFile] = File(default=[]),
+    side_photos: List[UploadFile] = File(default=[]),
+    fullbody_photos: List[UploadFile] = File(default=[]),
+    other_photos: List[UploadFile] = File(default=[]),
 ):
     """학습 요청 생성"""
     from fastapi import UploadFile, File, Form
@@ -408,7 +408,7 @@ async def create_training_request(
     from .models import TrainingRequestStatus
 
     # 실존인물인 경우 Instagram ID 필수
-    if is_real_person and not instagram_id:
+    if is_real_person is True and not instagram_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Instagram ID is required for real person avatars",
@@ -436,7 +436,25 @@ async def create_training_request(
             detail="At least 1 other photo is required",
         )
 
-    # 이미지 업로드
+    # TrainingRequest를 먼저 생성하여 ID 획득
+    training_request = TrainingRequest(
+        user_id=current_user.id,
+        avatar_name=avatar_name,
+        negative_prompt=negative_prompt,
+        credit_per_generation=credit_per_generation,
+        national=national,
+        gender=gender,
+        description=description,
+        is_real_person=is_real_person,
+        instagram_id=instagram_id if is_real_person is True else None,
+        status=TrainingRequestStatus.REQUESTED.value,
+    )
+
+    db.add(training_request)
+    db.flush()  # ID를 얻기 위해 flush (아직 commit하지 않음)
+    training_request_id = training_request.id
+
+    # 이미지 업로드 (training_request_id 폴더에 저장)
     preview_image_url = None
     front_photos_urls = []
     side_photos_urls = []
@@ -444,12 +462,15 @@ async def create_training_request(
     other_photos_urls = []
 
     try:
+        # 폴더 경로: training-requests/{training_request_id}/
+        folder_path = f"training-requests/{training_request_id}"
+
         # 대표 이미지 업로드
         preview_content = await preview_image.read()
         preview_image_url = upload_file_to_s3(
             BytesIO(preview_content),
             preview_image.filename or "preview.jpg",
-            folder="training-requests",
+            folder=folder_path,
             content_type=preview_image.content_type or "image/jpeg",
         )
 
@@ -460,7 +481,7 @@ async def create_training_request(
             front_photos_urls = upload_multiple_files_to_s3(
                 [BytesIO(content) for content in front_contents],
                 front_filenames,
-                folder="training-requests",
+                folder=folder_path,
             )
 
         # 측면 사진들 업로드
@@ -470,7 +491,7 @@ async def create_training_request(
             side_photos_urls = upload_multiple_files_to_s3(
                 [BytesIO(content) for content in side_contents],
                 side_filenames,
-                folder="training-requests",
+                folder=folder_path,
             )
 
         # 전신 사진들 업로드
@@ -480,7 +501,7 @@ async def create_training_request(
             fullbody_photos_urls = upload_multiple_files_to_s3(
                 [BytesIO(content) for content in fullbody_contents],
                 fullbody_filenames,
-                folder="training-requests",
+                folder=folder_path,
             )
 
         # 기타 사진들 업로드
@@ -490,34 +511,25 @@ async def create_training_request(
             other_photos_urls = upload_multiple_files_to_s3(
                 [BytesIO(content) for content in other_contents],
                 other_filenames,
-                folder="training-requests",
+                folder=folder_path,
             )
+
+        # 업로드된 URL들을 TrainingRequest에 저장
+        training_request.preview_image_url = preview_image_url
+        training_request.front_photos_urls = front_photos_urls if front_photos_urls else None
+        training_request.side_photos_urls = side_photos_urls if side_photos_urls else None
+        training_request.fullbody_photos_urls = fullbody_photos_urls if fullbody_photos_urls else None
+        training_request.other_photos_urls = other_photos_urls if other_photos_urls else None
+
     except Exception as e:
+        # 이미지 업로드 실패 시 롤백
+        db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to upload images: {str(e)}",
         )
 
-    # TrainingRequest 생성
-    training_request = TrainingRequest(
-        user_id=current_user.id,
-        avatar_name=avatar_name,
-        negative_prompt=negative_prompt,
-        credit_per_generation=credit_per_generation,
-        national=national,
-        gender=gender,
-        description=description,
-        is_real_person=is_real_person,
-        instagram_id=instagram_id if is_real_person else None,
-        preview_image_url=preview_image_url,
-        front_photos_urls=front_photos_urls if front_photos_urls else None,
-        side_photos_urls=side_photos_urls if side_photos_urls else None,
-        fullbody_photos_urls=fullbody_photos_urls if fullbody_photos_urls else None,
-        other_photos_urls=other_photos_urls if other_photos_urls else None,
-        status=TrainingRequestStatus.REQUESTED.value,
-    )
-
-    db.add(training_request)
+    # 모든 업로드가 성공하면 commit
     db.commit()
     db.refresh(training_request)
 
@@ -533,7 +545,7 @@ def list_my_avatars(
     """내 아바타 목록 조회"""
     avatars = (
         db.query(Avatar)
-        .filter(Avatar.influencer_id == current_user.id)
+        .filter(Avatar.user_id == current_user.id)
         .order_by(Avatar.created_at.desc())
         .all()
     )
@@ -563,7 +575,7 @@ async def update_avatar(
             detail="Avatar not found",
         )
 
-    if avatar.influencer_id != current_user.id:
+    if avatar.user_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You don't have permission to update this avatar",
@@ -577,14 +589,15 @@ async def update_avatar(
     if description is not None:
         avatar.description = description
 
-    # 이미지 업로드
+    # 이미지 업로드 (avatars/{avatar_id}/ 폴더에 저장)
     if preview_image:
         try:
             image_content = await preview_image.read()
+            folder_path = f"avatars/{avatar_id}"
             preview_image_url = upload_file_to_s3(
                 BytesIO(image_content),
                 preview_image.filename or "preview.jpg",
-                folder="avatars",
+                folder=folder_path,
                 content_type=preview_image.content_type or "image/jpeg",
             )
             avatar.preview_image_url = preview_image_url

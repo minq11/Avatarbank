@@ -28,6 +28,10 @@ api.interceptors.request.use(
       config.headers = config.headers || {};
       config.headers.Authorization = `Bearer ${token}`;
     }
+    // FormData를 전송할 때는 Content-Type을 제거 (브라우저가 자동으로 설정)
+    if (config.data instanceof FormData) {
+      delete config.headers["Content-Type"];
+    }
     return config;
   },
   (error) => {
@@ -202,10 +206,13 @@ export const trainingRequestsApi = {
     formData.append("national", data.national);
     formData.append("gender", data.gender);
     formData.append("description", data.description);
-    formData.append("is_real_person", data.is_real_person.toString());
-    if (data.instagram_id) {
+    // is_real_person은 boolean이어야 함 (null이면 false로 변환)
+    const isRealPerson = data.is_real_person === true;
+    formData.append("is_real_person", String(isRealPerson));
+    if (isRealPerson && data.instagram_id) {
       formData.append("instagram_id", data.instagram_id);
     }
+    // preview_image는 필수
     formData.append("preview_image", data.preview_image);
     
     data.front_photos.forEach((file, index) => {
