@@ -103,6 +103,13 @@ export const useAuthStore = defineStore("auth", () => {
   // Check if user is Buyer
   const isBuyer = computed(() => userRole.value === "buyer");
   const isSeller = computed(() => userRole.value === "influencer");
+  // 관리자 여부: ADMIN_EMAIL_WHITELIST 기반 (프론트 단 간단 판별)
+  const isAdmin = computed(() => {
+    const email = user.value?.email?.toLowerCase() || "";
+    // 필요 시 여러 개로 확장 가능
+    const adminWhitelist = ["minku0128@naver.com"];
+    return adminWhitelist.includes(email);
+  });
 
   return {
     // State
@@ -115,6 +122,7 @@ export const useAuthStore = defineStore("auth", () => {
     creditBalance,
     isBuyer,
     isSeller,
+    isAdmin,
     isInitialized,
     // Actions
     login,

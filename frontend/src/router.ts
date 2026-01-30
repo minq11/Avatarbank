@@ -5,6 +5,7 @@ import GenerationPage from "./views/GenerationPage.vue";
 import MyGenerationsPage from "./views/MyGenerationsPage.vue";
 import MyAvatarsPage from "./views/MyAvatarsPage.vue";
 import InfluencerDashboardPage from "./views/InfluencerDashboardPage.vue";
+import AdminTrainingRequestsPage from "./views/AdminTrainingRequestsPage.vue";
 import PromptGenerationPage from "./views/PromptGenerationPage.vue";
 
 const routes: RouteRecordRaw[] = [
@@ -18,6 +19,11 @@ const routes: RouteRecordRaw[] = [
     path: "/influencer/dashboard",
     name: "influencer-dashboard",
     component: InfluencerDashboardPage,
+  },
+  {
+    path: "/admin/training-requests",
+    name: "admin-training-requests",
+    component: AdminTrainingRequestsPage,
   },
 ];
 

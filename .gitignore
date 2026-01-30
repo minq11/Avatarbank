@@ -95,6 +95,9 @@ logs/
 *.sqlite
 *.sqlite3
 
+# Uploads (user-uploaded files, not in version control)
+backend/uploads/
+
 # Temporary files
 *.tmp
 *.temp

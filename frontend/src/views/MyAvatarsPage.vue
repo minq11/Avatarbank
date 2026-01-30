@@ -37,6 +37,8 @@
               v-for="request in trainingRequests"
               :key="request.id"
               class="grid-row"
+              :class="{ 'grid-row-selected': selectedRequest?.id === request.id }"
+              @click="openRequestDetailModal(request)"
             >
               <div class="grid-cell">{{ request.id }}</div>
               <div class="grid-cell">{{ formatDate(request.created_at) }}</div>
@@ -77,7 +79,7 @@
               <div class="avatar-image-wrapper">
                 <img
                   v-if="avatar.preview_image_url"
-                  :src="avatar.preview_image_url"
+                  :src="getImageUrl(avatar.preview_image_url)"
                   :alt="avatar.title"
                   class="avatar-image"
                 />
@@ -117,6 +119,52 @@
                 placeholder="Enter avatar name"
               />
             </div>
+
+            <div class="form-group">
+              <label class="form-label">Is this avatar based on a real person? <span class="required">*</span></label>
+              <div class="radio-group">
+                <label class="radio-label">
+                  <input
+                    v-model="trainingForm.isRealPerson"
+                    type="radio"
+                    :value="true"
+                    class="radio-input"
+                  />
+                  <span>Yes</span>
+                </label>
+                <label class="radio-label">
+                  <input
+                    v-model="trainingForm.isRealPerson"
+                    type="radio"
+                    :value="false"
+                    class="radio-input"
+                  />
+                  <span>No</span>
+                </label>
+              </div>
+            </div>
+
+            <template v-if="trainingForm.isRealPerson === true">
+              <div class="form-group">
+                <label class="form-label">Instagram ID <span class="required">*</span></label>
+                <input
+                  v-model="trainingForm.instagramId"
+                  type="text"
+                  class="form-input"
+                  placeholder="Enter Instagram ID"
+                />
+              </div>
+              <div class="info-box">
+                <p>
+                  Please confirm this is your request via DM (<a
+                    href="https://www.instagram.com/avatarbank_official/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >@avatarbank_official</a>).
+                </p>
+                <p>We will not train if this is not your request.</p>
+              </div>
+            </template>
 
             <div class="form-group">
               <label class="form-label">Negative prompt <span class="required">*</span></label>
@@ -237,55 +285,6 @@
             </div>
           </div>
 
-          <!-- Real Person Based Avatar -->
-          <div class="form-section">
-            <div class="form-group">
-              <label class="form-label">Is this avatar based on a real person? <span class="required">*</span></label>
-              <div class="radio-group">
-                <label class="radio-label">
-                  <input
-                    v-model="trainingForm.isRealPerson"
-                    type="radio"
-                    :value="true"
-                    class="radio-input"
-                  />
-                  <span>Yes</span>
-                </label>
-                <label class="radio-label">
-                  <input
-                    v-model="trainingForm.isRealPerson"
-                    type="radio"
-                    :value="false"
-                    class="radio-input"
-                  />
-                  <span>No</span>
-                </label>
-              </div>
-            </div>
-
-            <template v-if="trainingForm.isRealPerson === true">
-              <div class="form-group">
-                <label class="form-label">Instagram ID <span class="required">*</span></label>
-                <input
-                  v-model="trainingForm.instagramId"
-                  type="text"
-                  class="form-input"
-                  placeholder="Enter Instagram ID"
-                />
-              </div>
-              <div class="info-box">
-                <p>
-                  Please confirm this is your request via DM (<a
-                    href="https://www.instagram.com/avatarbank_official/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >@avatarbank_official</a>).
-                </p>
-                <p>We will not train if this is not your request.</p>
-              </div>
-            </template>
-          </div>
-
           <!-- Training Photos Upload -->
           <div class="form-section">
             <h4 class="form-section-title">Training Photos Upload</h4>
@@ -312,6 +311,14 @@
                       <line x1="12" y1="3" x2="12" y2="15"/>
                     </svg>
                   </div>
+                  <button
+                    v-if="slot.url"
+                    type="button"
+                    class="remove-photo-btn"
+                    @click.stop="removePhoto('front', index)"
+                  >
+                    ×
+                  </button>
                   <input
                     type="file"
                     accept="image/*"
@@ -319,6 +326,21 @@
                     @change="(e) => handlePhotoUpload('front', index, e)"
                   />
                 </label>
+                <input
+                  ref="frontPhotosInput"
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  class="hidden-file-input"
+                  @change="(e) => handleMultiplePhotoUpload('front', e)"
+                />
+                <button
+                  type="button"
+                  class="add-photo-btn"
+                  @click="frontPhotosInput?.click()"
+                >
+                  + Add Photo
+                </button>
               </div>
             </div>
 
@@ -344,6 +366,14 @@
                       <line x1="12" y1="3" x2="12" y2="15"/>
                     </svg>
                   </div>
+                  <button
+                    v-if="slot.url"
+                    type="button"
+                    class="remove-photo-btn"
+                    @click.stop="removePhoto('side', index)"
+                  >
+                    ×
+                  </button>
                   <input
                     type="file"
                     accept="image/*"
@@ -351,6 +381,21 @@
                     @change="(e) => handlePhotoUpload('side', index, e)"
                   />
                 </label>
+                <input
+                  ref="sidePhotosInput"
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  class="hidden-file-input"
+                  @change="(e) => handleMultiplePhotoUpload('side', e)"
+                />
+                <button
+                  type="button"
+                  class="add-photo-btn"
+                  @click="sidePhotosInput?.click()"
+                >
+                  + Add Photo
+                </button>
               </div>
             </div>
 
@@ -376,6 +421,14 @@
                       <line x1="12" y1="3" x2="12" y2="15"/>
                     </svg>
                   </div>
+                  <button
+                    v-if="slot.url"
+                    type="button"
+                    class="remove-photo-btn"
+                    @click.stop="removePhoto('fullbody', index)"
+                  >
+                    ×
+                  </button>
                   <input
                     type="file"
                     accept="image/*"
@@ -383,6 +436,21 @@
                     @change="(e) => handlePhotoUpload('fullbody', index, e)"
                   />
                 </label>
+                <input
+                  ref="fullBodyPhotosInput"
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  class="hidden-file-input"
+                  @change="(e) => handleMultiplePhotoUpload('fullbody', e)"
+                />
+                <button
+                  type="button"
+                  class="add-photo-btn"
+                  @click="fullBodyPhotosInput?.click()"
+                >
+                  + Add Photo
+                </button>
               </div>
             </div>
 
@@ -408,6 +476,14 @@
                       <line x1="12" y1="3" x2="12" y2="15"/>
                     </svg>
                   </div>
+                  <button
+                    v-if="slot.url"
+                    type="button"
+                    class="remove-photo-btn"
+                    @click.stop="removePhoto('other', index)"
+                  >
+                    ×
+                  </button>
                   <input
                     type="file"
                     accept="image/*"
@@ -415,6 +491,21 @@
                     @change="(e) => handlePhotoUpload('other', index, e)"
                   />
                 </label>
+                <input
+                  ref="otherPhotosInput"
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  class="hidden-file-input"
+                  @change="(e) => handleMultiplePhotoUpload('other', e)"
+                />
+                <button
+                  type="button"
+                  class="add-photo-btn"
+                  @click="otherPhotosInput?.click()"
+                >
+                  + Add Photo
+                </button>
               </div>
             </div>
           </div>
@@ -440,6 +531,191 @@
       </div>
     </div>
 
+    <!-- Training Request Detail Modal -->
+    <div v-if="selectedRequest" class="modal-overlay" @click.self="closeRequestDetailModal">
+      <div class="modal-card training-detail-modal">
+        <div class="modal-header">
+          <h3>Training Request Details</h3>
+          <button class="modal-close" type="button" @click="closeRequestDetailModal">×</button>
+        </div>
+
+        <div class="modal-body">
+          <!-- Basic Information -->
+          <div class="form-section">
+            <h4 class="form-section-title">Basic Information</h4>
+            
+            <div class="form-group">
+              <label class="form-label">Avatar name</label>
+              <input
+                :value="selectedRequest.avatar_name"
+                type="text"
+                class="form-input"
+                readonly
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Is this avatar based on a real person?</label>
+              <input
+                :value="selectedRequest.is_real_person ? 'Yes' : 'No'"
+                type="text"
+                class="form-input"
+                readonly
+              />
+            </div>
+
+            <div v-if="selectedRequest.is_real_person" class="form-group">
+              <label class="form-label">Instagram ID</label>
+              <input
+                :value="selectedRequest.instagram_id || ''"
+                type="text"
+                class="form-input"
+                readonly
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Negative prompt</label>
+              <input
+                :value="selectedRequest.negative_prompt || ''"
+                type="text"
+                class="form-input"
+                readonly
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Credit per generation</label>
+              <input
+                :value="selectedRequest.credit_per_generation"
+                type="number"
+                class="form-input"
+                readonly
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">National</label>
+              <input
+                :value="selectedRequest.national || ''"
+                type="text"
+                class="form-input"
+                readonly
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Gender</label>
+              <input
+                :value="selectedRequest.gender || ''"
+                type="text"
+                class="form-input"
+                readonly
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Description</label>
+              <textarea
+                :value="selectedRequest.description || ''"
+                class="form-textarea"
+                rows="4"
+                readonly
+              ></textarea>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Preview Image</label>
+              <div v-if="selectedRequest.preview_image_url" class="preview-image">
+                <img :src="getImageUrl(selectedRequest.preview_image_url)" alt="Preview" />
+              </div>
+              <div v-else class="preview-placeholder">No image</div>
+            </div>
+          </div>
+
+          <!-- Training Photos -->
+          <div class="form-section">
+            <h4 class="form-section-title">Training Photos</h4>
+
+            <!-- Front -->
+            <div v-if="selectedRequest.front_photos_urls && selectedRequest.front_photos_urls.length > 0" class="photo-category">
+              <label class="category-label">Front</label>
+              <div class="photo-slots">
+                <div
+                  v-for="(url, index) in selectedRequest.front_photos_urls"
+                  :key="`front-${index}`"
+                  class="photo-slot readonly"
+                >
+                  <img :src="getImageUrl(url)" alt="Front photo" class="slot-image" />
+                </div>
+              </div>
+            </div>
+
+            <!-- Side -->
+            <div v-if="selectedRequest.side_photos_urls && selectedRequest.side_photos_urls.length > 0" class="photo-category">
+              <label class="category-label">Side</label>
+              <div class="photo-slots">
+                <div
+                  v-for="(url, index) in selectedRequest.side_photos_urls"
+                  :key="`side-${index}`"
+                  class="photo-slot readonly"
+                >
+                  <img :src="getImageUrl(url)" alt="Side photo" class="slot-image" />
+                </div>
+              </div>
+            </div>
+
+            <!-- Full Body -->
+            <div v-if="selectedRequest.fullbody_photos_urls && selectedRequest.fullbody_photos_urls.length > 0" class="photo-category">
+              <label class="category-label">Full Body</label>
+              <div class="photo-slots">
+                <div
+                  v-for="(url, index) in selectedRequest.fullbody_photos_urls"
+                  :key="`fullbody-${index}`"
+                  class="photo-slot readonly"
+                >
+                  <img :src="getImageUrl(url)" alt="Full body photo" class="slot-image" />
+                </div>
+              </div>
+            </div>
+
+            <!-- Other -->
+            <div v-if="selectedRequest.other_photos_urls && selectedRequest.other_photos_urls.length > 0" class="photo-category">
+              <label class="category-label">Other</label>
+              <div class="photo-slots">
+                <div
+                  v-for="(url, index) in selectedRequest.other_photos_urls"
+                  :key="`other-${index}`"
+                  class="photo-slot readonly"
+                >
+                  <img :src="getImageUrl(url)" alt="Other photo" class="slot-image" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button
+            v-if="selectedRequest.status === 'requested'"
+            class="btn-danger"
+            type="button"
+            :disabled="cancelling"
+            @click="cancelRequest"
+          >
+            {{ cancelling ? "Cancelling..." : "Cancel Request" }}
+          </button>
+          <button
+            class="btn-secondary"
+            type="button"
+            @click="closeRequestDetailModal"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Avatar Detail and Edit Modal -->
     <div v-if="selectedAvatar" class="modal-overlay" @click.self="closeAvatarDetailModal">
       <div class="modal-card avatar-detail-modal">
@@ -455,7 +731,7 @@
             <div class="preview-image-large">
               <img
                 v-if="selectedAvatar.preview_image_url"
-                :src="selectedAvatar.preview_image_url"
+                :src="getImageUrl(selectedAvatar.preview_image_url)"
                 alt="Preview"
               />
               <div v-else class="preview-placeholder">No image</div>
@@ -566,6 +842,12 @@
         </div>
 
         <div class="modal-footer">
+          <div v-if="saving && uploadProgress > 0" class="upload-progress-wrap">
+            <div class="upload-progress-bar">
+              <div class="upload-progress-fill" :style="{ width: uploadProgress + '%' }"></div>
+            </div>
+            <span class="upload-progress-text">{{ uploadProgress }}%</span>
+          </div>
           <button
             class="btn-secondary"
             type="button"
@@ -589,12 +871,31 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-import { avatarsApi, trainingRequestsApi, type AvatarItem, type TrainingRequestItem } from "@/services/api";
+import { avatarsApi, trainingRequestsApi, type AvatarItem, type TrainingRequestItem, type TrainingRequestDetailItem } from "@/services/api";
 import testfaceImage from "@/assets/testface.png";
+
+// Helper function to convert static file paths to full URLs
+function getImageUrl(url: string | null | undefined): string {
+  if (!url) return "";
+  // If URL starts with /static/, prepend /api for proxy
+  if (url.startsWith("/static/")) {
+    return `/api${url}`;
+  }
+  // If it's already a full URL (http/https), return as is
+  if (url.startsWith("http://") || url.startsWith("https://")) {
+    return url;
+  }
+  // Otherwise return as is
+  return url;
+}
 
 // Refs for file inputs
 const previewImageInput = ref<HTMLInputElement | null>(null);
 const editPreviewImageInput = ref<HTMLInputElement | null>(null);
+const frontPhotosInput = ref<HTMLInputElement | null>(null);
+const sidePhotosInput = ref<HTMLInputElement | null>(null);
+const fullBodyPhotosInput = ref<HTMLInputElement | null>(null);
+const otherPhotosInput = ref<HTMLInputElement | null>(null);
 
 // State
 const loadingRequests = ref(false);
@@ -603,8 +904,12 @@ const trainingRequests = ref<TrainingRequestItem[]>([]);
 const avatars = ref<AvatarItem[]>([]);
 const showTrainingRequestModal = ref(false);
 const selectedAvatar = ref<AvatarItem | null>(null);
+const selectedRequest = ref<TrainingRequestDetailItem | null>(null);
 const submitting = ref(false);
 const saving = ref(false);
+const uploadProgress = ref(0);
+const cancelling = ref(false);
+const loadingRequestDetail = ref(false);
 
 // Training request form
 const trainingForm = ref({
@@ -618,10 +923,10 @@ const trainingForm = ref({
   previewImageUrl: "",
   isRealPerson: null as boolean | null,
   instagramId: "",
-  frontPhotos: Array(4).fill(null).map(() => ({ file: null as File | null, url: "" })),
-  sidePhotos: Array(4).fill(null).map(() => ({ file: null as File | null, url: "" })),
-  fullBodyPhotos: Array(1).fill(null).map(() => ({ file: null as File | null, url: "" })),
-  otherPhotos: Array(1).fill(null).map(() => ({ file: null as File | null, url: "" })),
+  frontPhotos: [] as Array<{ file: File | null; url: string }>,
+  sidePhotos: [] as Array<{ file: File | null; url: string }>,
+  fullBodyPhotos: [] as Array<{ file: File | null; url: string }>,
+  otherPhotos: [] as Array<{ file: File | null; url: string }>,
 });
 
 // Edit form
@@ -702,6 +1007,7 @@ function getStatusLabel(status: string): string {
     requested: "Requested",
     approved_training: "Approved - Training",
     rejected: "Rejected",
+    cancelled: "Cancelled",
   };
   return statusMap[status] || status;
 }
@@ -711,6 +1017,7 @@ function getStatusClass(status: string): string {
     requested: "requested",
     approved_training: "approved",
     rejected: "rejected",
+    cancelled: "cancelled",
   };
   return classMap[status] || "default";
 }
@@ -734,7 +1041,24 @@ async function loadDefaultImage(): Promise<File> {
 }
 
 async function resetTrainingForm() {
-  // Reset form fields first
+  // Revoke all existing object URLs to prevent memory leaks
+  trainingForm.value.frontPhotos.forEach(slot => {
+    if (slot.url) URL.revokeObjectURL(slot.url);
+  });
+  trainingForm.value.sidePhotos.forEach(slot => {
+    if (slot.url) URL.revokeObjectURL(slot.url);
+  });
+  trainingForm.value.fullBodyPhotos.forEach(slot => {
+    if (slot.url) URL.revokeObjectURL(slot.url);
+  });
+  trainingForm.value.otherPhotos.forEach(slot => {
+    if (slot.url) URL.revokeObjectURL(slot.url);
+  });
+  if (trainingForm.value.previewImageUrl) {
+    URL.revokeObjectURL(trainingForm.value.previewImageUrl);
+  }
+  
+  // Reset form fields
   trainingForm.value = {
     avatarName: "",
     negativePrompt: "",
@@ -746,10 +1070,10 @@ async function resetTrainingForm() {
     previewImageUrl: "",
     isRealPerson: null,
     instagramId: "",
-    frontPhotos: Array(4).fill(null).map(() => ({ file: null, url: "" })),
-    sidePhotos: Array(4).fill(null).map(() => ({ file: null, url: "" })),
-    fullBodyPhotos: Array(1).fill(null).map(() => ({ file: null, url: "" })),
-    otherPhotos: Array(1).fill(null).map(() => ({ file: null, url: "" })),
+    frontPhotos: [],
+    sidePhotos: [],
+    fullBodyPhotos: [],
+    otherPhotos: [],
   };
   
   // Load default image for preview
@@ -757,26 +1081,26 @@ async function resetTrainingForm() {
   trainingForm.value.previewImage = defaultPreviewFile;
   trainingForm.value.previewImageUrl = URL.createObjectURL(defaultPreviewFile);
   
-  // Load default images for all photo slots
+  // Initialize with minimum required photos (pre-filled with default images)
   // Front photos (4 required)
   for (let i = 0; i < 4; i++) {
     const file = await loadDefaultImage();
-    trainingForm.value.frontPhotos[i] = { file, url: URL.createObjectURL(file) };
+    trainingForm.value.frontPhotos.push({ file, url: URL.createObjectURL(file) });
   }
   
   // Side photos (4 required)
   for (let i = 0; i < 4; i++) {
     const file = await loadDefaultImage();
-    trainingForm.value.sidePhotos[i] = { file, url: URL.createObjectURL(file) };
+    trainingForm.value.sidePhotos.push({ file, url: URL.createObjectURL(file) });
   }
   
   // Full body photos (1 required)
   const fullBodyFile = await loadDefaultImage();
-  trainingForm.value.fullBodyPhotos[0] = { file: fullBodyFile, url: URL.createObjectURL(fullBodyFile) };
+  trainingForm.value.fullBodyPhotos.push({ file: fullBodyFile, url: URL.createObjectURL(fullBodyFile) });
   
   // Other photos (1 required)
   const otherFile = await loadDefaultImage();
-  trainingForm.value.otherPhotos[0] = { file: otherFile, url: URL.createObjectURL(otherFile) };
+  trainingForm.value.otherPhotos.push({ file: otherFile, url: URL.createObjectURL(otherFile) });
 }
 
 function openAvatarDetailModal(avatar: AvatarItem) {
@@ -792,6 +1116,48 @@ function openAvatarDetailModal(avatar: AvatarItem) {
 
 function closeAvatarDetailModal() {
   selectedAvatar.value = null;
+}
+
+async function openRequestDetailModal(request: TrainingRequestItem) {
+  loadingRequestDetail.value = true;
+  try {
+    selectedRequest.value = await trainingRequestsApi.getRequestDetail(request.id);
+  } catch (error) {
+    console.error("Failed to load request detail:", error);
+    alert("Failed to load request details.");
+  } finally {
+    loadingRequestDetail.value = false;
+  }
+}
+
+function closeRequestDetailModal() {
+  selectedRequest.value = null;
+}
+
+async function cancelRequest() {
+  if (!selectedRequest.value) return;
+  
+  if (!confirm("Are you sure you want to cancel this request?")) {
+    return;
+  }
+
+  cancelling.value = true;
+  try {
+    const updatedRequest = await trainingRequestsApi.cancelRequest(selectedRequest.value.id);
+    // Update the selected request status
+    if (selectedRequest.value) {
+      selectedRequest.value.status = updatedRequest.status;
+    }
+    // Update the list
+    await loadTrainingRequests();
+    alert("Request has been cancelled.");
+  } catch (error: any) {
+    console.error("Failed to cancel request:", error);
+    const errorMessage = error?.response?.data?.detail || error?.message || "Failed to cancel request.";
+    alert(errorMessage);
+  } finally {
+    cancelling.value = false;
+  }
 }
 
 // Image upload handling
@@ -826,11 +1192,74 @@ function removeEditPreviewImage() {
 }
 
 // Photo slot management
+function handleMultiplePhotoUpload(category: string, event: Event) {
+  const input = event.target as HTMLInputElement;
+  if (input.files && input.files.length > 0) {
+    const files = Array.from(input.files);
+    
+    files.forEach((file) => {
+      const url = URL.createObjectURL(file);
+      
+      if (category === "front") {
+        trainingForm.value.frontPhotos.push({ file, url });
+      } else if (category === "side") {
+        trainingForm.value.sidePhotos.push({ file, url });
+      } else if (category === "fullbody") {
+        trainingForm.value.fullBodyPhotos.push({ file, url });
+      } else if (category === "other") {
+        trainingForm.value.otherPhotos.push({ file, url });
+      }
+    });
+    
+    // Reset input to allow selecting the same files again
+    input.value = "";
+  }
+}
+
+function removePhoto(category: string, index: number) {
+  if (category === "front") {
+    const slot = trainingForm.value.frontPhotos[index];
+    if (slot.url) {
+      URL.revokeObjectURL(slot.url);
+    }
+    trainingForm.value.frontPhotos.splice(index, 1);
+  } else if (category === "side") {
+    const slot = trainingForm.value.sidePhotos[index];
+    if (slot.url) {
+      URL.revokeObjectURL(slot.url);
+    }
+    trainingForm.value.sidePhotos.splice(index, 1);
+  } else if (category === "fullbody") {
+    const slot = trainingForm.value.fullBodyPhotos[index];
+    if (slot.url) {
+      URL.revokeObjectURL(slot.url);
+    }
+    trainingForm.value.fullBodyPhotos.splice(index, 1);
+  } else if (category === "other") {
+    const slot = trainingForm.value.otherPhotos[index];
+    if (slot.url) {
+      URL.revokeObjectURL(slot.url);
+    }
+    trainingForm.value.otherPhotos.splice(index, 1);
+  }
+}
+
 function handlePhotoUpload(category: string, index: number, event: Event) {
   const input = event.target as HTMLInputElement;
   if (input.files && input.files[0]) {
     const file = input.files[0];
     const url = URL.createObjectURL(file);
+    
+    // Revoke old URL if exists
+    if (category === "front" && trainingForm.value.frontPhotos[index]?.url) {
+      URL.revokeObjectURL(trainingForm.value.frontPhotos[index].url);
+    } else if (category === "side" && trainingForm.value.sidePhotos[index]?.url) {
+      URL.revokeObjectURL(trainingForm.value.sidePhotos[index].url);
+    } else if (category === "fullbody" && trainingForm.value.fullBodyPhotos[index]?.url) {
+      URL.revokeObjectURL(trainingForm.value.fullBodyPhotos[index].url);
+    } else if (category === "other" && trainingForm.value.otherPhotos[index]?.url) {
+      URL.revokeObjectURL(trainingForm.value.otherPhotos[index].url);
+    }
     
     if (category === "front") {
       trainingForm.value.frontPhotos[index] = { file, url };
@@ -841,6 +1270,9 @@ function handlePhotoUpload(category: string, index: number, event: Event) {
     } else if (category === "other") {
       trainingForm.value.otherPhotos[index] = { file, url };
     }
+    
+    // Reset input to allow selecting the same file again
+    input.value = "";
   }
 }
 
@@ -883,13 +1315,18 @@ async function saveAvatarChanges() {
   if (!selectedAvatar.value) return;
 
   saving.value = true;
+  uploadProgress.value = 0;
   try {
-    await avatarsApi.updateAvatar(selectedAvatar.value.id, {
-      title: editForm.value.avatarName,
-      credit_per_generation: editForm.value.creditPerGeneration,
-      description: editForm.value.description,
-      preview_image: editForm.value.previewImage || undefined,
-    });
+    await avatarsApi.updateAvatar(
+      selectedAvatar.value.id,
+      {
+        title: editForm.value.avatarName,
+        credit_per_generation: editForm.value.creditPerGeneration,
+        description: editForm.value.description,
+        preview_image: editForm.value.previewImage || undefined,
+      },
+      editForm.value.previewImage ? (percent) => { uploadProgress.value = percent; } : undefined
+    );
 
     closeAvatarDetailModal();
     await loadAvatars();
@@ -898,6 +1335,7 @@ async function saveAvatarChanges() {
     alert("Failed to save. Please try again.");
   } finally {
     saving.value = false;
+    uploadProgress.value = 0;
   }
 }
 </script>
@@ -1007,6 +1445,16 @@ async function saveAvatarChanges() {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   border-top: 1px solid #e5e7eb;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.grid-row:hover {
+  background-color: #f9fafb;
+}
+
+.grid-row-selected {
+  background-color: #eff6ff;
 }
 
 .grid-cell {
@@ -1036,6 +1484,11 @@ async function saveAvatarChanges() {
 .status-rejected {
   background: #fee2e2;
   color: #991b1b;
+}
+
+.status-cancelled {
+  background: #f3f4f6;
+  color: #6b7280;
 }
 
 /* Avatars Section (2/3) */
@@ -1167,6 +1620,10 @@ async function saveAvatarChanges() {
   max-width: 900px;
 }
 
+.training-detail-modal {
+  max-width: 900px;
+}
+
 .avatar-detail-modal {
   max-width: 700px;
 }
@@ -1263,6 +1720,18 @@ async function saveAvatarChanges() {
   outline: none;
   border-color: #4f46e5;
   box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.form-input[readonly],
+.form-textarea[readonly] {
+  background-color: #f9fafb;
+  cursor: default;
+}
+
+.form-input[readonly]:focus,
+.form-textarea[readonly]:focus {
+  border-color: #d1d5db;
+  box-shadow: none;
 }
 
 .form-textarea {
@@ -1415,9 +1884,60 @@ async function saveAvatarChanges() {
   overflow: hidden;
 }
 
-.photo-slot:hover {
+.photo-slot:hover:not(.readonly) {
   border-color: #4f46e5;
   background: #f3f4f6;
+}
+
+.photo-slot.readonly {
+  cursor: default;
+  border-style: solid;
+}
+
+.remove-photo-btn {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.25rem;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  background: rgba(239, 68, 68, 0.9);
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  line-height: 1;
+  z-index: 10;
+  transition: background 0.2s;
+}
+
+.remove-photo-btn:hover {
+  background: rgba(220, 38, 38, 1);
+}
+
+.add-photo-btn {
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #4f46e5;
+  background: #f9fafb;
+  border: 2px dashed #d1d5db;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.add-photo-btn:hover {
+  border-color: #4f46e5;
+  background: #f3f4f6;
+  color: #4338ca;
 }
 
 .slot-image {
@@ -1549,6 +2069,55 @@ async function saveAvatarChanges() {
 .btn-secondary:hover {
   background: #f3f4f6;
   border-color: #9ca3af;
+}
+
+.btn-danger {
+  padding: 0.625rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: white;
+  background: #ef4444;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: #dc2626;
+  box-shadow: 0 10px 15px -3px rgba(239, 68, 68, 0.3);
+}
+
+.btn-danger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.modal-footer .upload-progress-wrap {
+  flex-basis: 100%;
+  width: 100%;
+  margin-bottom: 0.5rem;
+}
+
+.upload-progress-bar {
+  height: 6px;
+  background: #e5e7eb;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.upload-progress-fill {
+  height: 100%;
+  background: linear-gradient(to right, #4f46e5, #6366f1);
+  border-radius: 9999px;
+  transition: width 0.2s ease;
+}
+
+.upload-progress-text {
+  display: block;
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-top: 0.25rem;
 }
 
 /* Responsive */

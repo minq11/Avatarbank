@@ -171,6 +171,38 @@ export const generationsApi = {
 export interface TrainingRequestItem {
   id: number;
   avatar_name: string;
+  status: "requested" | "approved_training" | "rejected" | "cancelled";
+  created_at: string;
+  updated_at: string;
+}
+
+/** 관리자용 목록: 요청자 정보 포함 */
+export interface AdminTrainingRequestItem {
+  id: number;
+  avatar_name: string;
+  status: "requested" | "approved_training" | "rejected" | "cancelled";
+  created_at: string;
+  updated_at: string;
+  user_id: number;
+  user_email: string;
+  user_nickname: string;
+}
+
+export interface TrainingRequestDetailItem {
+  id: number;
+  avatar_name: string;
+  negative_prompt: string | null;
+  credit_per_generation: number;
+  national: string | null;
+  gender: string | null;
+  description: string | null;
+  is_real_person: boolean;
+  instagram_id: string | null;
+  preview_image_url: string | null;
+  front_photos_urls: string[] | null;
+  side_photos_urls: string[] | null;
+  fullbody_photos_urls: string[] | null;
+  other_photos_urls: string[] | null;
   status: "requested" | "approved_training" | "rejected";
   created_at: string;
   updated_at: string;
@@ -195,6 +227,16 @@ export interface CreateTrainingRequestData {
 export const trainingRequestsApi = {
   getMyRequests: async (): Promise<TrainingRequestItem[]> => {
     const response = await api.get<TrainingRequestItem[]>("/my/training-requests");
+    return response.data;
+  },
+
+  getRequestDetail: async (id: number): Promise<TrainingRequestDetailItem> => {
+    const response = await api.get<TrainingRequestDetailItem>(`/my/training-requests/${id}`);
+    return response.data;
+  },
+
+  cancelRequest: async (id: number): Promise<TrainingRequestItem> => {
+    const response = await api.patch<TrainingRequestItem>(`/my/training-requests/${id}/cancel`);
     return response.data;
   },
 
@@ -231,6 +273,53 @@ export const trainingRequestsApi = {
     const response = await api.post<TrainingRequestItem>("/my/training-requests", formData);
     return response.data;
   },
+
+  // Admin APIs
+  getAllRequestsAdmin: async (): Promise<AdminTrainingRequestItem[]> => {
+    const response = await api.get<AdminTrainingRequestItem[]>("/admin/training-requests");
+    return response.data;
+  },
+
+  getRequestDetailAdmin: async (id: number): Promise<TrainingRequestDetailItem> => {
+    const response = await api.get<TrainingRequestDetailItem>(`/admin/training-requests/${id}`);
+    return response.data;
+  },
+
+  downloadPhotosZipAdmin: async (id: number): Promise<Blob> => {
+    const response = await api.get(`/admin/training-requests/${id}/photos.zip`, {
+      responseType: "blob",
+    });
+    return response.data as Blob;
+  },
+
+  /** 관리자: LoRA(.safetensors) 업로드 → S3 업로드 후 Avatar 생성/갱신 */
+  getLoraDownloadUrlAdmin: async (requestId: number): Promise<{ url: string }> => {
+    const response = await api.get<{ url: string }>(
+      `/admin/training-requests/${requestId}/lora`
+    );
+    return response.data;
+  },
+
+  uploadLoRAAdmin: async (
+    requestId: number,
+    file: File,
+    onUploadProgress?: (percent: number) => void
+  ): Promise<AvatarItem> => {
+    const formData = new FormData();
+    formData.append("lora_file", file);
+    const response = await api.post<AvatarItem>(
+      `/admin/training-requests/${requestId}/upload-lora`,
+      formData,
+      {
+        onUploadProgress: (ev) => {
+          if (ev.total != null && ev.total > 0 && onUploadProgress) {
+            onUploadProgress(Math.round((ev.loaded / ev.total) * 100));
+          }
+        },
+      }
+    );
+    return response.data;
+  },
 };
 
 // Avatars API
@@ -261,7 +350,11 @@ export const avatarsApi = {
     return response.data;
   },
 
-  updateAvatar: async (id: number, data: UpdateAvatarData): Promise<AvatarItem> => {
+  updateAvatar: async (
+    id: number,
+    data: UpdateAvatarData,
+    onUploadProgress?: (percent: number) => void
+  ): Promise<AvatarItem> => {
     const formData = new FormData();
     if (data.title) formData.append("title", data.title);
     if (data.credit_per_generation !== undefined) {
@@ -270,7 +363,17 @@ export const avatarsApi = {
     if (data.description) formData.append("description", data.description);
     if (data.preview_image) formData.append("preview_image", data.preview_image);
 
-    const response = await api.put<AvatarItem>(`/my/avatars/${id}`, formData);
+    const config =
+      onUploadProgress ?
+        {
+          onUploadProgress: (ev: { loaded: number; total?: number }) => {
+            if (ev.total != null && ev.total > 0) {
+              onUploadProgress(Math.round((ev.loaded / ev.total) * 100));
+            }
+          },
+        }
+      : {};
+    const response = await api.put<AvatarItem>(`/my/avatars/${id}`, formData, config);
     return response.data;
   },
 };

@@ -1,9 +1,14 @@
 from datetime import datetime
 from typing import List
+import io
+import os
+import zipfile
+from pathlib import Path
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from .auth import (
@@ -18,9 +23,10 @@ from .auth import (
 from .config import settings
 from .db import Base, engine, get_db
 from .dependencies import get_current_user
-from .models import Avatar, Generation, GenerationStatus, Transaction, TrainingRequest, User
+from .models import Avatar, AvatarStatus, Generation, GenerationStatus, Transaction, TrainingRequest, User
 from .fal_client import run_generation_sync
 from .schemas import (
+    AdminTrainingRequestResponse,
     AdminUpgradeRequest,
     AvatarResponse,
     AvatarUpdateRequest,
@@ -29,6 +35,7 @@ from .schemas import (
     RefreshTokenRequest,
     RefreshTokenResponse,
     TrainingRequestResponse,
+    TrainingRequestDetailResponse,
     UserLoginRequest,
     UserLoginResponse,
     UserRegisterRequest,
@@ -554,6 +561,379 @@ async def create_training_request(
     return TrainingRequestResponse.model_validate(training_request)
 
 
+@app.get("/my/training-requests/{request_id}", response_model=TrainingRequestDetailResponse, tags=["training"])
+def get_training_request_detail(
+    request_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> TrainingRequestDetailResponse:
+    """학습 요청 상세 조회"""
+    request = (
+        db.query(TrainingRequest)
+        .filter(
+            TrainingRequest.id == request_id,
+            TrainingRequest.user_id == current_user.id,
+        )
+        .first()
+    )
+    
+    if not request:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Training request not found",
+        )
+    
+    return TrainingRequestDetailResponse.model_validate(request)
+
+
+@app.patch("/my/training-requests/{request_id}/cancel", response_model=TrainingRequestResponse, tags=["training"])
+def cancel_training_request(
+    request_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> TrainingRequestResponse:
+    """학습 요청 취소"""
+    from .models import TrainingRequestStatus
+    
+    request = (
+        db.query(TrainingRequest)
+        .filter(
+            TrainingRequest.id == request_id,
+            TrainingRequest.user_id == current_user.id,
+        )
+        .first()
+    )
+    
+    if not request:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Training request not found",
+        )
+    
+    # 이미 승인되었거나 거부된 요청은 취소할 수 없음
+    if request.status in [TrainingRequestStatus.APPROVED_TRAINING.value, TrainingRequestStatus.REJECTED.value]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot cancel a request that has already been approved or rejected",
+        )
+    
+    # 이미 취소된 요청은 다시 취소할 수 없음
+    if request.status == TrainingRequestStatus.CANCELLED.value:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Request is already cancelled",
+        )
+    
+    # 요청 상태를 취소로 변경
+    request.status = TrainingRequestStatus.CANCELLED.value
+    db.commit()
+    db.refresh(request)
+    
+    return TrainingRequestResponse.model_validate(request)
+
+
+# Admin Training Requests API
+@app.get("/admin/training-requests", response_model=list[AdminTrainingRequestResponse], tags=["admin"])
+def admin_list_training_requests(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> list[AdminTrainingRequestResponse]:
+    """관리자용 학습 요청 전체 목록 조회 (요청자 정보 포함)"""
+    if not _is_admin_email(current_user.email):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required.",
+        )
+
+    rows = (
+        db.query(TrainingRequest, User)
+        .join(User, TrainingRequest.user_id == User.id)
+        .order_by(TrainingRequest.created_at.desc())
+        .all()
+    )
+    return [
+        AdminTrainingRequestResponse(
+            id=req.id,
+            avatar_name=req.avatar_name,
+            status=req.status,
+            created_at=req.created_at,
+            updated_at=req.updated_at,
+            user_id=user.id,
+            user_email=user.email,
+            user_nickname=user.nickname,
+        )
+        for req, user in rows
+    ]
+
+
+@app.get(
+    "/admin/training-requests/{request_id}",
+    response_model=TrainingRequestDetailResponse,
+    tags=["admin"],
+)
+def admin_get_training_request_detail(
+    request_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> TrainingRequestDetailResponse:
+    """관리자용 학습 요청 상세 조회"""
+    if not _is_admin_email(current_user.email):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required.",
+        )
+
+    request = (
+        db.query(TrainingRequest)
+        .filter(TrainingRequest.id == request_id)
+        .first()
+    )
+
+    if not request:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Training request not found",
+        )
+
+    return TrainingRequestDetailResponse.model_validate(request)
+
+
+@app.get(
+    "/admin/training-requests/{request_id}/photos.zip",
+    tags=["admin"],
+)
+def admin_download_training_request_photos_zip(
+    request_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """관리자용 학습 요청 사진 ZIP 다운로드"""
+    if not _is_admin_email(current_user.email):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required.",
+        )
+
+    request = (
+        db.query(TrainingRequest)
+        .filter(TrainingRequest.id == request_id)
+        .first()
+    )
+
+    if not request:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Training request not found",
+        )
+
+    folder_name = f"training-requests/{request_id}"
+
+    # 로컬 스토리지
+    if settings.STORAGE_TYPE == "local":
+        base_dir = Path(settings.UPLOAD_DIR) / folder_name
+        if not base_dir.exists():
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Training photos not found",
+            )
+
+        mem_file = io.BytesIO()
+        with zipfile.ZipFile(mem_file, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
+            for root, _, files in os.walk(base_dir):
+                for filename in files:
+                    file_path = Path(root) / filename
+                    arcname = str(file_path.relative_to(base_dir))
+                    zf.write(file_path, arcname)
+
+        mem_file.seek(0)
+
+        def file_iterator(chunk_size: int = 8192):
+            while True:
+                chunk = mem_file.read(chunk_size)
+                if not chunk:
+                    break
+                yield chunk
+
+        return StreamingResponse(
+            file_iterator(),
+            media_type="application/zip",
+            headers={
+                "Content-Disposition": f'attachment; filename="training_request_{request_id}_photos.zip"'
+            },
+        )
+
+    # S3 스토리지
+    else:
+        from .s3_utils import get_s3_client
+
+        s3_client = get_s3_client()
+        prefix = folder_name.rstrip("/") + "/"
+
+        # 객체 목록 조회
+        resp = s3_client.list_objects_v2(
+            Bucket=settings.S3_BUCKET,
+            Prefix=prefix,
+        )
+        contents = resp.get("Contents", [])
+        if not contents:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Training photos not found in S3",
+            )
+
+        mem_file = io.BytesIO()
+        with zipfile.ZipFile(mem_file, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
+            for obj in contents:
+                key = obj["Key"]
+                # prefix 이후의 경로만 zip 내부 경로로 사용
+                arcname = key[len(prefix) :] if key.startswith(prefix) else key
+                s3_obj = s3_client.get_object(Bucket=settings.S3_BUCKET, Key=key)
+                data = s3_obj["Body"].read()
+                zf.writestr(arcname, data)
+
+        mem_file.seek(0)
+
+        def file_iterator(chunk_size: int = 8192):
+            while True:
+                chunk = mem_file.read(chunk_size)
+                if not chunk:
+                    break
+                yield chunk
+
+        return StreamingResponse(
+            file_iterator(),
+            media_type="application/zip",
+            headers={
+                "Content-Disposition": f'attachment; filename="training_request_{request_id}_photos.zip"'
+            },
+        )
+
+
+@app.post(
+    "/admin/training-requests/{request_id}/upload-lora",
+    response_model=AvatarResponse,
+    tags=["admin"],
+)
+async def admin_upload_lora(
+    request_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    lora_file: UploadFile = File(..., description=".safetensors LoRA 파일"),
+):
+    """
+    관리자: Training Request에 대해 LoRA(.safetensors) 파일을 S3에 업로드하고
+    Avatar 레코드를 생성/갱신하여 lora_path에 연결합니다.
+    """
+    if not _is_admin_email(current_user.email):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required.",
+        )
+
+    tr = (
+        db.query(TrainingRequest)
+        .filter(TrainingRequest.id == request_id)
+        .first()
+    )
+    if not tr:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Training request not found",
+        )
+
+    filename = lora_file.filename or "model.safetensors"
+    if not filename.lower().endswith(".safetensors"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only .safetensors files are allowed",
+        )
+
+    from io import BytesIO
+    from .s3_utils import upload_file_to_s3
+
+    content = await lora_file.read()
+    folder = f"loras/training_request_{request_id}"
+    lora_url = upload_file_to_s3(
+        BytesIO(content),
+        filename,
+        folder=folder,
+        content_type="application/octet-stream",
+    )
+
+    avatar = (
+        db.query(Avatar)
+        .filter(Avatar.training_request_id == request_id)
+        .first()
+    )
+
+    from .models import TrainingRequestStatus
+
+    if avatar:
+        avatar.lora_path = lora_url
+        avatar.title = tr.avatar_name
+        avatar.description = tr.description
+        avatar.nationality = tr.national
+        avatar.gender = tr.gender
+        avatar.negative_prompt = tr.negative_prompt
+        avatar.credit_per_generation = tr.credit_per_generation
+        if tr.preview_image_url:
+            avatar.preview_image_url = tr.preview_image_url
+    else:
+        avatar = Avatar(
+            user_id=tr.user_id,
+            training_request_id=request_id,
+            title=tr.avatar_name,
+            description=tr.description,
+            nationality=tr.national,
+            gender=tr.gender,
+            negative_prompt=tr.negative_prompt,
+            credit_per_generation=tr.credit_per_generation,
+            lora_path=lora_url,
+            preview_image_url=tr.preview_image_url,
+            status=AvatarStatus.ACTIVE.value,
+        )
+        db.add(avatar)
+
+    tr.status = TrainingRequestStatus.APPROVED_TRAINING.value
+    db.commit()
+    db.refresh(avatar)
+
+    return AvatarResponse.model_validate(avatar)
+
+
+@app.get("/admin/training-requests/{request_id}/lora", tags=["admin"])
+def admin_get_lora_download_url(
+    request_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    관리자: approved_training인 Training Request의 LoRA(.safetensors) 다운로드용
+    presigned URL 반환. Avatar의 lora_path가 있을 때만 사용 가능.
+    """
+    if not _is_admin_email(current_user.email):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required.",
+        )
+
+    avatar = (
+        db.query(Avatar)
+        .filter(Avatar.training_request_id == request_id)
+        .first()
+    )
+    if not avatar or not avatar.lora_path:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="LoRA file not found for this training request",
+        )
+
+    from .s3_utils import generate_presigned_download_url
+
+    url = generate_presigned_download_url(avatar.lora_path, expires_in=3600)
+    return {"url": url}
+
+
 # Avatars API
 @app.get("/my/avatars", response_model=list[AvatarResponse], tags=["avatars"])
 def list_my_avatars(
@@ -580,16 +960,10 @@ async def update_avatar(
     description: str = Form(None),
     preview_image: UploadFile = File(None),
 ):
-    """아바타 수정"""
+    """아바타 수정 (아바타 미리보기 이미지는 항상 S3에 업로드)"""
     from fastapi import UploadFile, File, Form
     from io import BytesIO
-    from .config import settings
-    
-    # 스토리지 타입에 따라 적절한 함수 선택
-    if settings.STORAGE_TYPE == "local":
-        from .local_storage import upload_file_to_local as upload_file
-    else:
-        from .s3_utils import upload_file_to_s3 as upload_file
+    from .s3_utils import upload_file_to_s3 as upload_file
 
     # 아바타 조회 및 권한 확인
     avatar = db.query(Avatar).filter(Avatar.id == avatar_id).first()

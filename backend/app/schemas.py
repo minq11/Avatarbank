@@ -93,6 +93,44 @@ class TrainingRequestResponse(BaseModel):
         from_attributes = True
 
 
+class AdminTrainingRequestResponse(BaseModel):
+    """관리자용 학습 요청 목록 (요청자 정보 포함)"""
+    id: int
+    avatar_name: str
+    status: str
+    created_at: datetime
+    updated_at: datetime
+    user_id: int
+    user_email: str
+    user_nickname: str
+
+    class Config:
+        from_attributes = True
+
+
+class TrainingRequestDetailResponse(BaseModel):
+    id: int
+    avatar_name: str
+    negative_prompt: Optional[str] = None
+    credit_per_generation: int
+    national: Optional[str] = None
+    gender: Optional[str] = None
+    description: Optional[str] = None
+    is_real_person: bool
+    instagram_id: Optional[str] = None
+    preview_image_url: Optional[str] = None
+    front_photos_urls: Optional[list[str]] = None
+    side_photos_urls: Optional[list[str]] = None
+    fullbody_photos_urls: Optional[list[str]] = None
+    other_photos_urls: Optional[list[str]] = None
+    status: str
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
 # Avatar 스키마
 class AvatarResponse(BaseModel):
     id: int

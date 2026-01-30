@@ -235,6 +235,7 @@ class TrainingRequestStatus(str, Enum):
     REQUESTED = "requested"
     APPROVED_TRAINING = "approved_training"
     REJECTED = "rejected"
+    CANCELLED = "cancelled"
 
 
 class TrainingRequest(Base):

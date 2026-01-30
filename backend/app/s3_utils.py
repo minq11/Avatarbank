@@ -4,6 +4,7 @@ S3 업로드 유틸리티
 import uuid
 from pathlib import Path
 from typing import BinaryIO
+from urllib.parse import urlparse
 
 import boto3
 from botocore.exceptions import ClientError
@@ -122,3 +123,27 @@ def upload_multiple_files_to_s3(
         url = upload_file_to_s3(file_content, file_name, folder, content_type)
         urls.append(url)
     return urls
+
+
+def generate_presigned_download_url(s3_url: str, expires_in: int = 3600) -> str:
+    """
+    S3 객체 URL로부터 presigned GET URL 생성 (다운로드용).
+    URL 형식: https://bucket.s3.region.amazonaws.com/key
+    """
+    parsed = urlparse(s3_url)
+    if not parsed.hostname or "s3" not in parsed.hostname and "amazonaws" not in parsed.hostname:
+        return s3_url
+    path = parsed.path or ""
+    key = path.lstrip("/")
+    bucket = parsed.hostname.split(".")[0]
+    if not bucket or not key:
+        return s3_url
+    client = get_s3_client()
+    try:
+        return client.generate_presigned_url(
+            "get_object",
+            Params={"Bucket": bucket, "Key": key},
+            ExpiresIn=expires_in,
+        )
+    except Exception:
+        return s3_url

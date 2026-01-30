@@ -82,6 +82,14 @@
                   >
                     My Avatars
                   </RouterLink>
+                  <RouterLink
+                    v-if="authStore.isAdmin"
+                    to="/admin/training-requests"
+                    class="dropdown-item"
+                    @click="showProfileMenu = false"
+                  >
+                    Admin Training Requests
+                  </RouterLink>
                   <a href="#profile" class="dropdown-item">Profile</a>
                   <a href="#settings" class="dropdown-item">Settings</a>
                   <div class="dropdown-divider"></div>
