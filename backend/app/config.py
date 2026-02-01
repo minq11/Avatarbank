@@ -4,7 +4,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     # 기본 서비스 설정
-    PROJECT_NAME: str = "Avatarbank API"
+    PROJECT_NAME: str = "AvatarBank API"
     ENV: str = "local"
 
     # 데이터베이스 (NeonDB / PostgreSQL)

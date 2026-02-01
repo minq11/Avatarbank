@@ -2,7 +2,7 @@
 
 ## 📋 개요
 
-Avatarbank 백엔드의 인증 시스템은 JWT (JSON Web Token) 기반으로 동작합니다.
+AvatarBank 백엔드의 인증 시스템은 JWT (JSON Web Token) 기반으로 동작합니다.
 
 - **Access Token**: 1시간 유효, API 요청 시 사용
 - **Refresh Token**: 7일 유효, Access Token 갱신 시 사용

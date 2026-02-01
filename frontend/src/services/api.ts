@@ -142,6 +142,79 @@ export const authApi = {
     const response = await api.get<User>("/auth/me");
     return response.data;
   },
+
+  changePassword: async (data: { current_password: string; new_password: string }): Promise<User> => {
+    const response = await api.put<User>("/auth/me/password", data);
+    return response.data;
+  },
+
+  changeNickname: async (data: { nickname: string }): Promise<User> => {
+    const response = await api.put<User>("/auth/me/nickname", data);
+    return response.data;
+  },
+};
+
+// Avatars API (public + my)
+export interface AvatarItem {
+  id: number;
+  title: string;
+  description: string | null;
+  nationality: string | null;
+  gender: string | null;
+  preview_image_url: string | null;
+  credit_per_generation: number | null;
+  negative_prompt: string | null;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UpdateAvatarData {
+  title?: string;
+  credit_per_generation?: number;
+  description?: string;
+  preview_image?: File;
+}
+
+export const avatarsApi = {
+  getList: async (): Promise<AvatarItem[]> => {
+    const response = await api.get<AvatarItem[]>("/avatars");
+    return response.data;
+  },
+  getById: async (id: number): Promise<AvatarItem> => {
+    const response = await api.get<AvatarItem>(`/avatars/${id}`);
+    return response.data;
+  },
+  getMyAvatars: async (): Promise<AvatarItem[]> => {
+    const response = await api.get<AvatarItem[]>("/my/avatars");
+    return response.data;
+  },
+  updateAvatar: async (
+    id: number,
+    data: UpdateAvatarData,
+    onUploadProgress?: (percent: number) => void
+  ): Promise<AvatarItem> => {
+    const formData = new FormData();
+    if (data.title) formData.append("title", data.title);
+    if (data.credit_per_generation !== undefined) {
+      formData.append("credit_per_generation", data.credit_per_generation.toString());
+    }
+    if (data.description) formData.append("description", data.description);
+    if (data.preview_image) formData.append("preview_image", data.preview_image);
+
+    const config =
+      onUploadProgress ?
+        {
+          onUploadProgress: (ev: { loaded: number; total?: number }) => {
+            if (ev.total != null && ev.total > 0) {
+              onUploadProgress(Math.round((ev.loaded / ev.total) * 100));
+            }
+          },
+        }
+      : {};
+    const response = await api.put<AvatarItem>(`/my/avatars/${id}`, formData, config);
+    return response.data;
+  },
 };
 
 // Generations API
@@ -160,9 +233,24 @@ export interface GenerationItem {
   created_at: string;
 }
 
+export interface GenerationCreatePayload {
+  avatar_id: number;
+  prompt: string;
+  option_credits: number;
+  idempotency_key: string;
+}
+
 export const generationsApi = {
   getMyGenerations: async (): Promise<GenerationItem[]> => {
     const response = await api.get<GenerationItem[]>("/my/generations");
+    return response.data;
+  },
+  getById: async (id: number): Promise<GenerationItem> => {
+    const response = await api.get<GenerationItem>(`/generations/${id}`);
+    return response.data;
+  },
+  create: async (data: GenerationCreatePayload): Promise<GenerationItem> => {
+    const response = await api.post<GenerationItem>("/generations", data);
     return response.data;
   },
 };
@@ -322,58 +410,3 @@ export const trainingRequestsApi = {
   },
 };
 
-// Avatars API
-export interface AvatarItem {
-  id: number;
-  title: string;
-  description: string | null;
-  nationality: string | null;
-  gender: string | null;
-  preview_image_url: string | null;
-  credit_per_generation: number | null;
-  negative_prompt: string | null;
-  status: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface UpdateAvatarData {
-  title?: string;
-  credit_per_generation?: number;
-  description?: string;
-  preview_image?: File;
-}
-
-export const avatarsApi = {
-  getMyAvatars: async (): Promise<AvatarItem[]> => {
-    const response = await api.get<AvatarItem[]>("/my/avatars");
-    return response.data;
-  },
-
-  updateAvatar: async (
-    id: number,
-    data: UpdateAvatarData,
-    onUploadProgress?: (percent: number) => void
-  ): Promise<AvatarItem> => {
-    const formData = new FormData();
-    if (data.title) formData.append("title", data.title);
-    if (data.credit_per_generation !== undefined) {
-      formData.append("credit_per_generation", data.credit_per_generation.toString());
-    }
-    if (data.description) formData.append("description", data.description);
-    if (data.preview_image) formData.append("preview_image", data.preview_image);
-
-    const config =
-      onUploadProgress ?
-        {
-          onUploadProgress: (ev: { loaded: number; total?: number }) => {
-            if (ev.total != null && ev.total > 0) {
-              onUploadProgress(Math.round((ev.loaded / ev.total) * 100));
-            }
-          },
-        }
-      : {};
-    const response = await api.put<AvatarItem>(`/my/avatars/${id}`, formData, config);
-    return response.data;
-  },
-};

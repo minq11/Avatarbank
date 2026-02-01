@@ -165,11 +165,7 @@ const galleryAvatars = [
 ];
 
 function goToGenerate() {
-  console.log("generate click", { prompt: prompt.value });
-  router.push({
-    name: "prompt-generate",
-    query: prompt.value ? { prompt: prompt.value } : {},
-  });
+  router.push({ name: "generation" });
 }
 </script>
 

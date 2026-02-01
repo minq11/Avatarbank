@@ -46,6 +46,15 @@ class RefreshTokenRequest(BaseModel):
     refresh_token: str
 
 
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str = Field(..., min_length=6)
+
+
+class ChangeNicknameRequest(BaseModel):
+    nickname: str = Field(..., min_length=1, max_length=50)
+
+
 class RefreshTokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
@@ -59,7 +68,7 @@ class AdminUpgradeRequest(BaseModel):
 class GenerationCreateRequest(BaseModel):
     avatar_id: Optional[int] = None
     prompt: str = Field(..., max_length=2000)
-    option_credits: int = Field(ge=0, le=100)
+    option_credits: int = Field(default=0, ge=0, le=100)
     idempotency_key: str
 
 

@@ -1,4 +1,4 @@
-## Avatarbank Backend (MVP 스켈레톤)
+## AvatarBank Backend (MVP 스켈레톤)
 
 이 디렉터리는 `projectdesign.md`를 기반으로 한 **FastAPI + Celery + PostgreSQL + Redis** 백엔드의 1차 스켈레톤입니다.
 

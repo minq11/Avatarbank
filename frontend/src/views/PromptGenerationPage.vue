@@ -8,6 +8,16 @@
     <div class="content">
       <div class="panel">
         <label class="field">
+          <span>Select Avatar (LoRA)</span>
+          <SearchableSelect
+            v-model="selectedAvatarId"
+            :options="avatarSelectOptions"
+            placeholder="— Select an avatar —"
+          />
+          <p v-if="avatarsList.length === 0 && !avatarsListLoading" class="field-hint">No avatars available.</p>
+        </label>
+
+        <label class="field">
           <span>Prompt</span>
           <textarea
             v-model="prompt"
@@ -50,12 +60,17 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onUnmounted, ref, watch } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
-import { api } from "@/services/api";
+import SearchableSelect from "@/components/SearchableSelect.vue";
+import { api, avatarsApi, type AvatarItem } from "@/services/api";
 
 const route = useRoute();
+const avatarsList = ref<AvatarItem[]>([]);
+const avatarsListLoading = ref(true);
+const selectedAvatarId = ref<number | "">("");
 const prompt = ref((route.query.prompt as string) ?? "");
+const optionCredits = ref(0);
 const isLoading = ref(false);
 const statusMessage = ref("");
 const errorMessage = ref("");
@@ -63,7 +78,48 @@ const generationId = ref<number | null>(null);
 const imageUrl = ref("");
 let pollTimer: number | null = null;
 
-const canSubmit = computed(() => !!prompt.value && !isLoading.value);
+const avatarSelectOptions = computed(() =>
+  avatarsList.value.map((a) => ({
+    value: a.id,
+    label: `${a.title} (${a.credit_per_generation != null ? a.credit_per_generation : 1} C)`,
+    searchText: a.title,
+  }))
+);
+
+const canSubmit = computed(
+  () =>
+    selectedAvatarId.value !== "" &&
+    !!prompt.value.trim() &&
+    !isLoading.value
+);
+
+async function loadAvatarsList() {
+  avatarsListLoading.value = true;
+  try {
+    avatarsList.value = await avatarsApi.getList();
+    if (avatarsList.value.length > 0 && selectedAvatarId.value === "") {
+      selectedAvatarId.value = avatarsList.value[0].id;
+      const first = avatarsList.value[0];
+      if (first.credit_per_generation != null && first.credit_per_generation >= 0 && first.credit_per_generation <= 10) {
+        optionCredits.value = first.credit_per_generation;
+      }
+    }
+  } catch {
+    avatarsList.value = [];
+  } finally {
+    avatarsListLoading.value = false;
+  }
+}
+
+watch(selectedAvatarId, (id) => {
+  if (id === "") return;
+  const a = avatarsList.value.find((x) => x.id === id);
+  if (a?.credit_per_generation != null && a.credit_per_generation >= 0 && a.credit_per_generation <= 10) {
+    optionCredits.value = a.credit_per_generation;
+  }
+});
+
+onMounted(loadAvatarsList);
 
 watch(
   () => route.query.prompt,
@@ -85,8 +141,9 @@ async function handleGenerate() {
   try {
     const idempotencyKey = crypto.randomUUID();
     const response = await api.post("/generations", {
-      prompt: prompt.value,
-      option_credits: 0,
+      avatar_id: Number(selectedAvatarId.value),
+      prompt: prompt.value.trim(),
+      option_credits: optionCredits.value,
       idempotency_key: idempotencyKey,
     });
 
@@ -112,6 +169,11 @@ function clearPrompt() {
   imageUrl.value = "";
   generationId.value = null;
   stopPolling();
+  if (avatarsList.value.length > 0) {
+    selectedAvatarId.value = avatarsList.value[0].id;
+    const first = avatarsList.value[0];
+    if (first.credit_per_generation != null) optionCredits.value = first.credit_per_generation;
+  }
 }
 
 function startPolling() {
@@ -208,6 +270,12 @@ onUnmounted(() => {
   margin-bottom: 1.5rem;
   font-weight: 500;
   color: #111827;
+}
+
+.field-hint {
+  font-size: 0.85rem;
+  color: #9ca3af;
+  margin-top: 0.25rem;
 }
 
 textarea {

@@ -38,7 +38,7 @@
         </div>
         <h3 class="empty-title">No creations yet</h3>
         <p class="empty-desc">Generate your first image with an AI avatar.</p>
-        <RouterLink to="/generate" class="btn-primary-empty">Create image</RouterLink>
+        <RouterLink to="/avatars" class="btn-primary-empty">Create image</RouterLink>
       </div>
 
       <!-- Grid -->
@@ -69,7 +69,7 @@
           <div class="card-meta">
             <p class="card-prompt" :title="g.prompt">{{ truncate(g.prompt, 48) }}</p>
             <div class="card-footer">
-              <span class="card-credits">{{ g.credits_used }}C</span>
+              <span class="card-credits">{{ g.status === 'failed' ? 0 : g.credits_used }}C</span>
               <span class="card-date">{{ formatDate(g.created_at) }}</span>
             </div>
           </div>
@@ -113,15 +113,15 @@
             <div class="detail-grid">
               <div class="detail-item">
                 <span class="detail-item-label">Credits Used</span>
-                <span class="detail-item-value">{{ selectedGeneration.credits_used }}C</span>
+                <span class="detail-item-value">{{ selectedGeneration.status === 'failed' ? 0 : selectedGeneration.credits_used }}C</span>
               </div>
               <div class="detail-item">
                 <span class="detail-item-label">Base Credits</span>
-                <span class="detail-item-value">1C</span>
+                <span class="detail-item-value">{{ selectedGeneration.status === 'failed' ? 0 : 1 }}C</span>
               </div>
               <div class="detail-item">
                 <span class="detail-item-label">Option Credits</span>
-                <span class="detail-item-value">{{ selectedGeneration.credits_used - 1 }}C</span>
+                <span class="detail-item-value">{{ selectedGeneration.status === 'failed' ? 0 : selectedGeneration.credits_used - 1 }}C</span>
               </div>
               <div class="detail-item">
                 <span class="detail-item-label">Status</span>
@@ -160,6 +160,16 @@
           </div>
         </div>
         <div class="modal-footer">
+          <button
+            v-if="selectedGeneration.image_url && selectedGeneration.status === 'success'"
+            class="modal-secondary modal-btn-download"
+            type="button"
+            title="Download"
+            @click="downloadImage"
+          >
+            <img src="@/assets/icons/downloadBtn.svg" alt="" class="modal-btn-icon" />
+            Download
+          </button>
           <button
             v-if="selectedGeneration.image_url && selectedGeneration.status === 'success'"
             class="modal-secondary"
@@ -247,6 +257,23 @@ function formatDateTime(iso: string): string {
 function openImageInNewTab(): void {
   if (selectedGeneration.value?.image_url) {
     window.open(selectedGeneration.value.image_url, "_blank", "noopener");
+  }
+}
+
+async function downloadImage(): Promise<void> {
+  if (!selectedGeneration.value?.image_url) return;
+  const url = selectedGeneration.value.image_url;
+  const filename = `generation_${selectedGeneration.value.id}.png`;
+  try {
+    const res = await fetch(url, { mode: "cors" });
+    const blob = await res.blob();
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  } catch {
+    window.open(url, "_blank", "noopener");
   }
 }
 </script>
@@ -733,5 +760,16 @@ function openImageInNewTab(): void {
 .modal-secondary:hover {
   background: #f9fafb;
   border-color: #d1d5db;
+}
+
+.modal-btn-download {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.modal-btn-icon {
+  width: 1rem;
+  height: 1rem;
 }
 </style>

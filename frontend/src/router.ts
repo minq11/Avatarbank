@@ -6,15 +6,17 @@ import MyGenerationsPage from "./views/MyGenerationsPage.vue";
 import MyAvatarsPage from "./views/MyAvatarsPage.vue";
 import InfluencerDashboardPage from "./views/InfluencerDashboardPage.vue";
 import AdminTrainingRequestsPage from "./views/AdminTrainingRequestsPage.vue";
-import PromptGenerationPage from "./views/PromptGenerationPage.vue";
+import MyPage from "./views/MyPage.vue";
 
 const routes: RouteRecordRaw[] = [
   { path: "/", name: "landing", component: LandingPage },
   { path: "/market", name: "market", component: MarketPage },
-  { path: "/generate", name: "prompt-generate", component: PromptGenerationPage },
+  { path: "/generate", redirect: "/avatars" },
+  { path: "/avatars", name: "generation", component: GenerationPage },
   { path: "/avatars/:id", name: "avatar-detail", component: GenerationPage },
   { path: "/my/generations", name: "my-generations", component: MyGenerationsPage },
   { path: "/my/avatars", name: "my-avatars", component: MyAvatarsPage },
+  { path: "/my/page", name: "my-page", component: MyPage },
   {
     path: "/influencer/dashboard",
     name: "influencer-dashboard",

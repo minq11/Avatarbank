@@ -30,6 +30,8 @@ from .schemas import (
     AdminUpgradeRequest,
     AvatarResponse,
     AvatarUpdateRequest,
+    ChangeNicknameRequest,
+    ChangePasswordRequest,
     GenerationCreateRequest,
     GenerationResponse,
     RefreshTokenRequest,
@@ -201,6 +203,45 @@ def get_current_user_info(
     return UserBase.model_validate(current_user)
 
 
+@app.put("/auth/me/password", response_model=UserBase, tags=["auth"])
+def change_password(
+    payload: ChangePasswordRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> UserBase:
+    """비밀번호 변경"""
+    from .auth import verify_password
+
+    if not verify_password(payload.current_password, current_user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect.",
+        )
+    current_user.password_hash = get_password_hash(payload.new_password)
+    db.commit()
+    db.refresh(current_user)
+    return UserBase.model_validate(current_user)
+
+
+@app.put("/auth/me/nickname", response_model=UserBase, tags=["auth"])
+def change_nickname(
+    payload: ChangeNicknameRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> UserBase:
+    """닉네임 변경"""
+    existing = get_user_by_nickname(db, payload.nickname)
+    if existing and existing.id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Nickname is already in use.",
+        )
+    current_user.nickname = payload.nickname.strip()
+    db.commit()
+    db.refresh(current_user)
+    return UserBase.model_validate(current_user)
+
+
 @app.post("/auth/upgrade-to-seller", response_model=UserBase, tags=["auth"])
 def upgrade_to_seller(
     current_user: User = Depends(get_current_user),
@@ -270,25 +311,38 @@ def create_generation(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> GenerationResponse:
+    """
+    이미지 생성 요청. 로그인 필수.
+    get_current_user로 인증 검증 - 토큰 없거나 유효하지 않으면 401 반환.
+    """
     # TODO: 프롬프트 필터링, idempotency 체크 구현
 
     # 인증된 사용자를 buyer로 사용
     buyer = current_user
 
-    total_credits = 1 + payload.option_credits
+    if payload.avatar_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Avatar is required for image generation.",
+        )
+    avatar = db.query(Avatar).filter(Avatar.id == payload.avatar_id).first()
+    if not avatar:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Avatar not found. Please select an avatar first.",
+        )
+    if not avatar.lora_path:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This avatar has no LoRA file; image generation is not available yet.",
+        )
+
+    total_credits = 1 + (avatar.credit_per_generation or 0)
     if buyer.credit_balance < total_credits:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Insufficient credits.",
         )
-
-    if payload.avatar_id is not None:
-        avatar = db.query(Avatar).filter(Avatar.id == payload.avatar_id).first()
-        if not avatar:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Avatar not found. Please select an avatar first.",
-            )
 
     # 크레딧 선차감
     before = buyer.credit_balance
@@ -317,7 +371,12 @@ def create_generation(
     db.refresh(generation)
 
     try:
-        response_payload = run_generation_sync(payload.prompt)
+        from .s3_utils import generate_presigned_download_url
+
+        lora_url = avatar.lora_path
+        if lora_url and "s3" in lora_url.lower() and "amazonaws" in lora_url.lower():
+            lora_url = generate_presigned_download_url(lora_url, expires_in=3600)
+        response_payload = run_generation_sync(payload.prompt, lora_url=lora_url)
         images = response_payload.get("images") or []
         if images:
             generation.image_url = images[0].get("url")
@@ -934,7 +993,46 @@ def admin_get_lora_download_url(
     return {"url": url}
 
 
-# Avatars API
+# Avatars API (public: 마켓/이미지 생성용)
+@app.get("/avatars", response_model=list[AvatarResponse], tags=["avatars"])
+def list_avatars_public(
+    db: Session = Depends(get_db),
+) -> list[AvatarResponse]:
+    """공개 아바타 목록 (LoRA가 있는 ACTIVE 아바타만, 마켓/생성용)"""
+    avatars = (
+        db.query(Avatar)
+        .filter(
+            Avatar.status == AvatarStatus.ACTIVE.value,
+            Avatar.lora_path.isnot(None),
+            Avatar.lora_path != "",
+        )
+        .order_by(Avatar.created_at.desc())
+        .all()
+    )
+    return [AvatarResponse.model_validate(a) for a in avatars]
+
+
+@app.get("/avatars/{avatar_id}", response_model=AvatarResponse, tags=["avatars"])
+def get_avatar_public(
+    avatar_id: int,
+    db: Session = Depends(get_db),
+) -> AvatarResponse:
+    """공개 아바타 단건 조회 (이미지 생성 페이지용)"""
+    avatar = db.query(Avatar).filter(Avatar.id == avatar_id).first()
+    if not avatar:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Avatar not found",
+        )
+    if avatar.status != AvatarStatus.ACTIVE.value or not avatar.lora_path:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Avatar is not available for image generation",
+        )
+    return AvatarResponse.model_validate(avatar)
+
+
+# Avatars API (my)
 @app.get("/my/avatars", response_model=list[AvatarResponse], tags=["avatars"])
 def list_my_avatars(
     db: Session = Depends(get_db),
@@ -960,10 +1058,13 @@ async def update_avatar(
     description: str = Form(None),
     preview_image: UploadFile = File(None),
 ):
-    """아바타 수정 (아바타 미리보기 이미지는 항상 S3에 업로드)"""
+    """아바타 수정 (Preview Image는 STORAGE_TYPE에 따라 로컬 또는 S3에 저장)"""
     from fastapi import UploadFile, File, Form
     from io import BytesIO
-    from .s3_utils import upload_file_to_s3 as upload_file
+    if settings.STORAGE_TYPE == "local":
+        from .local_storage import upload_file_to_local as upload_file
+    else:
+        from .s3_utils import upload_file_to_s3 as upload_file
 
     # 아바타 조회 및 권한 확인
     avatar = db.query(Avatar).filter(Avatar.id == avatar_id).first()

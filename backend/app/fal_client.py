@@ -81,12 +81,19 @@ def get_result(request_id: str) -> dict[str, Any]:
         return response.json()
 
 
-def run_generation_sync(prompt: str) -> dict[str, Any]:
-    payload = {
+def run_generation_sync(prompt: str, lora_url: str | None = None) -> dict[str, Any]:
+    """
+    fal-ai/z-image/turbo/lora 동기 호출.
+    lora_url이 있으면 해당 LoRA를 적용 (최대 3개까지 가능, 현재 1개만 전달).
+    """
+    payload: dict[str, Any] = {
         "prompt": prompt,
         "num_images": 1,
         "enable_safety_checker": True,
     }
+    if lora_url:
+        # fal LoRA 입력: path에 공개 URL 또는 presigned URL 전달
+        payload["loras"] = [{"path": lora_url}]
     url = _build_sync_url()
     with httpx.Client(timeout=120) as client:
         response = client.post(url, json=payload, headers=_headers())

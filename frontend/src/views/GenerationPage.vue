@@ -1,116 +1,430 @@
 <template>
   <section class="generation">
-    <div class="layout">
-      <div class="left">
-        <div class="preview" />
-        <p class="note">Sample preview (actual image will appear after generation)</p>
+    <div class="layout" :class="{ 'layout-no-avatar': !avatarId }">
+      <div v-if="avatarId != null" class="left">
+        <!-- 아바타 미리보기 (LoRA 선택 시에만 표시) -->
+        <div v-if="avatar" class="avatar-preview">
+          <div v-if="avatar.preview_image_url" class="preview-img-wrap">
+            <img :src="getImageUrl(avatar.preview_image_url)" :alt="avatar.title" class="preview-img" />
+          </div>
+          <div v-else class="preview-placeholder">
+            <span>No preview</span>
+          </div>
+          <p class="avatar-name">{{ avatar.title }}</p>
+          <p v-if="avatar.credit_per_generation != null" class="avatar-credit">
+            {{ avatar.credit_per_generation }} C per generation
+          </p>
+        </div>
+        <div v-else-if="avatarError" class="error-state">
+          <p>{{ avatarError }}</p>
+          <router-link to="/market" class="link">Browse avatars</router-link>
+        </div>
+        <div v-else class="loading-state">
+          <p>Loading avatar...</p>
+        </div>
       </div>
+
       <div class="right">
-        <h2>Avatar Details / Image Generation</h2>
-        <p class="sub">The base 1C goes to the platform; option credits go to the influencer.</p>
+        <h2>AI Image Generation</h2>
+        <p class="sub">
+          Generate an image with this avatar
+        </p>
+
+        <label class="field">
+          <span>Select Avatar (LoRA)</span>
+          <SearchableSelect
+            :model-value="avatarId ?? ''"
+            :options="avatarSelectOptions"
+            placeholder="— Select an avatar —"
+            @update:model-value="onSelectAvatarValue"
+          />
+          <p v-if="avatarsList.length === 0 && !avatarsListLoading" class="field-hint">No avatars available.</p>
+        </label>
 
         <label class="field">
           <span>Prompt</span>
-          <textarea v-model="prompt" rows="5" placeholder="Describe the image you want (English recommended)." />
+          <textarea
+            v-model="prompt"
+            rows="5"
+            placeholder="Describe the image you want (English recommended)."
+          />
         </label>
 
-        <label class="field">
-          <span>Option Credits (0–10)</span>
-          <input type="range" min="0" max="10" v-model.number="optionCredits" />
-          <div class="range-info">
-            <span>{{ optionCredits }} C</span>
-            <span>Total cost: {{ 1 + optionCredits }} C</span>
-          </div>
-        </label>
+        <div v-if="avatar" class="cost-info">
+          <span>Base {{ baseCredit }} C + Avatar {{ avatarCredit }} C</span>
+          <span>Total: {{ totalCredits }} C</span>
+        </div>
 
+        <div class="button-wrap">
         <button
           class="btn primary"
           :disabled="!canSubmit"
           @click="requestGeneration"
         >
-          Generate Image
+          {{ loading ? "Generating..." : "Generate Image" }}
         </button>
+        </div>
 
+        <p v-if="!authStore.isLoggedIn && avatar && prompt.trim()" class="login-hint">
+          Please log in to generate images.
+        </p>
         <p v-if="error" class="error">{{ error }}</p>
-        <p v-if="generationId" class="info">
-          Request submitted. ID: {{ generationId }} (status tracking coming soon)
+        <p v-if="generationId && !resultImageUrl && !error" class="info">
+          Request submitted. ID: {{ generationId }}
         </p>
       </div>
+    </div>
+
+    <!-- 결과 영역 (입력 폼과 구분) -->
+    <div v-if="avatarId != null" class="result-area">
+      <div v-if="resultImageUrl" class="result-section">
+        <div class="result-section-header">
+          <h4>Generated Image</h4>
+          <button
+            type="button"
+            class="btn-download"
+            title="Download"
+            @click="downloadResultImage"
+          >
+            <img src="@/assets/icons/downloadBtn.svg" alt="" class="btn-download-icon" />
+            Download
+          </button>
+        </div>
+        <div class="result-img-wrap">
+          <img :src="getImageUrl(resultImageUrl)" alt="Generated" class="result-img" />
+        </div>
+      </div>
+      <p v-else class="note">Generated image will appear here after generation.</p>
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
-import axios from "axios";
+import { computed, ref, watch, onMounted } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import SearchableSelect from "@/components/SearchableSelect.vue";
+import { useAuthStore } from "@/stores/auth";
+import { avatarsApi, generationsApi, type AvatarItem } from "@/services/api";
 
+const authStore = useAuthStore();
+
+function getImageUrl(url: string | null | undefined): string {
+  if (!url) return "";
+  if (url.startsWith("/static/")) return `/api${url}`;
+  if (url.startsWith("http://") || url.startsWith("https://")) return url;
+  return url;
+}
+
+async function downloadResultImage() {
+  if (!resultImageUrl.value) return;
+  const url = getImageUrl(resultImageUrl.value);
+  const filename = `generation_${generationId.value ?? "image"}.png`;
+  await downloadImage(url, filename);
+}
+
+async function downloadImage(url: string, filename: string) {
+  try {
+    const res = await fetch(url, { mode: "cors" });
+    const blob = await res.blob();
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  } catch {
+    window.open(url, "_blank", "noopener");
+  }
+}
+
+const route = useRoute();
+const router = useRouter();
+const avatarId = computed(() => {
+  const id = route.params.id;
+  if (typeof id === "string" && /^\d+$/.test(id)) return parseInt(id, 10);
+  return null;
+});
+
+const avatarsList = ref<AvatarItem[]>([]);
+const avatarsListLoading = ref(true);
+const avatar = ref<AvatarItem | null>(null);
+const avatarError = ref("");
 const prompt = ref("");
-const optionCredits = ref(4);
 const loading = ref(false);
 const error = ref("");
 const generationId = ref<number | null>(null);
+const resultImageUrl = ref<string | null>(null);
 
-const canSubmit = computed(() => !!prompt.value && !loading.value);
+const baseCredit = 1;
+const avatarCredit = computed(
+  () => avatar.value?.credit_per_generation ?? 0
+);
+const totalCredits = computed(
+  () => baseCredit + (avatar.value?.credit_per_generation ?? 0)
+);
+const canSubmit = computed(
+  () => !!avatar.value && !!prompt.value.trim() && !loading.value
+);
+
+async function loadAvatar() {
+  const id = avatarId.value;
+  if (id == null) {
+    avatar.value = null;
+    avatarError.value = "";
+    return;
+  }
+  avatar.value = null;
+  avatarError.value = "";
+  try {
+    const a = await avatarsApi.getById(id);
+    avatar.value = a;
+  } catch (e: unknown) {
+    const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+    avatarError.value = msg || "Failed to load avatar.";
+  }
+}
 
 async function requestGeneration() {
-  if (!canSubmit.value) return;
+  if (!authStore.isLoggedIn) {
+    error.value = "Please log in.";
+    return;
+  }
+  if (!canSubmit.value || avatarId.value == null) return;
   loading.value = true;
   error.value = "";
   generationId.value = null;
+  resultImageUrl.value = null;
 
   try {
-    const idempotencyKey = crypto.randomUUID();
-    const res = await axios.post(
-      "/api/generations",
-      {
-        avatar_id: 1, // TODO: Use actual ID from router params
-        prompt: prompt.value,
-        option_credits: optionCredits.value,
-        idempotency_key: idempotencyKey,
-      },
-      {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      },
-    );
-
-    generationId.value = res.data.id;
-  } catch (e: any) {
-    error.value =
-      e?.response?.data?.detail ?? "Failed to submit the generation request.";
+    const res = await generationsApi.create({
+      avatar_id: avatarId.value,
+      prompt: prompt.value.trim(),
+      option_credits: 0,
+      idempotency_key: crypto.randomUUID(),
+    });
+    generationId.value = res.id;
+    if (res.status === "success" && res.image_url) {
+      resultImageUrl.value = res.image_url;
+      error.value = "";
+    } else if (res.status === "failed") {
+      error.value = res.fail_reason
+        ? `Generation failed: ${res.fail_reason}`
+        : "Generation failed.";
+    } else {
+      resultImageUrl.value = res.image_url || null;
+    }
+    await authStore.fetchUser();
+  } catch (e: unknown) {
+    const status = (e as { response?: { status?: number } })?.response?.status;
+    const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+    if (status === 401 || status === 403) {
+      error.value = "Please log in.";
+    } else {
+      error.value = msg ?? "Failed to submit the generation request.";
+    }
   } finally {
     loading.value = false;
   }
 }
+
+const avatarSelectOptions = computed(() =>
+  avatarsList.value.map((a) => ({
+    value: a.id,
+    label: `${a.title} (${a.credit_per_generation != null ? a.credit_per_generation : 1} C)`,
+    searchText: a.title,
+  }))
+);
+
+function onSelectAvatarValue(value: number | string | "") {
+  if (value !== "" && value != null) {
+    router.push(`/avatars/${value}`);
+  }
+}
+
+async function loadAvatarsList() {
+  avatarsListLoading.value = true;
+  try {
+    avatarsList.value = await avatarsApi.getList();
+  } catch {
+    avatarsList.value = [];
+  } finally {
+    avatarsListLoading.value = false;
+  }
+}
+
+onMounted(loadAvatarsList);
+watch(avatarId, loadAvatar, { immediate: true });
 </script>
 
 <style scoped>
 .generation {
   display: flex;
   flex-direction: column;
+  padding: 2rem 0;
 }
 
 .layout {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
   gap: 2rem;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0 1rem;
 }
 
-.preview {
-  background: linear-gradient(135deg, #0ea5e9, #6366f1);
+.layout.layout-no-avatar {
+  grid-template-columns: 1fr;
+}
+
+.left {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.avatar-preview {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
   border-radius: 16px;
-  height: 320px;
+  overflow: hidden;
+  padding: 1rem;
 }
 
-.note {
-  margin-top: 0.5rem;
-  font-size: 0.8rem;
+.preview-img-wrap,
+.preview-placeholder {
+  border-radius: 12px;
+  aspect-ratio: 1;
+  overflow: hidden;
+  background: linear-gradient(135deg, #e2e8f0, #cbd5e1);
+}
+
+.preview-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.preview-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.avatar-name {
+  font-weight: 600;
+  font-size: 1.1rem;
+  margin-top: 0.75rem;
+  color: #111827;
+}
+
+.avatar-credit {
+  font-size: 0.85rem;
+  color: #64748b;
+  margin-top: 0.25rem;
+}
+
+.result-area {
+  margin-top: 2.5rem;
+  padding-top: 2rem;
+  border-top: 1px solid #e5e7eb;
+  max-width: 1000px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+.result-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  gap: 1rem;
+}
+
+.result-section-header h4 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #374151;
+  margin: 0;
+}
+
+.btn-download {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #374151;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.btn-download:hover {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+}
+
+.btn-download-icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.result-img-wrap {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  aspect-ratio: 1;
+  max-width: 400px;
+  background: #f1f5f9;
+}
+
+.result-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.loading-state,
+.error-state {
+  padding: 2rem;
+  text-align: center;
+  color: #64748b;
+  background: #f8fafc;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+}
+
+.error-state .link {
+  display: inline-block;
+  margin-top: 0.75rem;
+  color: #4f46e5;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.error-state .link:hover {
+  text-decoration: underline;
+}
+
+.result-area .note {
+  font-size: 0.9rem;
   color: #9ca3af;
+  padding: 2rem;
+  text-align: center;
+  background: #f8fafc;
+  border: 1px dashed #e2e8f0;
+  border-radius: 12px;
 }
 
 .right h2 {
   font-size: 1.4rem;
+  margin-bottom: 0.25rem;
 }
 
 .sub {
@@ -119,11 +433,38 @@ async function requestGeneration() {
   margin-bottom: 1rem;
 }
 
+.cost-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9rem;
+  color: #374151;
+  margin-bottom: 1rem;
+}
+
+.button-wrap {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 0.5rem;
+}
+
 .field {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
   margin-bottom: 1rem;
+}
+
+.field span {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.field-hint {
+  font-size: 0.8rem;
+  color: #9ca3af;
+  margin-top: 0.25rem;
 }
 
 textarea {
@@ -134,17 +475,6 @@ textarea {
   resize: vertical;
 }
 
-input[type="range"] {
-  width: 100%;
-}
-
-.range-info {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.85rem;
-  color: #6b7280;
-}
-
 .btn.primary {
   padding: 0.6rem 1.2rem;
   border-radius: 999px;
@@ -152,11 +482,22 @@ input[type="range"] {
   color: white;
   border: none;
   cursor: pointer;
+  font-weight: 500;
+}
+
+.btn.primary:hover:not(:disabled) {
+  background: #374151;
 }
 
 .btn.primary[disabled] {
   opacity: 0.5;
   cursor: default;
+}
+
+.login-hint {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  color: #6b7280;
 }
 
 .error {
@@ -170,6 +511,10 @@ input[type="range"] {
   font-size: 0.85rem;
   color: #16a34a;
 }
+
+@media (max-width: 768px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
 </style>
-
-

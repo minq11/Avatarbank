@@ -1,6 +1,6 @@
 # Docker 실행 가이드
 
-이 문서는 Avatarbank 프로젝트를 Docker로 실행하는 방법을 설명합니다.
+이 문서는 AvatarBank 프로젝트를 Docker로 실행하는 방법을 설명합니다.
 
 ## 📋 목차
 

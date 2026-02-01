@@ -1,35 +1,51 @@
 <template>
   <section>
     <h2>Avatar Market</h2>
-    <p class="hint">Mock data is shown until the backend is connected.</p>
-    <div class="filters">
-      <input type="text" placeholder="Search influencers or tags" />
-      <label>
-        <input type="checkbox" />
-        Include NSFW
-      </label>
-    </div>
-    <div class="grid">
+    <p class="hint">Select an avatar to generate images with its LoRA.</p>
+    <div v-if="loading" class="loading">Loading avatars...</div>
+    <div v-else-if="avatars.length === 0" class="empty">No avatars available yet.</div>
+    <div v-else class="grid">
       <article
-        v-for="avatar in mockAvatars"
-        :key="avatar.id"
+        v-for="a in avatars"
+        :key="a.id"
         class="card"
-        @click="$router.push(`/avatars/${avatar.id}`)"
+        @click="$router.push(`/avatars/${a.id}`)"
       >
-        <div class="thumb" />
-        <h3>{{ avatar.title }}</h3>
-        <p>{{ avatar.description }}</p>
-        <small>Base 1C + options</small>
+        <div v-if="a.preview_image_url" class="thumb">
+          <img :src="getImageUrl(a.preview_image_url)" :alt="a.title" />
+        </div>
+        <div v-else class="thumb placeholder" />
+        <h3>{{ a.title }}</h3>
+        <p>{{ a.description || "—" }}</p>
+        <small>{{ a.credit_per_generation != null ? a.credit_per_generation : 1 }} C per generation</small>
       </article>
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
-const mockAvatars = [
-  { id: 1, title: "Influencer A", description: "Fashion/Lifestyle avatar" },
-  { id: 2, title: "Influencer B", description: "Sports/Fitness avatar" },
-];
+import { ref, onMounted } from "vue";
+import { avatarsApi, type AvatarItem } from "@/services/api";
+
+function getImageUrl(url: string | null | undefined): string {
+  if (!url) return "";
+  if (url.startsWith("/static/")) return `/api${url}`;
+  if (url.startsWith("http://") || url.startsWith("https://")) return url;
+  return url;
+}
+
+const avatars = ref<AvatarItem[]>([]);
+const loading = ref(true);
+
+onMounted(async () => {
+  try {
+    avatars.value = await avatarsApi.getList();
+  } catch {
+    avatars.value = [];
+  } finally {
+    loading.value = false;
+  }
+});
 </script>
 
 <style scoped>
@@ -78,10 +94,28 @@ h2 {
 }
 
 .thumb {
-  background: linear-gradient(135deg, #a855f7, #ec4899);
   border-radius: 10px;
   height: 140px;
   margin-bottom: 0.6rem;
+  overflow: hidden;
+  background: linear-gradient(135deg, #a855f7, #ec4899);
+}
+
+.thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.thumb.placeholder {
+  background: linear-gradient(135deg, #a855f7, #ec4899);
+}
+
+.loading,
+.empty {
+  padding: 2rem;
+  text-align: center;
+  color: #6b7280;
 }
 
 h3 {

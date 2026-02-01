@@ -6,7 +6,7 @@
           <!-- Logo -->
           <div class="logo-wrapper">
             <RouterLink to="/" class="logo-link">
-              <h1 class="logo">Avatarbank</h1>
+              <h1 class="logo">AvatarBank</h1>
             </RouterLink>
           </div>
 
@@ -90,8 +90,13 @@
                   >
                     Admin Training Requests
                   </RouterLink>
-                  <a href="#profile" class="dropdown-item">Profile</a>
-                  <a href="#settings" class="dropdown-item">Settings</a>
+                  <RouterLink
+                    to="/my/page"
+                    class="dropdown-item"
+                    @click="showProfileMenu = false"
+                  >
+                    My Page
+                  </RouterLink>
                   <div class="dropdown-divider"></div>
                   <a href="#" @click.prevent="handleLogout" class="dropdown-item">Log out</a>
                 </div>
@@ -118,7 +123,7 @@
         <div class="footer-grid">
           <!-- Brand -->
           <div class="footer-brand">
-            <h4 class="footer-brand-title">Avatarbank</h4>
+            <h4 class="footer-brand-title">AvatarBank</h4>
             <p class="footer-brand-description">
               The premier AI avatar marketplace connecting creators and users.
             </p>
@@ -154,7 +159,7 @@
 
         <!-- Bottom Bar -->
         <div class="footer-bottom">
-          <p class="footer-copyright">© 2026 Avatarbank. All rights reserved.</p>
+          <p class="footer-copyright">© 2026 AvatarBank. All rights reserved.</p>
           <div class="footer-social">
             <a href="#twitter" class="social-icon" aria-label="Twitter">
               <svg viewBox="0 0 24 24" fill="currentColor">
