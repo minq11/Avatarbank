@@ -84,7 +84,21 @@ class GenerationResponse(BaseModel):
     status: str
     fail_reason: Optional[str]
     nsfw_flag: Optional[bool] = None
+    is_shared: bool = False
     created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class GalleryItemResponse(BaseModel):
+    """Gallery에 노출되는 공유 생성물 (작성자 닉네임 포함)."""
+
+    id: int
+    image_url: str
+    prompt: str
+    created_at: datetime
+    creator_nickname: str
 
     class Config:
         from_attributes = True
@@ -156,6 +170,45 @@ class AvatarResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class AvatarListResponse(AvatarResponse):
+    """마켓 목록용: 추천 수, 댓글 수 포함."""
+
+    up_count: int = 0
+    down_count: int = 0
+    comment_count: int = 0
+
+
+class AvatarDetailResponse(AvatarResponse):
+    """마켓 모달용: 만든 사람, 인스타(실제인물 시)."""
+
+    creator_nickname: str = ""
+    instagram_id: Optional[str] = None
+
+
+class AvatarRatingResponse(BaseModel):
+    up_count: int = 0
+    down_count: int = 0
+    my_vote: Optional[str] = None  # "up" | "down" | null
+
+
+class AvatarRatingSetRequest(BaseModel):
+    type: str  # "up" | "down"
+
+
+class AvatarCommentResponse(BaseModel):
+    id: int
+    creator_nickname: str
+    content: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class AvatarCommentCreateRequest(BaseModel):
+    content: str = Field(..., min_length=1, max_length=2000)
 
 
 class AvatarUpdateRequest(BaseModel):

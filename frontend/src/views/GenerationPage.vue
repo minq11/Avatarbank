@@ -80,21 +80,70 @@
       <div v-if="resultImageUrl" class="result-section">
         <div class="result-section-header">
           <h4>Generated Image</h4>
-          <button
-            type="button"
-            class="btn-download"
-            title="Download"
-            @click="downloadResultImage"
-          >
-            <img src="@/assets/icons/downloadBtn.svg" alt="" class="btn-download-icon" />
-            Download
-          </button>
+          <div class="result-actions">
+            <button
+              type="button"
+              class="btn-result-action"
+              :class="{ 'is-shared': resultIsShared }"
+              :title="resultIsShared ? 'Shared to Gallery' : 'Share to Gallery'"
+              @click="toggleResultShare"
+            >
+              <img src="@/assets/icons/shareBtn.svg" alt="" class="btn-result-icon" />
+              {{ resultIsShared ? 'Shared' : 'Share' }}
+            </button>
+            <button
+              type="button"
+              class="btn-result-action btn-download"
+              title="Download"
+              @click="downloadResultImage"
+            >
+              <img src="@/assets/icons/downloadBtn.svg" alt="" class="btn-result-icon" />
+              Download
+            </button>
+          </div>
         </div>
         <div class="result-img-wrap">
           <img :src="getImageUrl(resultImageUrl)" alt="Generated" class="result-img" />
         </div>
       </div>
       <p v-else class="note">Generated image will appear here after generation.</p>
+    </div>
+
+    <!-- 선택된 아바타로 만들어진 공유 결과물 (shared만) -->
+    <div v-if="avatarId != null" class="shared-by-avatar-area">
+      <div class="shared-by-avatar-container">
+        <h3 class="shared-by-avatar-title">Shared creations with this avatar</h3>
+        <div v-if="sharedByAvatarLoading" class="shared-loading">
+          <div class="loading-spinner" aria-hidden="true"></div>
+          <p class="loading-text">Loading…</p>
+        </div>
+        <div v-else-if="sharedByAvatar.length === 0" class="shared-empty">
+          <p>No shared creations yet with this avatar.</p>
+        </div>
+        <div v-else class="shared-grid">
+          <article
+            v-for="item in sharedByAvatar"
+            :key="item.id"
+            class="shared-card"
+          >
+            <div class="shared-thumb-wrap">
+              <img
+                :src="item.image_url"
+                :alt="item.prompt"
+                class="shared-thumb"
+                loading="lazy"
+              />
+            </div>
+            <div class="shared-meta">
+              <p class="shared-prompt" :title="item.prompt">{{ truncate(item.prompt, 48) }}</p>
+              <div class="shared-footer">
+                <span class="shared-creator">@{{ item.creator_nickname }}</span>
+                <span class="shared-date">{{ formatDate(item.created_at) }}</span>
+              </div>
+            </div>
+          </article>
+        </div>
+      </div>
     </div>
   </section>
 </template>
@@ -104,7 +153,7 @@ import { computed, ref, watch, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import SearchableSelect from "@/components/SearchableSelect.vue";
 import { useAuthStore } from "@/stores/auth";
-import { avatarsApi, generationsApi, type AvatarItem } from "@/services/api";
+import { avatarsApi, generationsApi, galleryApi, type AvatarItem, type GalleryItem } from "@/services/api";
 
 const authStore = useAuthStore();
 
@@ -136,6 +185,22 @@ async function downloadImage(url: string, filename: string) {
   }
 }
 
+async function toggleResultShare() {
+  const id = generationId.value;
+  if (id == null) return;
+  const message = resultIsShared.value
+    ? "Remove this creation from Gallery?"
+    : "Share this creation to Gallery? It will be visible to everyone.";
+  if (!window.confirm(message)) return;
+  try {
+    const updated = await generationsApi.toggleShare(id);
+    resultIsShared.value = updated.is_shared === true;
+    await loadSharedByAvatar();
+  } catch {
+    // ignore
+  }
+}
+
 const route = useRoute();
 const router = useRouter();
 const avatarId = computed(() => {
@@ -153,6 +218,10 @@ const loading = ref(false);
 const error = ref("");
 const generationId = ref<number | null>(null);
 const resultImageUrl = ref<string | null>(null);
+const resultIsShared = ref(false);
+
+const sharedByAvatar = ref<GalleryItem[]>([]);
+const sharedByAvatarLoading = ref(false);
 
 const baseCredit = 1;
 const avatarCredit = computed(
@@ -193,6 +262,7 @@ async function requestGeneration() {
   error.value = "";
   generationId.value = null;
   resultImageUrl.value = null;
+  resultIsShared.value = false;
 
   try {
     const res = await generationsApi.create({
@@ -202,6 +272,7 @@ async function requestGeneration() {
       idempotency_key: crypto.randomUUID(),
     });
     generationId.value = res.id;
+    resultIsShared.value = res.is_shared === true;
     if (res.status === "success" && res.image_url) {
       resultImageUrl.value = res.image_url;
       error.value = "";
@@ -240,6 +311,40 @@ function onSelectAvatarValue(value: number | string | "") {
   }
 }
 
+function truncate(s: string, max: number): string {
+  if (s.length <= max) return s;
+  return s.slice(0, max) + "…";
+}
+
+function formatDate(iso: string): string {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  } catch {
+    return "";
+  }
+}
+
+async function loadSharedByAvatar() {
+  const id = avatarId.value;
+  if (id == null) {
+    sharedByAvatar.value = [];
+    return;
+  }
+  sharedByAvatarLoading.value = true;
+  try {
+    sharedByAvatar.value = await galleryApi.getGenerations(id);
+  } catch {
+    sharedByAvatar.value = [];
+  } finally {
+    sharedByAvatarLoading.value = false;
+  }
+}
+
 async function loadAvatarsList() {
   avatarsListLoading.value = true;
   try {
@@ -253,6 +358,7 @@ async function loadAvatarsList() {
 
 onMounted(loadAvatarsList);
 watch(avatarId, loadAvatar, { immediate: true });
+watch(avatarId, loadSharedByAvatar, { immediate: true });
 </script>
 
 <style scoped>
@@ -350,7 +456,13 @@ watch(avatarId, loadAvatar, { immediate: true });
   margin: 0;
 }
 
-.btn-download {
+.result-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-result-action {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
@@ -362,15 +474,21 @@ watch(avatarId, loadAvatar, { immediate: true });
   border: 1px solid #e5e7eb;
   border-radius: 0.5rem;
   cursor: pointer;
-  transition: background 0.2s, border-color 0.2s;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
 }
 
-.btn-download:hover {
+.btn-result-action:hover {
   background: #f3f4f6;
   border-color: #d1d5db;
 }
 
-.btn-download-icon {
+.btn-result-action.is-shared {
+  color: #059669;
+  border-color: #a7f3d0;
+  background: #ecfdf5;
+}
+
+.btn-result-icon {
   width: 1rem;
   height: 1rem;
 }
@@ -510,6 +628,148 @@ textarea {
   margin-top: 0.5rem;
   font-size: 0.85rem;
   color: #16a34a;
+}
+
+/* Shared creations with this avatar (below result area) */
+.shared-by-avatar-area {
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid #e5e7eb;
+  background: #fafafa;
+  padding-bottom: 3rem;
+}
+
+.shared-by-avatar-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.25rem;
+}
+
+@media (min-width: 768px) {
+  .shared-by-avatar-container {
+    padding: 0 2rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .shared-by-avatar-container {
+    padding: 0 4rem;
+  }
+}
+
+.shared-by-avatar-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 1.5rem;
+}
+
+.shared-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem;
+  gap: 0.75rem;
+}
+
+.shared-loading .loading-spinner {
+  width: 2rem;
+  height: 2rem;
+  border: 2px solid #e5e7eb;
+  border-top-color: #4f46e5;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.shared-loading .loading-text {
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.shared-empty {
+  padding: 2rem;
+  text-align: center;
+  font-size: 0.95rem;
+  color: #6b7280;
+}
+
+.shared-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .shared-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1.25rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .shared-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1.5rem;
+  }
+}
+
+.shared-card {
+  border-radius: 1rem;
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+  background: #ffffff;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.shared-card:hover {
+  box-shadow: 0 8px 20px -5px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+}
+
+.shared-thumb-wrap {
+  aspect-ratio: 1;
+  background: #f3f4f6;
+}
+
+.shared-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.shared-meta {
+  padding: 0.75rem;
+}
+
+.shared-prompt {
+  font-size: 0.85rem;
+  color: #374151;
+  line-height: 1.35;
+  margin-bottom: 0.35rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.shared-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+.shared-creator {
+  font-weight: 500;
+  color: #4f46e5;
 }
 
 @media (max-width: 768px) {

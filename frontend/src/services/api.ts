@@ -167,6 +167,40 @@ export interface AvatarItem {
   status: string;
   created_at: string;
   updated_at: string;
+  up_count?: number;
+  down_count?: number;
+  comment_count?: number;
+}
+
+export interface AvatarListParams {
+  q?: string;
+  nationality?: string;
+  gender?: string;
+  sort?: "recommend" | "name" | "comments" | "newest";
+}
+
+export interface AvatarFilterOptions {
+  nationalities: string[];
+  genders: string[];
+}
+
+/** 마켓 모달용: creator_nickname, instagram_id 포함 */
+export interface AvatarDetailItem extends AvatarItem {
+  creator_nickname: string;
+  instagram_id: string | null;
+}
+
+export interface AvatarRatingItem {
+  up_count: number;
+  down_count: number;
+  my_vote: "up" | "down" | null;
+}
+
+export interface AvatarCommentItem {
+  id: number;
+  creator_nickname: string;
+  content: string;
+  created_at: string;
 }
 
 export interface UpdateAvatarData {
@@ -177,12 +211,32 @@ export interface UpdateAvatarData {
 }
 
 export const avatarsApi = {
-  getList: async (): Promise<AvatarItem[]> => {
-    const response = await api.get<AvatarItem[]>("/avatars");
+  getList: async (params?: AvatarListParams): Promise<AvatarItem[]> => {
+    const response = await api.get<AvatarItem[]>("/avatars", { params });
     return response.data;
   },
-  getById: async (id: number): Promise<AvatarItem> => {
-    const response = await api.get<AvatarItem>(`/avatars/${id}`);
+  getFilterOptions: async (): Promise<AvatarFilterOptions> => {
+    const response = await api.get<AvatarFilterOptions>("/avatars/filter-options");
+    return response.data;
+  },
+  getById: async (id: number): Promise<AvatarDetailItem> => {
+    const response = await api.get<AvatarDetailItem>(`/avatars/${id}`);
+    return response.data;
+  },
+  getRating: async (avatarId: number): Promise<AvatarRatingItem> => {
+    const response = await api.get<AvatarRatingItem>(`/avatars/${avatarId}/rating`);
+    return response.data;
+  },
+  setRating: async (avatarId: number, type: "up" | "down"): Promise<AvatarRatingItem> => {
+    const response = await api.put<AvatarRatingItem>(`/avatars/${avatarId}/rating`, { type });
+    return response.data;
+  },
+  getComments: async (avatarId: number): Promise<AvatarCommentItem[]> => {
+    const response = await api.get<AvatarCommentItem[]>(`/avatars/${avatarId}/comments`);
+    return response.data;
+  },
+  createComment: async (avatarId: number, content: string): Promise<AvatarCommentItem> => {
+    const response = await api.post<AvatarCommentItem>(`/avatars/${avatarId}/comments`, { content });
     return response.data;
   },
   getMyAvatars: async (): Promise<AvatarItem[]> => {
@@ -230,7 +284,16 @@ export interface GenerationItem {
   status: string;
   fail_reason: string | null;
   nsfw_flag: boolean | null;
+  is_shared?: boolean;
   created_at: string;
+}
+
+export interface GalleryItem {
+  id: number;
+  image_url: string;
+  prompt: string;
+  created_at: string;
+  creator_nickname: string;
 }
 
 export interface GenerationCreatePayload {
@@ -251,6 +314,26 @@ export const generationsApi = {
   },
   create: async (data: GenerationCreatePayload): Promise<GenerationItem> => {
     const response = await api.post<GenerationItem>("/generations", data);
+    return response.data;
+  },
+  toggleShare: async (id: number): Promise<GenerationItem> => {
+    const response = await api.put<GenerationItem>(`/my/generations/${id}/share`);
+    return response.data;
+  },
+};
+
+export const galleryApi = {
+  /** 공유된 생성물 목록. avatarId 지정 시 해당 아바타로 생성된 것만. limit/offset 있으면 페이지네이션(생략 시 전체). */
+  getGenerations: async (
+    avatarId?: number,
+    limit?: number,
+    offset?: number
+  ): Promise<GalleryItem[]> => {
+    const params: Record<string, number> = {};
+    if (avatarId != null) params.avatar_id = avatarId;
+    if (limit != null) params.limit = limit;
+    if (offset != null) params.offset = offset;
+    const response = await api.get<GalleryItem[]>("/gallery/generations", { params });
     return response.data;
   },
 };

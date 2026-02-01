@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 import io
 import os
 import zipfile
@@ -9,6 +9,7 @@ from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile, sta
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import StreamingResponse
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from .auth import (
@@ -22,16 +23,33 @@ from .auth import (
 )
 from .config import settings
 from .db import Base, engine, get_db
-from .dependencies import get_current_user
-from .models import Avatar, AvatarStatus, Generation, GenerationStatus, Transaction, TrainingRequest, User
+from .dependencies import get_current_user, get_current_user_optional
+from .models import (
+    Avatar,
+    AvatarComment,
+    AvatarRating,
+    AvatarStatus,
+    Generation,
+    GenerationStatus,
+    Transaction,
+    TrainingRequest,
+    User,
+)
 from .fal_client import run_generation_sync
 from .schemas import (
     AdminTrainingRequestResponse,
     AdminUpgradeRequest,
+    AvatarCommentCreateRequest,
+    AvatarCommentResponse,
+    AvatarDetailResponse,
+    AvatarListResponse,
+    AvatarRatingResponse,
+    AvatarRatingSetRequest,
     AvatarResponse,
     AvatarUpdateRequest,
     ChangeNicknameRequest,
     ChangePasswordRequest,
+    GalleryItemResponse,
     GenerationCreateRequest,
     GenerationResponse,
     RefreshTokenRequest,
@@ -438,6 +456,63 @@ def list_my_generations(
         .all()
     )
     return [GenerationResponse.model_validate(g) for g in generations]
+
+
+@app.put("/my/generations/{generation_id}/share", response_model=GenerationResponse, tags=["generation"])
+def toggle_generation_share(
+    generation_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> GenerationResponse:
+    """Share 토글: Gallery 노출 여부. 본인 소유이고 status=success인 경우만 가능."""
+    generation = db.query(Generation).filter(Generation.id == generation_id).first()
+    if not generation:
+        raise HTTPException(status_code=404, detail="Generation not found.")
+    if generation.buyer_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not your generation.")
+    if generation.status != GenerationStatus.SUCCESS.value:
+        raise HTTPException(status_code=400, detail="Only successful generations can be shared.")
+    generation.is_shared = not generation.is_shared
+    db.commit()
+    db.refresh(generation)
+    return GenerationResponse.model_validate(generation)
+
+
+@app.get("/gallery/generations", response_model=List[GalleryItemResponse], tags=["gallery"])
+def list_gallery_generations(
+    avatar_id: Optional[int] = None,
+    limit: Optional[int] = None,
+    offset: Optional[int] = None,
+    db: Session = Depends(get_db),
+) -> List[GalleryItemResponse]:
+    """Gallery에 노출되는 공유 생성물 목록 (is_shared=True, status=success). avatar_id 지정 시 해당 아바타로 생성된 것만. limit/offset 있으면 페이지네이션."""
+    query = (
+        db.query(Generation, User)
+        .join(User, Generation.buyer_id == User.id)
+        .filter(
+            Generation.is_shared == True,
+            Generation.status == GenerationStatus.SUCCESS.value,
+            Generation.image_url.isnot(None),
+        )
+    )
+    if avatar_id is not None:
+        query = query.filter(Generation.avatar_id == avatar_id)
+    query = query.order_by(Generation.created_at.desc())
+    if limit is not None and offset is not None:
+        limit = min(max(1, limit), 48)
+        offset = max(0, offset)
+        query = query.offset(offset).limit(limit)
+    rows = query.all()
+    return [
+        GalleryItemResponse(
+            id=g.id,
+            image_url=g.image_url or "",
+            prompt=g.prompt,
+            created_at=g.created_at,
+            creator_nickname=user.nickname,
+        )
+        for g, user in rows
+    ]
 
 
 # Training Requests API
@@ -994,30 +1069,99 @@ def admin_get_lora_download_url(
 
 
 # Avatars API (public: 마켓/이미지 생성용)
-@app.get("/avatars", response_model=list[AvatarResponse], tags=["avatars"])
-def list_avatars_public(
-    db: Session = Depends(get_db),
-) -> list[AvatarResponse]:
-    """공개 아바타 목록 (LoRA가 있는 ACTIVE 아바타만, 마켓/생성용)"""
-    avatars = (
+@app.get("/avatars/filter-options", tags=["avatars"])
+def get_avatar_filter_options(db: Session = Depends(get_db)):
+    """마켓 필터용: nationality, gender 옵션 목록."""
+    base = (
         db.query(Avatar)
         .filter(
             Avatar.status == AvatarStatus.ACTIVE.value,
             Avatar.lora_path.isnot(None),
             Avatar.lora_path != "",
         )
-        .order_by(Avatar.created_at.desc())
-        .all()
     )
-    return [AvatarResponse.model_validate(a) for a in avatars]
+    nationalities = [r[0] for r in base.with_entities(Avatar.nationality).distinct().all() if r[0]]
+    genders = [r[0] for r in base.with_entities(Avatar.gender).distinct().all() if r[0]]
+    return {"nationalities": sorted(nationalities), "genders": sorted(genders)}
 
 
-@app.get("/avatars/{avatar_id}", response_model=AvatarResponse, tags=["avatars"])
+@app.get("/avatars", response_model=list[AvatarListResponse], tags=["avatars"])
+def list_avatars_public(
+    q: Optional[str] = None,
+    nationality: Optional[str] = None,
+    gender: Optional[str] = None,
+    sort: Optional[str] = None,
+    db: Session = Depends(get_db),
+) -> list[AvatarListResponse]:
+    """공개 아바타 목록. q=검색, nationality/gender=필터, sort=recommend|name|comments|newest."""
+    query = (
+        db.query(Avatar)
+        .filter(
+            Avatar.status == AvatarStatus.ACTIVE.value,
+            Avatar.lora_path.isnot(None),
+            Avatar.lora_path != "",
+        )
+    )
+    if q and q.strip():
+        term = f"%{q.strip()}%"
+        query = query.filter(
+            or_(Avatar.title.ilike(term), func.coalesce(Avatar.description, "").ilike(term))
+        )
+    if nationality and nationality.strip():
+        query = query.filter(Avatar.nationality == nationality.strip())
+    if gender and gender.strip():
+        query = query.filter(Avatar.gender == gender.strip())
+    if sort == "name":
+        query = query.order_by(Avatar.title.asc())
+    else:
+        query = query.order_by(Avatar.created_at.desc())
+    avatars = query.all()
+    avatar_ids = [a.id for a in avatars]
+    counts: dict[int, dict[str, int]] = {aid: {"up": 0, "down": 0, "comments": 0} for aid in avatar_ids}
+    if avatar_ids:
+        up_rows = (
+            db.query(AvatarRating.avatar_id, func.count().label("cnt"))
+            .filter(AvatarRating.avatar_id.in_(avatar_ids), AvatarRating.is_up == True)
+            .group_by(AvatarRating.avatar_id)
+        ).all()
+        for aid, cnt in up_rows:
+            counts[aid]["up"] = cnt
+        down_rows = (
+            db.query(AvatarRating.avatar_id, func.count().label("cnt"))
+            .filter(AvatarRating.avatar_id.in_(avatar_ids), AvatarRating.is_up == False)
+            .group_by(AvatarRating.avatar_id)
+        ).all()
+        for aid, cnt in down_rows:
+            counts[aid]["down"] = cnt
+        comment_rows = (
+            db.query(AvatarComment.avatar_id, func.count().label("cnt"))
+            .filter(AvatarComment.avatar_id.in_(avatar_ids))
+            .group_by(AvatarComment.avatar_id)
+        ).all()
+        for aid, cnt in comment_rows:
+            counts[aid]["comments"] = cnt
+    items = [
+        AvatarListResponse(
+            **AvatarResponse.model_validate(a).model_dump(),
+            up_count=counts[a.id]["up"],
+            down_count=counts[a.id]["down"],
+            comment_count=counts[a.id]["comments"],
+        )
+        for a in avatars
+    ]
+    if sort == "recommend":
+        items.sort(key=lambda x: x.up_count, reverse=True)
+    elif sort == "comments":
+        items.sort(key=lambda x: x.comment_count, reverse=True)
+    return items
+
+
+@app.get("/avatars/{avatar_id}", response_model=AvatarDetailResponse, tags=["avatars"])
 def get_avatar_public(
     avatar_id: int,
     db: Session = Depends(get_db),
-) -> AvatarResponse:
-    """공개 아바타 단건 조회 (이미지 생성 페이지용)"""
+) -> AvatarDetailResponse:
+    """공개 아바타 단건 조회 (마켓 모달·이미지 생성 페이지용). creator_nickname, instagram_id 포함."""
     avatar = db.query(Avatar).filter(Avatar.id == avatar_id).first()
     if not avatar:
         raise HTTPException(
@@ -1029,7 +1173,133 @@ def get_avatar_public(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Avatar is not available for image generation",
         )
-    return AvatarResponse.model_validate(avatar)
+    creator_nickname = ""
+    instagram_id = None
+    owner = db.query(User).filter(User.id == avatar.user_id).first()
+    if owner:
+        creator_nickname = owner.nickname or ""
+    if avatar.training_request_id:
+        tr = db.query(TrainingRequest).filter(TrainingRequest.id == avatar.training_request_id).first()
+        if tr and tr.instagram_id:
+            instagram_id = tr.instagram_id
+    data = AvatarResponse.model_validate(avatar).model_dump()
+    data["creator_nickname"] = creator_nickname
+    data["instagram_id"] = instagram_id
+    return AvatarDetailResponse(**data)
+
+
+@app.get("/avatars/{avatar_id}/rating", response_model=AvatarRatingResponse, tags=["avatars"])
+def get_avatar_rating(
+    avatar_id: int,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional),
+) -> AvatarRatingResponse:
+    """아바타 추천/비추천 개수 및 내 투표."""
+    avatar = db.query(Avatar).filter(Avatar.id == avatar_id).first()
+    if not avatar:
+        raise HTTPException(status_code=404, detail="Avatar not found.")
+    up_count = db.query(AvatarRating).filter(AvatarRating.avatar_id == avatar_id, AvatarRating.is_up == True).count()
+    down_count = db.query(AvatarRating).filter(AvatarRating.avatar_id == avatar_id, AvatarRating.is_up == False).count()
+    my_vote = None
+    if current_user:
+        r = db.query(AvatarRating).filter(
+            AvatarRating.avatar_id == avatar_id,
+            AvatarRating.user_id == current_user.id,
+        ).first()
+        if r:
+            my_vote = "up" if r.is_up else "down"
+    return AvatarRatingResponse(up_count=up_count, down_count=down_count, my_vote=my_vote)
+
+
+@app.put("/avatars/{avatar_id}/rating", response_model=AvatarRatingResponse, tags=["avatars"])
+def set_avatar_rating(
+    avatar_id: int,
+    payload: AvatarRatingSetRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> AvatarRatingResponse:
+    """아바타 추천(up) 또는 비추천(down) 설정. 같은 버튼 다시 누르면 취소. type: 'up' | 'down'."""
+    if payload.type not in ("up", "down"):
+        raise HTTPException(status_code=400, detail="type must be 'up' or 'down'.")
+    avatar = db.query(Avatar).filter(Avatar.id == avatar_id).first()
+    if not avatar:
+        raise HTTPException(status_code=404, detail="Avatar not found.")
+    existing = (
+        db.query(AvatarRating)
+        .filter(AvatarRating.avatar_id == avatar_id, AvatarRating.user_id == current_user.id)
+        .first()
+    )
+    is_up = payload.type == "up"
+    if existing:
+        if existing.is_up == is_up:
+            db.delete(existing)
+            my_vote = None
+        else:
+            existing.is_up = is_up
+            my_vote = payload.type
+    else:
+        db.add(AvatarRating(avatar_id=avatar_id, user_id=current_user.id, is_up=is_up))
+        my_vote = payload.type
+    db.commit()
+    up_count = db.query(AvatarRating).filter(AvatarRating.avatar_id == avatar_id, AvatarRating.is_up == True).count()
+    down_count = db.query(AvatarRating).filter(AvatarRating.avatar_id == avatar_id, AvatarRating.is_up == False).count()
+    return AvatarRatingResponse(up_count=up_count, down_count=down_count, my_vote=my_vote)
+
+
+@app.get("/avatars/{avatar_id}/comments", response_model=List[AvatarCommentResponse], tags=["avatars"])
+def list_avatar_comments(
+    avatar_id: int,
+    db: Session = Depends(get_db),
+) -> List[AvatarCommentResponse]:
+    """아바타 댓글 목록 (최신순)."""
+    avatar = db.query(Avatar).filter(Avatar.id == avatar_id).first()
+    if not avatar:
+        raise HTTPException(status_code=404, detail="Avatar not found.")
+    rows = (
+        db.query(AvatarComment, User)
+        .join(User, AvatarComment.user_id == User.id)
+        .filter(AvatarComment.avatar_id == avatar_id)
+        .order_by(AvatarComment.created_at.desc())
+        .all()
+    )
+    return [
+        AvatarCommentResponse(
+            id=c.id,
+            creator_nickname=u.nickname or "",
+            content=c.content,
+            created_at=c.created_at,
+        )
+        for c, u in rows
+    ]
+
+
+@app.post(
+    "/avatars/{avatar_id}/comments",
+    response_model=AvatarCommentResponse,
+    status_code=status.HTTP_201_CREATED,
+    tags=["avatars"],
+)
+def create_avatar_comment(
+    avatar_id: int,
+    payload: AvatarCommentCreateRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> AvatarCommentResponse:
+    """아바타 댓글 작성."""
+    avatar = db.query(Avatar).filter(Avatar.id == avatar_id).first()
+    if not avatar:
+        raise HTTPException(status_code=404, detail="Avatar not found.")
+    comment = AvatarComment(avatar_id=avatar_id, user_id=current_user.id, content=payload.content.strip())
+    db.add(comment)
+    db.commit()
+    db.refresh(comment)
+    user = db.query(User).filter(User.id == current_user.id).first()
+    return AvatarCommentResponse(
+        id=comment.id,
+        creator_nickname=user.nickname if user else "",
+        content=comment.content,
+        created_at=comment.created_at,
+    )
 
 
 # Avatars API (my)

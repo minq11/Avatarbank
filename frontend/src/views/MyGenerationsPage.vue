@@ -71,6 +71,17 @@
             <div class="card-footer">
               <span class="card-credits">{{ g.status === 'failed' ? 0 : g.credits_used }}C</span>
               <span class="card-date">{{ formatDate(g.created_at) }}</span>
+              <button
+                v-if="g.image_url && g.status === 'success'"
+                type="button"
+                class="card-share-btn"
+                :class="{ 'is-shared': g.is_shared === true }"
+                :title="g.is_shared ? 'Shared to Gallery' : 'Share to Gallery'"
+                @click.stop="toggleShare(g)"
+              >
+                <img src="@/assets/icons/shareBtn.svg" alt="" class="card-share-icon" />
+                {{ g.is_shared === true ? 'Shared' : 'Share' }}
+              </button>
             </div>
           </div>
         </article>
@@ -160,6 +171,17 @@
           </div>
         </div>
         <div class="modal-footer">
+          <button
+            v-if="selectedGeneration.image_url && selectedGeneration.status === 'success'"
+            type="button"
+            class="modal-secondary"
+            :class="{ 'is-shared': selectedGeneration.is_shared === true }"
+            :title="selectedGeneration.is_shared === true ? 'Shared to Gallery' : 'Share to Gallery'"
+            @click="toggleShare(selectedGeneration)"
+          >
+            <img src="@/assets/icons/shareBtn.svg" alt="" class="modal-btn-icon" />
+            {{ selectedGeneration.is_shared === true ? 'Shared' : 'Share' }}
+          </button>
           <button
             v-if="selectedGeneration.image_url && selectedGeneration.status === 'success'"
             class="modal-secondary modal-btn-download"
@@ -274,6 +296,23 @@ async function downloadImage(): Promise<void> {
     URL.revokeObjectURL(a.href);
   } catch {
     window.open(url, "_blank", "noopener");
+  }
+}
+
+async function toggleShare(g: GenerationItem): Promise<void> {
+  if (g.status !== "success" || !g.image_url) return;
+  const isShared = g.is_shared === true;
+  const message = isShared
+    ? "Remove this creation from Gallery?"
+    : "Share this creation to Gallery? It will be visible to everyone.";
+  if (!window.confirm(message)) return;
+  try {
+    const updated = await generationsApi.toggleShare(g.id);
+    const idx = list.value.findIndex((x) => x.id === g.id);
+    if (idx !== -1) list.value[idx] = updated;
+    if (selectedGeneration.value?.id === g.id) selectedGeneration.value = updated;
+  } catch {
+    // ignore
   }
 }
 </script>
@@ -501,6 +540,8 @@ async function downloadImage(): Promise<void> {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
   font-size: 0.8rem;
   color: #9ca3af;
 }
@@ -508,6 +549,38 @@ async function downloadImage(): Promise<void> {
 .card-credits {
   font-weight: 500;
   color: #4f46e5;
+}
+
+.card-share-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #4f46e5;
+  background: transparent;
+  border: 1px solid #c7d2fe;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.card-share-btn:hover {
+  background: #eef2ff;
+  border-color: #818cf8;
+}
+
+.card-share-btn.is-shared {
+  color: #059669;
+  border-color: #a7f3d0;
+  background: #ecfdf5;
+}
+
+.card-share-icon {
+  width: 0.9rem;
+  height: 0.9rem;
+  opacity: 0.9;
 }
 
 /* Detail Modal */
@@ -760,6 +833,12 @@ async function downloadImage(): Promise<void> {
 .modal-secondary:hover {
   background: #f9fafb;
   border-color: #d1d5db;
+}
+
+.modal-secondary.is-shared {
+  color: #059669;
+  border-color: #a7f3d0;
+  background: #ecfdf5;
 }
 
 .modal-btn-download {

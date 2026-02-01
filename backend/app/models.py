@@ -80,6 +80,30 @@ class Avatar(Base):
     )
 
 
+class AvatarRating(Base):
+    """아바타 추천/비추천 (유저당 1개: up 또는 down)."""
+
+    __tablename__ = "avatar_ratings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    avatar_id = Column(Integer, ForeignKey("avatars.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    is_up = Column(Boolean, nullable=False)  # True=추천, False=비추천
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+
+class AvatarComment(Base):
+    """아바타 댓글."""
+
+    __tablename__ = "avatar_comments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    avatar_id = Column(Integer, ForeignKey("avatars.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    content = Column(Text, nullable=False)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+
 class GenerationStatus(str, Enum):
     PENDING = "pending"
     PROCESSING = "processing"
@@ -102,6 +126,7 @@ class Generation(Base):
     status = Column(String, nullable=False, default=GenerationStatus.PENDING)
     fail_reason = Column(Text, nullable=True)
     nsfw_flag = Column(Boolean, nullable=False, default=False)
+    is_shared = Column(Boolean, nullable=False, default=False)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
 
 

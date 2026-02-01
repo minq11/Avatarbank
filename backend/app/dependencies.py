@@ -67,6 +67,29 @@ def get_current_user(
     return user
 
 
+def get_current_user_optional(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(HTTPBearer(auto_error=False)),
+    db: Session = Depends(get_db),
+) -> Optional[User]:
+    """현재 로그인한 사용자 조회. 토큰 없거나 무효면 None 반환."""
+    if not credentials or not credentials.credentials:
+        return None
+    payload = verify_token(credentials.credentials, token_type="access")
+    if payload is None:
+        return None
+    user_id_raw = payload.get("sub")
+    if user_id_raw is None:
+        return None
+    try:
+        user_id = int(user_id_raw)
+    except (TypeError, ValueError):
+        return None
+    user = db.query(User).filter(User.id == user_id).first()
+    if user is None or user.status != "active":
+        return None
+    return user
+
+
 def get_current_active_user(
     current_user: User = Depends(get_current_user),
 ) -> User:
