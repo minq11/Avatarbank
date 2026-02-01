@@ -6,6 +6,7 @@
           <!-- Logo -->
           <div class="logo-wrapper">
             <RouterLink to="/" class="logo-link">
+              <img :src="logoCart" alt="AvatarBank" class="logo-img" />
               <h1 class="logo">AvatarBank</h1>
             </RouterLink>
           </div>
@@ -188,6 +189,7 @@ import { RouterLink, RouterView } from "vue-router";
 import { useAuthStore } from "./stores/auth";
 import AuthModal from "./components/AuthModal.vue";
 import diamondIcon from "./assets/icons/diamond_credit_icon.svg";
+import logoCart from "./assets/icons/logo3D.png";
 
 const authStore = useAuthStore();
 
@@ -306,7 +308,16 @@ onUnmounted(() => {
 
 .logo-link {
   text-decoration: none;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.logo-img {
+  height: 2.9rem;
+  width: auto;
+  display: block;
+  flex-shrink: 0;
 }
 
 .logo {
@@ -318,7 +329,8 @@ onUnmounted(() => {
   transition: opacity 0.2s;
 }
 
-.logo-link:hover .logo {
+.logo-link:hover .logo,
+.logo-link:hover .logo-img {
   opacity: 0.8;
 }
 
