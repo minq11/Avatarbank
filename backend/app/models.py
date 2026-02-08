@@ -10,6 +10,7 @@ from sqlalchemy import (
     Numeric,
     String,
     Text,
+    UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
@@ -56,6 +57,7 @@ class AvatarStatus(str, Enum):
 
 class Avatar(Base):
     __tablename__ = "avatars"
+    __table_args__ = (UniqueConstraint("user_id", "title", name="uq_avatars_user_title"),)
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
@@ -74,6 +76,7 @@ class Avatar(Base):
     is_public = Column(Boolean, nullable=False, default=False)
     preview_image_url = Column(String, nullable=True)
     status = Column(String, nullable=False, default=AvatarStatus.PENDING)
+    deleted_at = Column(DateTime, nullable=True)  # 논리 삭제
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     updated_at = Column(
         DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
@@ -265,6 +268,9 @@ class TrainingRequestStatus(str, Enum):
 
 class TrainingRequest(Base):
     __tablename__ = "training_requests"
+    __table_args__ = (
+        UniqueConstraint("user_id", "avatar_name", name="uq_training_requests_user_avatar_name"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
@@ -285,6 +291,7 @@ class TrainingRequest(Base):
     status = Column(String, nullable=False, default=TrainingRequestStatus.REQUESTED.value)
     admin_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # 승인/반려한 관리자
     admin_notes = Column(Text, nullable=True)  # 관리자 메모
+    deleted_at = Column(DateTime, nullable=True)  # 논리 삭제
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     updated_at = Column(
         DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow

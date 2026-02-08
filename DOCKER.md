@@ -254,6 +254,32 @@ docker-compose logs --since 30m backend
 docker-compose logs > logs.txt
 ```
 
+## 📁 로컬 스토리지 (Preview Image 등)
+
+`STORAGE_TYPE=local`일 때 업로드 파일은 서버 디스크에 저장됩니다.
+
+### 저장 경로
+
+- **Upload LoRA Avatar의 Preview Image**: `{UPLOAD_DIR}/avatars/upload_lora/` (파일명은 UUID)
+- **Training Request 대표/학습 사진**: `{UPLOAD_DIR}/training-requests/{request_id}/`
+- **아바타 수정 시 Preview Image**: `{UPLOAD_DIR}/avatars/{avatar_id}/`
+
+### UPLOAD_DIR 설정 및 upload 폴더 유지
+
+- **로컬/개발 (`docker-compose.yml`, `docker-compose.dev.yml`)**: 기본값 `/app/uploads`. `./backend:/app` 볼륨 때문에 실제 파일은 호스트의 **`backend/uploads/`** 에 쌓이며, 컨테이너를 다시 올려도 **유지**됩니다.
+- **운영 (`docker-compose.prod.yml`)**: 백엔드에 **`backend_uploads`** 볼륨을 ` /app/uploads`에 마운트해 두었습니다. `docker compose down` 후 다시 `up` 해도 upload 파일이 **유지**됩니다. (이전에는 볼륨이 없어 컨테이너 재생성 시 upload 폴더가 비어 있었습니다.)
+- **호스트에서 백엔드만 실행 시** (Docker 없이): 기본값 `/app/uploads`는 프로젝트 밖 경로가 될 수 있어, **`.env`에 다음을 추가**하면 프로젝트 안에서 확인할 수 있습니다.
+  ```env
+  STORAGE_TYPE=local
+  UPLOAD_DIR=./uploads
+  ```
+  백엔드를 `backend` 디렉토리에서 실행하면 `backend/uploads/avatars/upload_lora/` 에 저장됩니다.
+
+### 이미지가 화면에 안 나올 때
+
+- 프론트가 빌드되어 별도 포트(예: 3000)에서 서빙되면, 정적 파일은 백엔드(예: 8000)에서 불러와야 합니다. 프론트 빌드 시 `VITE_API_BASE_URL=http://localhost:8000` 이 설정되어 있으면 이미지 URL이 백엔드로 잡혀서 표시됩니다.
+- 개발 시(Vite 프록시): `getImageUrl`이 `/api/static/...` 로 요청하므로, Vite가 `/api`를 백엔드로 프록시하면 그대로 표시됩니다.
+
 ## 🔍 문제 해결
 
 ### 포트 충돌

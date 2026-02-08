@@ -269,6 +269,29 @@ export const avatarsApi = {
     const response = await api.put<AvatarItem>(`/my/avatars/${id}`, formData, config);
     return response.data;
   },
+
+  /** 아바타 삭제 (논리 삭제 + LoRA 실제 삭제) */
+  deleteAvatar: async (id: number): Promise<void> => {
+    await api.delete(`/my/avatars/${id}`);
+  },
+
+  /** LoRA(.safetensors) 파일 직접 업로드로 새 아바타 등록 */
+  uploadLoRA: async (
+    formData: FormData,
+    onUploadProgress?: (percent: number) => void
+  ): Promise<AvatarItem> => {
+    const config = onUploadProgress
+      ? {
+          onUploadProgress: (ev: { loaded: number; total?: number }) => {
+            if (ev.total != null && ev.total > 0) {
+              onUploadProgress(Math.round((ev.loaded / ev.total) * 100));
+            }
+          },
+        }
+      : {};
+    const response = await api.post<AvatarItem>("/my/avatars/upload-lora", formData, config);
+    return response.data;
+  },
 };
 
 // Generations API
@@ -409,6 +432,11 @@ export const trainingRequestsApi = {
   cancelRequest: async (id: number): Promise<TrainingRequestItem> => {
     const response = await api.patch<TrainingRequestItem>(`/my/training-requests/${id}/cancel`);
     return response.data;
+  },
+
+  /** 학습 요청 삭제 (논리 삭제 + 이미지 실제 삭제) */
+  deleteRequest: async (id: number): Promise<void> => {
+    await api.delete(`/my/training-requests/${id}`);
   },
 
   createRequest: async (data: CreateTrainingRequestData): Promise<TrainingRequestItem> => {

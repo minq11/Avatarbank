@@ -8,6 +8,7 @@ import uuid
 import os
 from pathlib import Path
 from typing import BinaryIO
+from urllib.parse import urlparse, unquote
 
 from .config import settings
 
@@ -89,3 +90,30 @@ def upload_multiple_files_to_local(
         url = upload_file_to_local(file_content, file_name, folder, content_type)
         urls.append(url)
     return urls
+
+
+def delete_file_from_local(url: str) -> bool:
+    """
+    로컬 정적 URL에 해당하는 파일을 삭제합니다.
+    URL 형식: /static/folder/filename 또는 http(s)://host/static/folder/filename
+    Returns:
+        성공 시 True, 파일 없음/실패 시 False
+    """
+    parsed = urlparse(url)
+    path = (parsed.path or url).strip()
+    prefix = f"/{settings.STATIC_URL_PREFIX.strip('/')}/"
+    if not path.startswith(prefix):
+        return False
+    relative = path[len(prefix):].lstrip("/")
+    if not relative:
+        return False
+    relative = unquote(relative)
+    upload_dir = get_upload_dir()
+    file_path = upload_dir / relative
+    if not file_path.is_file():
+        return False
+    try:
+        file_path.unlink()
+        return True
+    except Exception:
+        return False

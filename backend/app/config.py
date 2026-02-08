@@ -29,6 +29,8 @@ class Settings(BaseSettings):
     S3_BUCKET: str = "avatarbank-storage-prd"  # 기본값: 프로덕션 버킷
     
     # 로컬 스토리지 설정
+    # 로컬 개발(호스트에서 실행) 시: UPLOAD_DIR=./uploads 로 설정하면 프로젝트 내 backend/uploads 에 저장됨
+    # Docker 사용 시: UPLOAD_DIR=/app/uploads (기본값), 볼륨으로 ./backend:/app 마운트하면 호스트의 backend/uploads 에 보임
     UPLOAD_DIR: str = "/app/uploads"  # 로컬 저장 디렉토리
     STATIC_URL_PREFIX: str = "/static"  # 정적 파일 URL 접두사
 

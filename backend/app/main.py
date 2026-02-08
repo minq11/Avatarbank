@@ -64,17 +64,23 @@ from .schemas import (
 
 app = FastAPI(title=settings.PROJECT_NAME)
 
-# CORS 설정
+# CORS 설정 (로컬/운영 Docker: localhost, 127.0.0.1 모든 포트 허용)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:5173",  # Vite 개발 서버
-        "http://localhost:3000",  # 다른 개발 서버
+        "http://localhost",
+        "http://localhost:80",
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1",
+        "http://127.0.0.1:80",
+        "http://127.0.0.1:3000",
         "http://127.0.0.1:5173",
     ],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # 로컬 스토리지 사용 시 정적 파일 서빙 설정
@@ -84,8 +90,7 @@ if settings.STORAGE_TYPE == "local":
     
     upload_dir = Path(settings.UPLOAD_DIR)
     upload_dir.mkdir(parents=True, exist_ok=True)
-    
-    # /static 경로로 업로드된 파일 서빙
+    # Upload LoRA Preview Image 저장 경로: {UPLOAD_DIR}/avatars/upload_lora/
     app.mount("/static", StaticFiles(directory=str(upload_dir)), name="static")
 
 
@@ -94,6 +99,13 @@ def on_startup() -> None:
     # 초기 단계에서는 자동으로 테이블을 생성하도록 두고,
     # 이후 Alembic 마이그레이션으로 전환한다.
     Base.metadata.create_all(bind=engine)
+    if settings.STORAGE_TYPE == "local":
+        from pathlib import Path
+        upload_dir = Path(settings.UPLOAD_DIR).resolve()
+        import logging
+        logging.getLogger("uvicorn.error").info(
+            f"Local storage: uploads at {upload_dir} (e.g. Upload LoRA preview: {upload_dir}/avatars/upload_lora/)"
+        )
 
 
 @app.get("/health", tags=["system"])
@@ -344,7 +356,7 @@ def create_generation(
             detail="Avatar is required for image generation.",
         )
     avatar = db.query(Avatar).filter(Avatar.id == payload.avatar_id).first()
-    if not avatar:
+    if not avatar or avatar.deleted_at is not None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Avatar not found. Please select an avatar first.",
@@ -521,10 +533,13 @@ def list_my_training_requests(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> list[TrainingRequestResponse]:
-    """내 학습 요청 목록 조회"""
+    """내 학습 요청 목록 조회 (논리 삭제된 항목 제외)"""
     requests = (
         db.query(TrainingRequest)
-        .filter(TrainingRequest.user_id == current_user.id)
+        .filter(
+            TrainingRequest.user_id == current_user.id,
+            TrainingRequest.deleted_at.is_(None),
+        )
         .order_by(TrainingRequest.created_at.desc())
         .all()
     )
@@ -558,19 +573,34 @@ async def create_training_request(
     from fastapi import UploadFile, File, Form
     from io import BytesIO
     from .models import TrainingRequestStatus
-    from .config import settings
-    
-    # 스토리지 타입에 따라 적절한 함수 선택
-    if settings.STORAGE_TYPE == "local":
-        from .local_storage import upload_file_to_local as upload_file, upload_multiple_files_to_local as upload_multiple_files
-    else:
-        from .s3_utils import upload_file_to_s3 as upload_file, upload_multiple_files_to_s3 as upload_multiple_files
+    from .storage import upload_file_for_app, upload_multiple_files_for_app
 
     # 실존인물인 경우 Instagram ID 필수
     if is_real_person is True and not instagram_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Instagram ID is required for real person avatars",
+        )
+
+    # Avatar name 유저별 유일: 동일 유저의 TrainingRequest 또는 Avatar에 같은 이름 없어야 함 (삭제 제외)
+    name_stripped = avatar_name.strip()
+    if db.query(TrainingRequest).filter(
+        TrainingRequest.user_id == current_user.id,
+        TrainingRequest.avatar_name == name_stripped,
+        TrainingRequest.deleted_at.is_(None),
+    ).first():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This avatar name is already used in one of your training requests.",
+        )
+    if db.query(Avatar).filter(
+        Avatar.user_id == current_user.id,
+        Avatar.title == name_stripped,
+        Avatar.deleted_at.is_(None),
+    ).first():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This avatar name is already used in your avatars.",
         )
 
     # 최소 사진 개수 검증
@@ -598,7 +628,7 @@ async def create_training_request(
     # TrainingRequest를 먼저 생성하여 ID 획득
     training_request = TrainingRequest(
         user_id=current_user.id,
-        avatar_name=avatar_name,
+        avatar_name=name_stripped,
         negative_prompt=negative_prompt,
         credit_per_generation=credit_per_generation,
         national=national,
@@ -624,9 +654,9 @@ async def create_training_request(
         # 폴더 경로: training-requests/{training_request_id}/
         folder_path = f"training-requests/{training_request_id}"
 
-        # 대표 이미지 업로드
+        # 대표 이미지 업로드 (local이면 로컬 + S3 백업)
         preview_content = await preview_image.read()
-        preview_image_url = upload_file(
+        preview_image_url = upload_file_for_app(
             BytesIO(preview_content),
             preview_image.filename or "preview.jpg",
             folder=folder_path,
@@ -637,7 +667,7 @@ async def create_training_request(
         if front_photos:
             front_contents = [await photo.read() for photo in front_photos]
             front_filenames = [photo.filename or f"front_{i}.jpg" for i, photo in enumerate(front_photos)]
-            front_photos_urls = upload_multiple_files(
+            front_photos_urls = upload_multiple_files_for_app(
                 [BytesIO(content) for content in front_contents],
                 front_filenames,
                 folder=folder_path,
@@ -647,7 +677,7 @@ async def create_training_request(
         if side_photos:
             side_contents = [await photo.read() for photo in side_photos]
             side_filenames = [photo.filename or f"side_{i}.jpg" for i, photo in enumerate(side_photos)]
-            side_photos_urls = upload_multiple_files(
+            side_photos_urls = upload_multiple_files_for_app(
                 [BytesIO(content) for content in side_contents],
                 side_filenames,
                 folder=folder_path,
@@ -657,7 +687,7 @@ async def create_training_request(
         if fullbody_photos:
             fullbody_contents = [await photo.read() for photo in fullbody_photos]
             fullbody_filenames = [photo.filename or f"fullbody_{i}.jpg" for i, photo in enumerate(fullbody_photos)]
-            fullbody_photos_urls = upload_multiple_files(
+            fullbody_photos_urls = upload_multiple_files_for_app(
                 [BytesIO(content) for content in fullbody_contents],
                 fullbody_filenames,
                 folder=folder_path,
@@ -667,7 +697,7 @@ async def create_training_request(
         if other_photos:
             other_contents = [await photo.read() for photo in other_photos]
             other_filenames = [photo.filename or f"other_{i}.jpg" for i, photo in enumerate(other_photos)]
-            other_photos_urls = upload_multiple_files(
+            other_photos_urls = upload_multiple_files_for_app(
                 [BytesIO(content) for content in other_contents],
                 other_filenames,
                 folder=folder_path,
@@ -701,12 +731,13 @@ def get_training_request_detail(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> TrainingRequestDetailResponse:
-    """학습 요청 상세 조회"""
+    """학습 요청 상세 조회 (논리 삭제된 항목 제외)"""
     request = (
         db.query(TrainingRequest)
         .filter(
             TrainingRequest.id == request_id,
             TrainingRequest.user_id == current_user.id,
+            TrainingRequest.deleted_at.is_(None),
         )
         .first()
     )
@@ -726,7 +757,7 @@ def cancel_training_request(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> TrainingRequestResponse:
-    """학습 요청 취소"""
+    """학습 요청 취소 (논리 삭제된 항목 제외)"""
     from .models import TrainingRequestStatus
     
     request = (
@@ -734,10 +765,11 @@ def cancel_training_request(
         .filter(
             TrainingRequest.id == request_id,
             TrainingRequest.user_id == current_user.id,
+            TrainingRequest.deleted_at.is_(None),
         )
         .first()
     )
-    
+
     if not request:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -764,6 +796,55 @@ def cancel_training_request(
     db.refresh(request)
     
     return TrainingRequestResponse.model_validate(request)
+
+
+@app.delete("/my/training-requests/{request_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["training"])
+def delete_training_request(
+    request_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> None:
+    """학습 요청 삭제: 논리 삭제(deleted_at) + 이미지 파일 실제 삭제"""
+    request = (
+        db.query(TrainingRequest)
+        .filter(
+            TrainingRequest.id == request_id,
+            TrainingRequest.user_id == current_user.id,
+            TrainingRequest.deleted_at.is_(None),
+        )
+        .first()
+    )
+    if not request:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Training request not found",
+        )
+    urls_to_delete = []
+    if request.preview_image_url:
+        urls_to_delete.append(request.preview_image_url)
+    for u in (request.front_photos_urls or []):
+        urls_to_delete.append(u)
+    for u in (request.side_photos_urls or []):
+        urls_to_delete.append(u)
+    for u in (request.fullbody_photos_urls or []):
+        urls_to_delete.append(u)
+    for u in (request.other_photos_urls or []):
+        urls_to_delete.append(u)
+    for url in urls_to_delete:
+        if url and "amazonaws" in url and "s3" in url.lower():
+            from .s3_utils import delete_file_from_s3
+            delete_file_from_s3(url)
+        elif url:
+            from .local_storage import delete_file_from_local
+            delete_file_from_local(url)
+
+    request.deleted_at = datetime.utcnow()
+    request.preview_image_url = None
+    request.front_photos_urls = None
+    request.side_photos_urls = None
+    request.fullbody_photos_urls = None
+    request.other_photos_urls = None
+    db.commit()
 
 
 # Admin Training Requests API
@@ -1078,6 +1159,7 @@ def get_avatar_filter_options(db: Session = Depends(get_db)):
             Avatar.status == AvatarStatus.ACTIVE.value,
             Avatar.lora_path.isnot(None),
             Avatar.lora_path != "",
+            Avatar.deleted_at.is_(None),
         )
     )
     nationalities = [r[0] for r in base.with_entities(Avatar.nationality).distinct().all() if r[0]]
@@ -1100,6 +1182,7 @@ def list_avatars_public(
             Avatar.status == AvatarStatus.ACTIVE.value,
             Avatar.lora_path.isnot(None),
             Avatar.lora_path != "",
+            Avatar.deleted_at.is_(None),
         )
     )
     if q and q.strip():
@@ -1163,7 +1246,7 @@ def get_avatar_public(
 ) -> AvatarDetailResponse:
     """공개 아바타 단건 조회 (마켓 모달·이미지 생성 페이지용). creator_nickname, instagram_id 포함."""
     avatar = db.query(Avatar).filter(Avatar.id == avatar_id).first()
-    if not avatar:
+    if not avatar or avatar.deleted_at is not None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Avatar not found",
@@ -1308,14 +1391,119 @@ def list_my_avatars(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> list[AvatarResponse]:
-    """내 아바타 목록 조회"""
+    """내 아바타 목록 조회 (논리 삭제된 항목 제외)"""
     avatars = (
         db.query(Avatar)
-        .filter(Avatar.user_id == current_user.id)
+        .filter(
+            Avatar.user_id == current_user.id,
+            Avatar.deleted_at.is_(None),
+        )
         .order_by(Avatar.created_at.desc())
         .all()
     )
     return [AvatarResponse.model_validate(a) for a in avatars]
+
+
+@app.post(
+    "/my/avatars/upload-lora",
+    response_model=AvatarResponse,
+    tags=["avatars"],
+)
+async def upload_lora_avatar(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    title: str = Form(..., description="Avatar name"),
+    description: str = Form(None),
+    national: str = Form(None),
+    gender: str = Form(None),
+    negative_prompt: str = Form(None),
+    credit_per_generation: int = Form(None),
+    is_real_person: bool = Form(False),
+    instagram_id: str = Form(None),
+    preview_image: UploadFile = File(None),
+    lora_file: UploadFile = File(..., description=".safetensors LoRA file"),
+):
+    """
+    LoRA(.safetensors) 파일을 직접 업로드하여 새 아바타를 등록합니다.
+    Training Request 없이 메타정보만 입력하고 LoRA 파일을 넣는 방식입니다.
+    STORAGE_TYPE이 local이어도 S3에 백업 업로드합니다.
+    """
+    from io import BytesIO
+
+    from .storage import upload_file_for_app
+
+    filename = lora_file.filename or "model.safetensors"
+    if not filename.lower().endswith(".safetensors"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only .safetensors files are allowed",
+        )
+
+    # Avatar name 유저별 유일: 동일 유저의 Avatar 또는 TrainingRequest에 같은 이름 없어야 함 (삭제 제외)
+    title_stripped = title.strip()
+    if db.query(Avatar).filter(
+        Avatar.user_id == current_user.id,
+        Avatar.title == title_stripped,
+        Avatar.deleted_at.is_(None),
+    ).first():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This avatar name is already used in your avatars.",
+        )
+    if db.query(TrainingRequest).filter(
+        TrainingRequest.user_id == current_user.id,
+        TrainingRequest.avatar_name == title_stripped,
+        TrainingRequest.deleted_at.is_(None),
+    ).first():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This avatar name is already used in one of your training requests.",
+        )
+
+    content = await lora_file.read()
+    folder = f"loras/user_{current_user.id}"
+    lora_url = upload_file_for_app(
+        BytesIO(content),
+        filename,
+        folder=folder,
+        content_type="application/octet-stream",
+    )
+
+    preview_image_url = None
+    if preview_image and preview_image.filename:
+        try:
+            image_content = await preview_image.read()
+            folder_path = f"avatars/upload_lora"
+            preview_image_url = upload_file_for_app(
+                BytesIO(image_content),
+                preview_image.filename or "preview.jpg",
+                folder=folder_path,
+                content_type=preview_image.content_type or "image/jpeg",
+            )
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to upload preview image: {str(e)}",
+            )
+
+    avatar = Avatar(
+        user_id=current_user.id,
+        training_request_id=None,
+        title=title_stripped,
+        description=description.strip() if description else None,
+        nationality=national.strip() if national else None,
+        gender=gender.strip() if gender else None,
+        negative_prompt=negative_prompt.strip() if negative_prompt else None,
+        credit_per_generation=credit_per_generation if credit_per_generation is not None else 1,
+        lora_path=lora_url,
+        preview_image_url=preview_image_url,
+        status=AvatarStatus.ACTIVE.value,
+    )
+    db.add(avatar)
+    db.commit()
+    db.refresh(avatar)
+
+    return AvatarResponse.model_validate(avatar)
 
 
 @app.put("/my/avatars/{avatar_id}", response_model=AvatarResponse, tags=["avatars"])
@@ -1328,13 +1516,11 @@ async def update_avatar(
     description: str = Form(None),
     preview_image: UploadFile = File(None),
 ):
-    """아바타 수정 (Preview Image는 STORAGE_TYPE에 따라 로컬 또는 S3에 저장)"""
+    """아바타 수정 (Preview Image는 STORAGE_TYPE에 따라 로컬 또는 S3에 저장, local이면 S3에도 백업)"""
     from fastapi import UploadFile, File, Form
     from io import BytesIO
-    if settings.STORAGE_TYPE == "local":
-        from .local_storage import upload_file_to_local as upload_file
-    else:
-        from .s3_utils import upload_file_to_s3 as upload_file
+
+    from .storage import upload_file_for_app
 
     # 아바타 조회 및 권한 확인
     avatar = db.query(Avatar).filter(Avatar.id == avatar_id).first()
@@ -1349,21 +1535,57 @@ async def update_avatar(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You don't have permission to update this avatar",
         )
+    if avatar.deleted_at is not None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Avatar not found",
+        )
 
     # 수정 가능한 필드만 업데이트
     if title is not None:
-        avatar.title = title
+        title_stripped = title.strip()
+        # Avatar name 유저별 유일: 다른 Avatar 또는 TrainingRequest에 같은 이름 있으면 불가 (삭제 제외)
+        other_avatar = (
+            db.query(Avatar)
+            .filter(
+                Avatar.user_id == current_user.id,
+                Avatar.title == title_stripped,
+                Avatar.id != avatar_id,
+                Avatar.deleted_at.is_(None),
+            )
+            .first()
+        )
+        if other_avatar:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="This avatar name is already used in your avatars.",
+            )
+        other_tr = (
+            db.query(TrainingRequest)
+            .filter(
+                TrainingRequest.user_id == current_user.id,
+                TrainingRequest.avatar_name == title_stripped,
+                TrainingRequest.deleted_at.is_(None),
+            )
+            .first()
+        )
+        if other_tr:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="This avatar name is already used in one of your training requests.",
+            )
+        avatar.title = title_stripped
     if credit_per_generation is not None:
         avatar.credit_per_generation = credit_per_generation
     if description is not None:
         avatar.description = description
 
-    # 이미지 업로드 (avatars/{avatar_id}/ 폴더에 저장)
+    # 이미지 업로드 (avatars/{avatar_id}/ 폴더에 저장, local이면 S3에도 백업)
     if preview_image:
         try:
             image_content = await preview_image.read()
             folder_path = f"avatars/{avatar_id}"
-            preview_image_url = upload_file(
+            preview_image_url = upload_file_for_app(
                 BytesIO(image_content),
                 preview_image.filename or "preview.jpg",
                 folder=folder_path,
@@ -1380,5 +1602,34 @@ async def update_avatar(
     db.refresh(avatar)
 
     return AvatarResponse.model_validate(avatar)
+
+
+@app.delete("/my/avatars/{avatar_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["avatars"])
+def delete_avatar(
+    avatar_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> None:
+    """아바타 삭제: 논리 삭제(deleted_at) + LoRA 파일 실제 삭제"""
+    avatar = db.query(Avatar).filter(
+        Avatar.id == avatar_id,
+        Avatar.user_id == current_user.id,
+        Avatar.deleted_at.is_(None),
+    ).first()
+    if not avatar:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Avatar not found",
+        )
+    lora_url = avatar.lora_path
+    if lora_url and "amazonaws" in lora_url and "s3" in lora_url.lower():
+        from .s3_utils import delete_file_from_s3
+        delete_file_from_s3(lora_url)
+    elif lora_url:
+        from .local_storage import delete_file_from_local
+        delete_file_from_local(lora_url)
+    avatar.deleted_at = datetime.utcnow()
+    avatar.lora_path = None
+    db.commit()
 
 

@@ -125,6 +125,29 @@ def upload_multiple_files_to_s3(
     return urls
 
 
+def delete_file_from_s3(s3_url: str) -> bool:
+    """
+    S3 URL에 해당하는 객체를 삭제합니다.
+    URL 형식: https://bucket.s3.region.amazonaws.com/key
+    Returns:
+        성공 시 True, 실패 시 False (예외 시 False 반환)
+    """
+    parsed = urlparse(s3_url)
+    if not parsed.hostname or "s3" not in parsed.hostname or "amazonaws" not in parsed.hostname:
+        return False
+    path = parsed.path or ""
+    key = path.lstrip("/")
+    bucket = parsed.hostname.split(".")[0]
+    if not bucket or not key:
+        return False
+    try:
+        client = get_s3_client()
+        client.delete_object(Bucket=bucket, Key=key)
+        return True
+    except Exception:
+        return False
+
+
 def generate_presigned_download_url(s3_url: str, expires_in: int = 3600) -> str:
     """
     S3 객체 URL로부터 presigned GET URL 생성 (다운로드용).

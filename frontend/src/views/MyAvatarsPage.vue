@@ -55,6 +55,9 @@
         <div class="avatars-section-content">
           <div class="section-header">
             <h3 class="section-title">My Avatars</h3>
+            <button class="btn-new-request" type="button" @click="openUploadLoraModal">
+              Upload LoRA
+            </button>
           </div>
 
           <!-- Loading -->
@@ -66,6 +69,9 @@
           <!-- Empty -->
           <div v-else-if="avatars.length === 0" class="empty-state">
             <p>No avatars yet</p>
+            <button class="btn-new-request" type="button" @click="openUploadLoraModal">
+              Upload LoRA
+            </button>
           </div>
 
           <!-- Avatars Grid -->
@@ -697,8 +703,16 @@
 
         <div class="modal-footer">
           <button
-            v-if="selectedRequest.status === 'requested'"
             class="btn-danger"
+            type="button"
+            :disabled="deletingRequest"
+            @click="deleteTrainingRequest"
+          >
+            {{ deletingRequest ? "Deleting..." : "Delete" }}
+          </button>
+          <button
+            v-if="selectedRequest.status === 'requested'"
+            class="btn-secondary"
             type="button"
             :disabled="cancelling"
             @click="cancelRequest"
@@ -711,6 +725,197 @@
             @click="closeRequestDetailModal"
           >
             Close
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Upload LoRA Modal (Training Request Details 스타일, 학습용 사진 제외) -->
+    <div v-if="showUploadLoraModal" class="modal-overlay" @click.self="closeUploadLoraModal">
+      <div class="modal-card training-detail-modal">
+        <div class="modal-header">
+          <h3>Upload LoRA Avatar</h3>
+          <button class="modal-close" type="button" @click="closeUploadLoraModal">×</button>
+        </div>
+
+        <div class="modal-body">
+          <div class="form-section">
+            <h4 class="form-section-title">Basic Information</h4>
+
+            <div class="form-group">
+              <label class="form-label">Avatar name <span class="required">*</span></label>
+              <input
+                v-model="uploadLoraForm.avatarName"
+                type="text"
+                class="form-input"
+                placeholder="Enter avatar name"
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Is this avatar based on a real person? <span class="required">*</span></label>
+              <div class="radio-group">
+                <label class="radio-label">
+                  <input
+                    v-model="uploadLoraForm.isRealPerson"
+                    type="radio"
+                    :value="true"
+                    class="radio-input"
+                  />
+                  <span>Yes</span>
+                </label>
+                <label class="radio-label">
+                  <input
+                    v-model="uploadLoraForm.isRealPerson"
+                    type="radio"
+                    :value="false"
+                    class="radio-input"
+                  />
+                  <span>No</span>
+                </label>
+              </div>
+            </div>
+
+            <div v-if="uploadLoraForm.isRealPerson === true" class="form-group">
+              <label class="form-label">Instagram ID <span class="required">*</span></label>
+              <input
+                v-model="uploadLoraForm.instagramId"
+                type="text"
+                class="form-input"
+                placeholder="Enter Instagram ID"
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Negative prompt <span class="required">*</span></label>
+              <input
+                v-model="uploadLoraForm.negativePrompt"
+                type="text"
+                class="form-input"
+                placeholder="Enter negative prompt"
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Credit per generation <span class="required">*</span></label>
+              <input
+                v-model.number="uploadLoraForm.creditPerGeneration"
+                type="number"
+                min="1"
+                class="form-input"
+                placeholder="Credits per generation"
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">National <span class="required">*</span></label>
+              <select v-model="uploadLoraForm.national" class="form-input">
+                <option value="">Select nationality</option>
+                <option value="KR">Korea</option>
+                <option value="US">United States</option>
+                <option value="JP">Japan</option>
+                <option value="CN">China</option>
+                <option value="GB">United Kingdom</option>
+                <option value="FR">France</option>
+                <option value="DE">Germany</option>
+                <option value="IT">Italy</option>
+                <option value="ES">Spain</option>
+                <option value="BR">Brazil</option>
+                <option value="IN">India</option>
+                <option value="RU">Russia</option>
+                <option value="AU">Australia</option>
+                <option value="CA">Canada</option>
+                <option value="MX">Mexico</option>
+                <option value="ETC">Other</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Gender <span class="required">*</span></label>
+              <div class="radio-group">
+                <label class="radio-label">
+                  <input v-model="uploadLoraForm.gender" type="radio" value="M" class="radio-input" />
+                  <span>M</span>
+                </label>
+                <label class="radio-label">
+                  <input v-model="uploadLoraForm.gender" type="radio" value="W" class="radio-input" />
+                  <span>W</span>
+                </label>
+                <label class="radio-label">
+                  <input v-model="uploadLoraForm.gender" type="radio" value="Etc" class="radio-input" />
+                  <span>Etc</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Description <span class="required">*</span></label>
+              <textarea
+                v-model="uploadLoraForm.description"
+                class="form-textarea"
+                rows="4"
+                placeholder="Enter description"
+              ></textarea>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Preview Image (optional)</label>
+              <div class="file-upload-wrapper">
+                <input
+                  ref="uploadLoraPreviewInput"
+                  type="file"
+                  accept="image/*"
+                  class="file-input"
+                  @change="handleUploadLoraPreviewChange"
+                />
+                <div v-if="uploadLoraForm.previewImage" class="preview-image">
+                  <img :src="uploadLoraForm.previewImageUrl" alt="Preview" />
+                  <button type="button" class="remove-image-btn" @click="removeUploadLoraPreview">×</button>
+                </div>
+                <button
+                  v-else
+                  type="button"
+                  class="file-upload-btn"
+                  @click="() => uploadLoraPreviewInput?.click()"
+                >
+                  Select Image
+                </button>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">LoRA file (.safetensors) <span class="required">*</span></label>
+              <div class="file-upload-wrapper">
+                <input
+                  ref="uploadLoraFileInput"
+                  type="file"
+                  accept=".safetensors"
+                  class="file-input"
+                  @change="handleUploadLoraFileChange"
+                />
+                <button
+                  type="button"
+                  class="file-upload-btn"
+                  @click="() => uploadLoraFileInput?.click()"
+                >
+                  {{ uploadLoraForm.loraFile ? uploadLoraForm.loraFile.name : "Select .safetensors file" }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn-secondary" type="button" @click="closeUploadLoraModal">
+            Close
+          </button>
+          <button
+            class="btn-primary"
+            type="button"
+            :disabled="!isUploadLoraFormValid || uploadingLora"
+            @click="submitUploadLora"
+          >
+            {{ uploadingLora ? "Uploading..." : "Upload" }}
           </button>
         </div>
       </div>
@@ -849,6 +1054,14 @@
             <span class="upload-progress-text">{{ uploadProgress }}%</span>
           </div>
           <button
+            class="btn-danger"
+            type="button"
+            :disabled="deletingAvatar"
+            @click="deleteAvatar"
+          >
+            {{ deletingAvatar ? "Deleting..." : "Delete" }}
+          </button>
+          <button
             class="btn-secondary"
             type="button"
             @click="closeAvatarDetailModal"
@@ -877,21 +1090,24 @@ import testfaceImage from "@/assets/testface.png";
 // Helper function to convert static file paths to full URLs
 function getImageUrl(url: string | null | undefined): string {
   if (!url) return "";
-  // If URL starts with /static/, prepend /api for proxy
-  if (url.startsWith("/static/")) {
-    return `/api${url}`;
-  }
   // If it's already a full URL (http/https), return as is
   if (url.startsWith("http://") || url.startsWith("https://")) {
     return url;
   }
-  // Otherwise return as is
+  // /static/ 경로: 개발 시 프록시(/api), 빌드 시 백엔드 origin 사용해 이미지 로드
+  if (url.startsWith("/static/")) {
+    const apiBase = import.meta.env.VITE_API_BASE_URL;
+    if (apiBase) return apiBase + url;
+    return `/api${url}`;
+  }
   return url;
 }
 
 // Refs for file inputs
 const previewImageInput = ref<HTMLInputElement | null>(null);
 const editPreviewImageInput = ref<HTMLInputElement | null>(null);
+const uploadLoraPreviewInput = ref<HTMLInputElement | null>(null);
+const uploadLoraFileInput = ref<HTMLInputElement | null>(null);
 const frontPhotosInput = ref<HTMLInputElement | null>(null);
 const sidePhotosInput = ref<HTMLInputElement | null>(null);
 const fullBodyPhotosInput = ref<HTMLInputElement | null>(null);
@@ -903,12 +1119,16 @@ const loadingAvatars = ref(false);
 const trainingRequests = ref<TrainingRequestItem[]>([]);
 const avatars = ref<AvatarItem[]>([]);
 const showTrainingRequestModal = ref(false);
+const showUploadLoraModal = ref(false);
 const selectedAvatar = ref<AvatarItem | null>(null);
 const selectedRequest = ref<TrainingRequestDetailItem | null>(null);
 const submitting = ref(false);
+const uploadingLora = ref(false);
 const saving = ref(false);
 const uploadProgress = ref(0);
 const cancelling = ref(false);
+const deletingRequest = ref(false);
+const deletingAvatar = ref(false);
 const loadingRequestDetail = ref(false);
 
 // Training request form
@@ -938,6 +1158,21 @@ const editForm = ref({
   previewImageUrl: "",
 });
 
+// Upload LoRA form (Training Request Details 필드와 동일, 학습용 사진 제외)
+const uploadLoraForm = ref({
+  avatarName: "",
+  isRealPerson: false as boolean,
+  instagramId: "",
+  negativePrompt: "",
+  creditPerGeneration: 1,
+  national: "",
+  gender: "",
+  description: "",
+  previewImage: null as File | null,
+  previewImageUrl: "",
+  loraFile: null as File | null,
+});
+
 // Form validation
 const isTrainingFormValid = computed(() => {
   const form = trainingForm.value;
@@ -955,6 +1190,22 @@ const isTrainingFormValid = computed(() => {
     form.sidePhotos.filter(p => p.file !== null).length >= 4 &&
     form.fullBodyPhotos.filter(p => p.file !== null).length >= 1 &&
     form.otherPhotos.filter(p => p.file !== null).length >= 1
+  );
+});
+
+// Training Request와 동일 필수값 (사진 관련만 제외)
+const isUploadLoraFormValid = computed(() => {
+  const form = uploadLoraForm.value;
+  return (
+    form.avatarName.trim() !== "" &&
+    form.negativePrompt.trim() !== "" &&
+    form.creditPerGeneration > 0 &&
+    form.national !== "" &&
+    form.gender !== "" &&
+    form.description.trim() !== "" &&
+    (form.isRealPerson === false || form.instagramId.trim() !== "") &&
+    form.loraFile !== null &&
+    form.loraFile.name.toLowerCase().endsWith(".safetensors")
   );
 });
 
@@ -1031,6 +1282,75 @@ async function openTrainingRequestModal() {
 function closeTrainingRequestModal() {
   showTrainingRequestModal.value = false;
   resetTrainingForm();
+}
+
+function openUploadLoraModal() {
+  uploadLoraForm.value = {
+    avatarName: "",
+    isRealPerson: false,
+    instagramId: "",
+    negativePrompt: "",
+    creditPerGeneration: 1,
+    national: "",
+    gender: "",
+    description: "",
+    previewImage: null,
+    previewImageUrl: "",
+    loraFile: null,
+  };
+  showUploadLoraModal.value = true;
+}
+
+function closeUploadLoraModal() {
+  showUploadLoraModal.value = false;
+}
+
+function handleUploadLoraPreviewChange(ev: Event) {
+  const input = ev.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (file) {
+    uploadLoraForm.value.previewImage = file;
+    uploadLoraForm.value.previewImageUrl = URL.createObjectURL(file);
+  }
+}
+
+function removeUploadLoraPreview() {
+  uploadLoraForm.value.previewImage = null;
+  uploadLoraForm.value.previewImageUrl = "";
+  if (uploadLoraPreviewInput.value) uploadLoraPreviewInput.value.value = "";
+}
+
+function handleUploadLoraFileChange(ev: Event) {
+  const input = ev.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (file) uploadLoraForm.value.loraFile = file;
+}
+
+async function submitUploadLora() {
+  const form = uploadLoraForm.value;
+  if (!form.loraFile || !form.avatarName.trim()) return;
+  uploadingLora.value = true;
+  try {
+    const fd = new FormData();
+    fd.append("title", form.avatarName.trim());
+    fd.append("is_real_person", String(form.isRealPerson));
+    if (form.instagramId.trim()) fd.append("instagram_id", form.instagramId.trim());
+    if (form.negativePrompt.trim()) fd.append("negative_prompt", form.negativePrompt.trim());
+    fd.append("credit_per_generation", String(form.creditPerGeneration));
+    if (form.national) fd.append("national", form.national);
+    if (form.gender) fd.append("gender", form.gender);
+    if (form.description.trim()) fd.append("description", form.description.trim());
+    if (form.previewImage) fd.append("preview_image", form.previewImage);
+    fd.append("lora_file", form.loraFile);
+    await avatarsApi.uploadLoRA(fd);
+    closeUploadLoraModal();
+    await loadAvatars();
+  } catch (err) {
+    console.error("Upload LoRA failed:", err);
+    alert("LoRA 업로드에 실패했습니다. 파일 형식(.safetensors)과 필수 항목을 확인해 주세요.");
+  } finally {
+    uploadingLora.value = false;
+  }
 }
 
 // Load default image as File
@@ -1157,6 +1477,26 @@ async function cancelRequest() {
     alert(errorMessage);
   } finally {
     cancelling.value = false;
+  }
+}
+
+async function deleteTrainingRequest() {
+  if (!selectedRequest.value) return;
+  if (!confirm("Delete this training request? All uploaded images will be permanently removed. This cannot be undone.")) {
+    return;
+  }
+  deletingRequest.value = true;
+  try {
+    await trainingRequestsApi.deleteRequest(selectedRequest.value.id);
+    closeRequestDetailModal();
+    await loadTrainingRequests();
+    alert("Training request has been deleted.");
+  } catch (error: any) {
+    console.error("Failed to delete training request:", error);
+    const msg = error?.response?.data?.detail || error?.message || "Failed to delete.";
+    alert(msg);
+  } finally {
+    deletingRequest.value = false;
   }
 }
 
@@ -1338,6 +1678,26 @@ async function saveAvatarChanges() {
     uploadProgress.value = 0;
   }
 }
+
+async function deleteAvatar() {
+  if (!selectedAvatar.value) return;
+  if (!confirm("Delete this avatar? The LoRA file will be permanently removed. This cannot be undone.")) {
+    return;
+  }
+  deletingAvatar.value = true;
+  try {
+    await avatarsApi.deleteAvatar(selectedAvatar.value.id);
+    closeAvatarDetailModal();
+    await loadAvatars();
+    alert("Avatar has been deleted.");
+  } catch (error: any) {
+    console.error("Failed to delete avatar:", error);
+    const msg = error?.response?.data?.detail || error?.message || "Failed to delete.";
+    alert(msg);
+  } finally {
+    deletingAvatar.value = false;
+  }
+}
 </script>
 
 <style scoped>
@@ -1494,6 +1854,19 @@ async function saveAvatarChanges() {
 /* Avatars Section (2/3) */
 .avatars-section-content {
   flex: 2;
+  min-width: 0;
+}
+
+.avatars-section-content .section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.avatars-section-content .section-header .btn-new-request {
+  flex-shrink: 0;
 }
 
 @media (min-width: 1024px) {
