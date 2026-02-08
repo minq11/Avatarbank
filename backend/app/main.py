@@ -1,13 +1,10 @@
 from datetime import datetime
 from typing import List, Optional
 import io
-import os
 import zipfile
-from pathlib import Path
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from fastapi.responses import StreamingResponse
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
@@ -83,29 +80,9 @@ app.add_middleware(
     expose_headers=["*"],
 )
 
-# 로컬 스토리지 사용 시 정적 파일 서빙 설정
-if settings.STORAGE_TYPE == "local":
-    import os
-    from pathlib import Path
-    
-    upload_dir = Path(settings.UPLOAD_DIR)
-    upload_dir.mkdir(parents=True, exist_ok=True)
-    # Upload LoRA Preview Image 저장 경로: {UPLOAD_DIR}/avatars/upload_lora/
-    app.mount("/static", StaticFiles(directory=str(upload_dir)), name="static")
-
-
 @app.on_event("startup")
 def on_startup() -> None:
-    # 초기 단계에서는 자동으로 테이블을 생성하도록 두고,
-    # 이후 Alembic 마이그레이션으로 전환한다.
     Base.metadata.create_all(bind=engine)
-    if settings.STORAGE_TYPE == "local":
-        from pathlib import Path
-        upload_dir = Path(settings.UPLOAD_DIR).resolve()
-        import logging
-        logging.getLogger("uvicorn.error").info(
-            f"Local storage: uploads at {upload_dir} (e.g. Upload LoRA preview: {upload_dir}/avatars/upload_lora/)"
-        )
 
 
 @app.get("/health", tags=["system"])
@@ -654,7 +631,7 @@ async def create_training_request(
         # 폴더 경로: training-requests/{training_request_id}/
         folder_path = f"training-requests/{training_request_id}"
 
-        # 대표 이미지 업로드 (local이면 로컬 + S3 백업)
+        # 대표 이미지 업로드 (S3)
         preview_content = await preview_image.read()
         preview_image_url = upload_file_for_app(
             BytesIO(preview_content),
@@ -725,13 +702,26 @@ async def create_training_request(
     return TrainingRequestResponse.model_validate(training_request)
 
 
+def _training_request_detail_with_presigned_urls(request: TrainingRequest) -> TrainingRequestDetailResponse:
+    """S3 이미지 URL을 presigned URL로 바꾼 상세 응답."""
+    from .s3_utils import to_presigned_url_if_s3
+
+    data = TrainingRequestDetailResponse.model_validate(request).model_dump()
+    data["preview_image_url"] = to_presigned_url_if_s3(request.preview_image_url)
+    data["front_photos_urls"] = [to_presigned_url_if_s3(u) or u for u in (request.front_photos_urls or [])]
+    data["side_photos_urls"] = [to_presigned_url_if_s3(u) or u for u in (request.side_photos_urls or [])]
+    data["fullbody_photos_urls"] = [to_presigned_url_if_s3(u) or u for u in (request.fullbody_photos_urls or [])]
+    data["other_photos_urls"] = [to_presigned_url_if_s3(u) or u for u in (request.other_photos_urls or [])]
+    return TrainingRequestDetailResponse(**data)
+
+
 @app.get("/my/training-requests/{request_id}", response_model=TrainingRequestDetailResponse, tags=["training"])
 def get_training_request_detail(
     request_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> TrainingRequestDetailResponse:
-    """학습 요청 상세 조회 (논리 삭제된 항목 제외)"""
+    """학습 요청 상세 조회 (논리 삭제된 항목 제외). 이미지는 S3 presigned URL로 반환."""
     request = (
         db.query(TrainingRequest)
         .filter(
@@ -741,14 +731,12 @@ def get_training_request_detail(
         )
         .first()
     )
-    
     if not request:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Training request not found",
         )
-    
-    return TrainingRequestDetailResponse.model_validate(request)
+    return _training_request_detail_with_presigned_urls(request)
 
 
 @app.patch("/my/training-requests/{request_id}/cancel", response_model=TrainingRequestResponse, tags=["training"])
@@ -830,13 +818,10 @@ def delete_training_request(
         urls_to_delete.append(u)
     for u in (request.other_photos_urls or []):
         urls_to_delete.append(u)
+    from .s3_utils import delete_file_from_s3
     for url in urls_to_delete:
         if url and "amazonaws" in url and "s3" in url.lower():
-            from .s3_utils import delete_file_from_s3
             delete_file_from_s3(url)
-        elif url:
-            from .local_storage import delete_file_from_local
-            delete_file_from_local(url)
 
     request.deleted_at = datetime.utcnow()
     request.preview_image_url = None
@@ -910,7 +895,7 @@ def admin_get_training_request_detail(
             detail="Training request not found",
         )
 
-    return TrainingRequestDetailResponse.model_validate(request)
+    return _training_request_detail_with_presigned_urls(request)
 
 
 @app.get(
@@ -942,86 +927,43 @@ def admin_download_training_request_photos_zip(
         )
 
     folder_name = f"training-requests/{request_id}"
+    from .s3_utils import get_s3_client
 
-    # 로컬 스토리지
-    if settings.STORAGE_TYPE == "local":
-        base_dir = Path(settings.UPLOAD_DIR) / folder_name
-        if not base_dir.exists():
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Training photos not found",
-            )
-
-        mem_file = io.BytesIO()
-        with zipfile.ZipFile(mem_file, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
-            for root, _, files in os.walk(base_dir):
-                for filename in files:
-                    file_path = Path(root) / filename
-                    arcname = str(file_path.relative_to(base_dir))
-                    zf.write(file_path, arcname)
-
-        mem_file.seek(0)
-
-        def file_iterator(chunk_size: int = 8192):
-            while True:
-                chunk = mem_file.read(chunk_size)
-                if not chunk:
-                    break
-                yield chunk
-
-        return StreamingResponse(
-            file_iterator(),
-            media_type="application/zip",
-            headers={
-                "Content-Disposition": f'attachment; filename="training_request_{request_id}_photos.zip"'
-            },
+    s3_client = get_s3_client()
+    prefix = folder_name.rstrip("/") + "/"
+    resp = s3_client.list_objects_v2(Bucket=settings.S3_BUCKET, Prefix=prefix)
+    contents = resp.get("Contents", [])
+    if not contents:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Training photos not found in S3",
         )
 
-    # S3 스토리지
-    else:
-        from .s3_utils import get_s3_client
+    mem_file = io.BytesIO()
+    with zipfile.ZipFile(mem_file, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
+        for obj in contents:
+            key = obj["Key"]
+            arcname = key[len(prefix) :] if key.startswith(prefix) else key
+            s3_obj = s3_client.get_object(Bucket=settings.S3_BUCKET, Key=key)
+            data = s3_obj["Body"].read()
+            zf.writestr(arcname, data)
 
-        s3_client = get_s3_client()
-        prefix = folder_name.rstrip("/") + "/"
+    mem_file.seek(0)
 
-        # 객체 목록 조회
-        resp = s3_client.list_objects_v2(
-            Bucket=settings.S3_BUCKET,
-            Prefix=prefix,
-        )
-        contents = resp.get("Contents", [])
-        if not contents:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Training photos not found in S3",
-            )
+    def file_iterator(chunk_size: int = 8192):
+        while True:
+            chunk = mem_file.read(chunk_size)
+            if not chunk:
+                break
+            yield chunk
 
-        mem_file = io.BytesIO()
-        with zipfile.ZipFile(mem_file, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
-            for obj in contents:
-                key = obj["Key"]
-                # prefix 이후의 경로만 zip 내부 경로로 사용
-                arcname = key[len(prefix) :] if key.startswith(prefix) else key
-                s3_obj = s3_client.get_object(Bucket=settings.S3_BUCKET, Key=key)
-                data = s3_obj["Body"].read()
-                zf.writestr(arcname, data)
-
-        mem_file.seek(0)
-
-        def file_iterator(chunk_size: int = 8192):
-            while True:
-                chunk = mem_file.read(chunk_size)
-                if not chunk:
-                    break
-                yield chunk
-
-        return StreamingResponse(
-            file_iterator(),
-            media_type="application/zip",
-            headers={
-                "Content-Disposition": f'attachment; filename="training_request_{request_id}_photos.zip"'
-            },
-        )
+    return StreamingResponse(
+        file_iterator(),
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": f'attachment; filename="training_request_{request_id}_photos.zip"'
+        },
+    )
 
 
 @app.post(
@@ -1223,15 +1165,20 @@ def list_avatars_public(
         ).all()
         for aid, cnt in comment_rows:
             counts[aid]["comments"] = cnt
-    items = [
-        AvatarListResponse(
-            **AvatarResponse.model_validate(a).model_dump(),
-            up_count=counts[a.id]["up"],
-            down_count=counts[a.id]["down"],
-            comment_count=counts[a.id]["comments"],
+    from .s3_utils import to_presigned_url_if_s3
+
+    items = []
+    for a in avatars:
+        d = AvatarResponse.model_validate(a).model_dump()
+        d["preview_image_url"] = to_presigned_url_if_s3(a.preview_image_url) or d.get("preview_image_url")
+        items.append(
+            AvatarListResponse(
+                **d,
+                up_count=counts[a.id]["up"],
+                down_count=counts[a.id]["down"],
+                comment_count=counts[a.id]["comments"],
+            )
         )
-        for a in avatars
-    ]
     if sort == "recommend":
         items.sort(key=lambda x: x.up_count, reverse=True)
     elif sort == "comments":
@@ -1265,7 +1212,10 @@ def get_avatar_public(
         tr = db.query(TrainingRequest).filter(TrainingRequest.id == avatar.training_request_id).first()
         if tr and tr.instagram_id:
             instagram_id = tr.instagram_id
+    from .s3_utils import to_presigned_url_if_s3
+
     data = AvatarResponse.model_validate(avatar).model_dump()
+    data["preview_image_url"] = to_presigned_url_if_s3(avatar.preview_image_url) or data.get("preview_image_url")
     data["creator_nickname"] = creator_nickname
     data["instagram_id"] = instagram_id
     return AvatarDetailResponse(**data)
@@ -1401,7 +1351,14 @@ def list_my_avatars(
         .order_by(Avatar.created_at.desc())
         .all()
     )
-    return [AvatarResponse.model_validate(a) for a in avatars]
+    from .s3_utils import to_presigned_url_if_s3
+
+    out = []
+    for a in avatars:
+        d = AvatarResponse.model_validate(a).model_dump()
+        d["preview_image_url"] = to_presigned_url_if_s3(a.preview_image_url) or d.get("preview_image_url")
+        out.append(AvatarResponse(**d))
+    return out
 
 
 @app.post(
@@ -1426,7 +1383,7 @@ async def upload_lora_avatar(
     """
     LoRA(.safetensors) 파일을 직접 업로드하여 새 아바타를 등록합니다.
     Training Request 없이 메타정보만 입력하고 LoRA 파일을 넣는 방식입니다.
-    STORAGE_TYPE이 local이어도 S3에 백업 업로드합니다.
+    S3에 업로드합니다.
     """
     from io import BytesIO
 
@@ -1516,7 +1473,7 @@ async def update_avatar(
     description: str = Form(None),
     preview_image: UploadFile = File(None),
 ):
-    """아바타 수정 (Preview Image는 STORAGE_TYPE에 따라 로컬 또는 S3에 저장, local이면 S3에도 백업)"""
+    """아바타 수정 (Preview Image는 S3에 저장)"""
     from fastapi import UploadFile, File, Form
     from io import BytesIO
 
@@ -1580,7 +1537,7 @@ async def update_avatar(
     if description is not None:
         avatar.description = description
 
-    # 이미지 업로드 (avatars/{avatar_id}/ 폴더에 저장, local이면 S3에도 백업)
+    # 이미지 업로드 (avatars/{avatar_id}/ 폴더에 저장, local이면 S3에도 백업 비동기)
     if preview_image:
         try:
             image_content = await preview_image.read()
@@ -1625,9 +1582,6 @@ def delete_avatar(
     if lora_url and "amazonaws" in lora_url and "s3" in lora_url.lower():
         from .s3_utils import delete_file_from_s3
         delete_file_from_s3(lora_url)
-    elif lora_url:
-        from .local_storage import delete_file_from_local
-        delete_file_from_local(lora_url)
     avatar.deleted_at = datetime.utcnow()
     avatar.lora_path = None
     db.commit()

@@ -148,13 +148,20 @@ def delete_file_from_s3(s3_url: str) -> bool:
         return False
 
 
+def to_presigned_url_if_s3(url: str | None, expires_in: int = 3600) -> str | None:
+    """S3 URL이면 presigned URL로 변환(브라우저 표시용), 아니면 그대로 반환."""
+    if not url or not url.strip():
+        return url
+    return generate_presigned_download_url(url, expires_in=expires_in)
+
+
 def generate_presigned_download_url(s3_url: str, expires_in: int = 3600) -> str:
     """
-    S3 객체 URL로부터 presigned GET URL 생성 (다운로드용).
+    S3 객체 URL로부터 presigned GET URL 생성 (다운로드/표시용).
     URL 형식: https://bucket.s3.region.amazonaws.com/key
     """
     parsed = urlparse(s3_url)
-    if not parsed.hostname or "s3" not in parsed.hostname and "amazonaws" not in parsed.hostname:
+    if not parsed.hostname or ("s3" not in parsed.hostname and "amazonaws" not in parsed.hostname):
         return s3_url
     path = parsed.path or ""
     key = path.lstrip("/")

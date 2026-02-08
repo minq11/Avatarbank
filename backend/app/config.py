@@ -19,20 +19,12 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60  # 1시간
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
-    # Storage (S3 또는 로컬)
-    STORAGE_TYPE: str = "local"  # "s3" 또는 "local"
-    
-    # S3 설정
+    # S3 스토리지 (업로드 전부 S3)
     AWS_ACCESS_KEY_ID: str = ""
     AWS_SECRET_ACCESS_KEY: str = ""
-    AWS_REGION: str = "us-east-1"  # 기본값: NeonDB와 같은 리전
-    S3_BUCKET: str = "avatarbank-storage-prd"  # 기본값: 프로덕션 버킷
-    
-    # 로컬 스토리지 설정
-    # 로컬 개발(호스트에서 실행) 시: UPLOAD_DIR=./uploads 로 설정하면 프로젝트 내 backend/uploads 에 저장됨
-    # Docker 사용 시: UPLOAD_DIR=/app/uploads (기본값), 볼륨으로 ./backend:/app 마운트하면 호스트의 backend/uploads 에 보임
-    UPLOAD_DIR: str = "/app/uploads"  # 로컬 저장 디렉토리
-    STATIC_URL_PREFIX: str = "/static"  # 정적 파일 URL 접두사
+    AWS_REGION: str = "us-east-1"
+    S3_BUCKET: str = "avatarbank-storage-prd"
+    # 참고: local_storage.py는 미사용. 필요 시 UPLOAD_DIR/STATIC_URL_PREFIX 추가
 
     # RunPods / ComfyUI
     COMFYUI_BASE_URL: str = "http://runpods-comfyui:8188"
