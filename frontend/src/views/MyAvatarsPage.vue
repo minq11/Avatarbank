@@ -97,6 +97,9 @@
                 </div>
               </div>
               <div class="avatar-name">{{ avatar.title }}</div>
+              <span :class="['avatar-status-badge', avatar.status === 'hidden' ? 'status-hidden' : 'status-active']">
+                {{ avatar.status === "hidden" ? "Deactive" : "Active" }}
+              </span>
             </div>
           </div>
         </div>
@@ -997,6 +1000,14 @@
             </div>
 
             <div class="form-group">
+              <label class="form-label">Market visibility</label>
+              <select v-model="editForm.status" class="form-input">
+                <option value="active">Active (show on Market)</option>
+                <option value="hidden">Deactive (hide from Market)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
               <label class="form-label">Description</label>
               <textarea
                 v-model="editForm.description"
@@ -1154,6 +1165,7 @@ const editForm = ref({
   avatarName: "",
   creditPerGeneration: 0,
   description: "",
+  status: "active" as "active" | "hidden",
   previewImage: null as File | null,
   previewImageUrl: "",
 });
@@ -1429,6 +1441,7 @@ function openAvatarDetailModal(avatar: AvatarItem) {
     avatarName: avatar.title,
     creditPerGeneration: avatar.credit_per_generation || 0,
     description: avatar.description || "",
+    status: avatar.status === "hidden" ? "hidden" : "active",
     previewImage: null,
     previewImageUrl: avatar.preview_image_url || "",
   };
@@ -1663,6 +1676,7 @@ async function saveAvatarChanges() {
         title: editForm.value.avatarName,
         credit_per_generation: editForm.value.creditPerGeneration,
         description: editForm.value.description,
+        status: editForm.value.status,
         preview_image: editForm.value.previewImage || undefined,
       },
       editForm.value.previewImage ? (percent) => { uploadProgress.value = percent; } : undefined
@@ -1934,6 +1948,24 @@ async function deleteAvatar() {
   font-weight: 500;
   color: #111827;
   text-align: center;
+}
+
+.avatar-status-badge {
+  display: block;
+  text-align: center;
+  font-size: 0.7rem;
+  padding: 0.25rem 0.5rem;
+  margin: 0 1rem 0.75rem;
+  border-radius: 0.25rem;
+  font-weight: 500;
+}
+.avatar-status-badge.status-active {
+  background: #d1fae5;
+  color: #065f46;
+}
+.avatar-status-badge.status-hidden {
+  background: #fef3c7;
+  color: #92400e;
 }
 
 /* Loading & Empty States */

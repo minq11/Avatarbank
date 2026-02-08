@@ -207,6 +207,7 @@ export interface UpdateAvatarData {
   title?: string;
   credit_per_generation?: number;
   description?: string;
+  status?: "active" | "hidden";
   preview_image?: File;
 }
 
@@ -254,6 +255,7 @@ export const avatarsApi = {
       formData.append("credit_per_generation", data.credit_per_generation.toString());
     }
     if (data.description) formData.append("description", data.description);
+    if (data.status) formData.append("status", data.status);
     if (data.preview_image) formData.append("preview_image", data.preview_image);
 
     const config =

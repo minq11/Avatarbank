@@ -1471,9 +1471,10 @@ async def update_avatar(
     title: str = Form(None),
     credit_per_generation: int = Form(None),
     description: str = Form(None),
+    status: str = Form(None),
     preview_image: UploadFile = File(None),
 ):
-    """아바타 수정 (Preview Image는 S3에 저장)"""
+    """아바타 수정 (Preview Image는 S3에 저장). status: active(마켓 노출) / hidden(마켓 비노출)"""
     from fastapi import UploadFile, File, Form
     from io import BytesIO
 
@@ -1536,6 +1537,8 @@ async def update_avatar(
         avatar.credit_per_generation = credit_per_generation
     if description is not None:
         avatar.description = description
+    if status is not None and status.strip().lower() in (AvatarStatus.ACTIVE.value, AvatarStatus.HIDDEN.value):
+        avatar.status = status.strip().lower()
 
     # 이미지 업로드 (avatars/{avatar_id}/ 폴더에 저장, local이면 S3에도 백업 비동기)
     if preview_image:
