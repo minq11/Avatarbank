@@ -1,11 +1,12 @@
 from datetime import datetime
+from pathlib import Path
 from typing import List, Optional
 import io
 import zipfile
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
@@ -88,6 +89,27 @@ def on_startup() -> None:
 @app.get("/health", tags=["system"])
 def health_check() -> dict:
     return {"status": "ok"}
+
+
+def _save_preview_local(avatar_id: int, image_content: bytes) -> None:
+    """PREVIEW_LOCAL_DIR에 아바타 preview를 {id}.png로 저장."""
+    if not settings.PREVIEW_LOCAL_DIR:
+        return
+    d = Path(settings.PREVIEW_LOCAL_DIR)
+    d.mkdir(parents=True, exist_ok=True)
+    path = d / f"{avatar_id}.png"
+    path.write_bytes(image_content)
+
+
+@app.get("/static/preview_image/{avatar_id}.png", tags=["static"])
+def serve_preview_image(avatar_id: int):
+    """로컬 preview 이미지 서빙 (PREVIEW_LOCAL_DIR). 없으면 404."""
+    if not settings.PREVIEW_LOCAL_DIR:
+        raise HTTPException(status_code=404, detail="Not found")
+    path = Path(settings.PREVIEW_LOCAL_DIR) / f"{avatar_id}.png"
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail="Not found")
+    return FileResponse(path, media_type="image/png")
 
 
 @app.post("/auth/register", response_model=UserBase, status_code=status.HTTP_201_CREATED, tags=["auth"])
@@ -1565,6 +1587,9 @@ async def update_avatar(
                 content_type=preview_image.content_type or "image/jpeg",
             )
             avatar.preview_image_url = preview_image_url
+            # 로컬 preview 복사 (PREVIEW_LOCAL_DIR 설정 시)
+            if settings.PREVIEW_LOCAL_DIR:
+                _save_preview_local(avatar_id, image_content)
         except Exception as e:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

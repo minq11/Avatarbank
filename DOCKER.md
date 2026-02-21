@@ -163,6 +163,9 @@ cp .env.example .env
 # - JWT_SECRET_KEY (강력한 비밀키)
 # - AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
 # - PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET
+#
+# 아바타 preview 로컬 저장(선택):
+# - PREVIEW_LOCAL_DIR=/app/preview_image  → 운영 compose에 preview_image 볼륨이 마운트되어 있어, restart 후에도 유지됨
 ```
 
 ### 2. Docker 이미지 빌드

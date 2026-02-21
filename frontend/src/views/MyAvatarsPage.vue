@@ -84,10 +84,11 @@
             >
               <div class="avatar-image-wrapper">
                 <img
-                  v-if="avatar.preview_image_url"
-                  :src="getImageUrl(avatar.preview_image_url)"
+                  v-if="getPreviewUrls(avatar).primary"
+                  :src="getPreviewUrls(avatar).primary"
                   :alt="avatar.title"
                   class="avatar-image"
+                  @error="(e: Event) => { const t = (e.target as HTMLImageElement); if (getPreviewUrls(avatar).fallback) t.src = getPreviewUrls(avatar).fallback; }"
                 />
                 <div v-else class="avatar-image-placeholder">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -983,6 +984,7 @@
                 v-if="previewImageDisplayUrl"
                 :src="previewImageDisplayUrl"
                 alt="Preview"
+                @error="(e: Event) => { const t = (e.target as HTMLImageElement); if (previewImageFallbackUrl) t.src = previewImageFallbackUrl; }"
               />
               <div v-else class="preview-placeholder">No image</div>
             </div>
@@ -1091,7 +1093,12 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
 import { avatarsApi, trainingRequestsApi, type AvatarItem, type TrainingRequestItem, type TrainingRequestDetailItem } from "@/services/api";
+import { getAvatarPreviewUrls } from "@/utils/avatarPreview";
 import testfaceImage from "@/assets/testface.png";
+
+function getPreviewUrls(avatar: { id: number; preview_image_url?: string | null }) {
+  return getAvatarPreviewUrls(avatar.id, avatar.preview_image_url ?? null);
+}
 
 // Helper function to convert static file paths to full URLs
 function getImageUrl(url: string | null | undefined): string {
@@ -1109,12 +1116,15 @@ function getImageUrl(url: string | null | undefined): string {
   return url;
 }
 
-// 아바타 상세 모달: 큰 미리보기에 표시할 URL (새로 고른 파일 또는 기존 이미지)
+// 아바타 상세 모달: 큰 미리보기에 표시할 URL (새로 고른 파일 → blob, 기존 → local/API/S3)
 const previewImageDisplayUrl = computed(() => {
-  const url = editForm.value.previewImageUrl;
-  if (!url) return "";
-  if (url.startsWith("blob:")) return url;
-  return getImageUrl(url);
+  if (editForm.value.previewImage) return editForm.value.previewImageUrl || "";
+  if (!selectedAvatar.value) return "";
+  return getPreviewUrls(selectedAvatar.value).primary;
+});
+const previewImageFallbackUrl = computed(() => {
+  if (!selectedAvatar.value) return "";
+  return getPreviewUrls(selectedAvatar.value).fallback;
 });
 
 // Refs for file inputs

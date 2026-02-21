@@ -40,6 +40,10 @@ class Settings(BaseSettings):
     # Admin
     ADMIN_EMAIL_WHITELIST: str = ""
 
+    # 아바타 preview 로컬 복사 (frontend assets 또는 서빙용 디렉터리)
+    # 설정 시 PUT /my/avatars/{id} preview 업로드 시 여기에도 저장하고, GET /static/preview_image/{id}.png 로 서빙
+    PREVIEW_LOCAL_DIR: str = ""
+
     class Config:
         env_file = [".env", "../.env"]  # 현재 디렉토리 또는 상위 디렉토리에서 .env 파일 찾기
         env_file_encoding = "utf-8"

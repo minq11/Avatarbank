@@ -30,6 +30,8 @@ services:
       - PAYPAL_WEBHOOK_SECRET=${PAYPAL_WEBHOOK_SECRET}
     ports:
       - "8000:8000"
+    volumes:
+      - preview_image:/app/preview_image
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 30s
@@ -66,6 +68,9 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+
+volumes:
+  preview_image:
 
 networks:
   default:

@@ -84,11 +84,12 @@
         >
           <div class="card-thumb-wrap">
             <img
-              v-if="a.preview_image_url"
-              :src="getImageUrl(a.preview_image_url)"
+              v-if="getPreviewUrls(a).primary"
+              :src="getPreviewUrls(a).primary"
               :alt="a.title"
               class="card-thumb"
               loading="lazy"
+              @error="(e: Event) => { const t = (e.target as HTMLImageElement); if (getPreviewUrls(a).fallback) t.src = getPreviewUrls(a).fallback; }"
             />
             <div v-else class="card-thumb card-thumb-placeholder" />
           </div>
@@ -123,10 +124,11 @@
           <div class="modal-top">
             <div class="modal-preview-wrap">
               <img
-                v-if="modalAvatar.preview_image_url"
-                :src="getImageUrl(modalAvatar.preview_image_url)"
+                v-if="getPreviewUrls(modalAvatar).primary"
+                :src="getPreviewUrls(modalAvatar).primary"
                 :alt="modalAvatar.title"
                 class="modal-preview-img"
+                @error="(e: Event) => { const t = (e.target as HTMLImageElement); if (getPreviewUrls(modalAvatar).fallback) t.src = getPreviewUrls(modalAvatar).fallback; }"
               />
               <div v-else class="modal-preview-placeholder">No preview</div>
             </div>
@@ -256,9 +258,14 @@ import {
   type GalleryItem,
   type AvatarFilterOptions,
 } from "@/services/api";
+import { getAvatarPreviewUrls } from "@/utils/avatarPreview";
 
 const router = useRouter();
 const authStore = useAuthStore();
+
+function getPreviewUrls(avatar: { id: number; preview_image_url?: string | null }) {
+  return getAvatarPreviewUrls(avatar.id, avatar.preview_image_url ?? null);
+}
 
 function getImageUrl(url: string | null | undefined): string {
   if (!url) return "";

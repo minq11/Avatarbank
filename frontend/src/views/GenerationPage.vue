@@ -7,8 +7,13 @@
       <div v-if="avatarId != null" class="left">
         <!-- 아바타 미리보기 (LoRA 선택 시에만 표시) -->
         <div v-if="avatar" class="avatar-preview">
-          <div v-if="avatar.preview_image_url" class="preview-img-wrap">
-            <img :src="getImageUrl(avatar.preview_image_url)" :alt="avatar.title" class="preview-img" />
+          <div v-if="avatarPreviewUrls.primary" class="preview-img-wrap">
+            <img
+              :src="avatarPreviewUrls.primary"
+              :alt="avatar.title"
+              class="preview-img"
+              @error="(e: Event) => { const t = (e.target as HTMLImageElement); if (avatarPreviewUrls.fallback) t.src = avatarPreviewUrls.fallback; }"
+            />
           </div>
           <div v-else class="preview-placeholder">
             <span>No preview</span>
@@ -266,8 +271,15 @@ import {
   type ImageSizeOption,
   type OutputFormatOption,
 } from "@/services/api";
+import { getAvatarPreviewUrls } from "@/utils/avatarPreview";
 
 const authStore = useAuthStore();
+
+const avatarPreviewUrls = computed(() =>
+  avatar.value
+    ? getAvatarPreviewUrls(avatar.value.id, avatar.value.preview_image_url)
+    : { primary: "", fallback: "" }
+);
 
 function getImageUrl(url: string | null | undefined): string {
   if (!url) return "";
