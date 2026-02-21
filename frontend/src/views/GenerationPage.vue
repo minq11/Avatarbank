@@ -91,16 +91,25 @@
               <path d="M6 9l6 6 6-6"/>
             </svg>
           </button>
-          <div v-show="optionsExpanded" class="options-grid">
+          <div v-show="optionsExpanded" class="options-grid" @click.self="openHelpOption = null">
+            <div v-if="openHelpOption" class="option-help-overlay" aria-hidden="true" @click="openHelpOption = null" />
             <div class="option-row option-row-toggle">
-              <span class="option-label">Allow NSFW</span>
+              <span class="option-label-wrap option-help-wrap">
+                <span class="option-label">Allow NSFW</span>
+                <span class="option-help" aria-label="Help" @click.stop="toggleHelp('nsfw')">?</span>
+                <div v-if="openHelpOption === 'nsfw'" class="option-help-popover">{{ optionHelpText.nsfw }}</div>
+              </span>
               <label class="option-toggle">
                 <input type="checkbox" v-model="allowNsfw" class="option-checkbox" />
                 <span class="option-toggle-text">{{ allowNsfw ? "On" : "Off" }}</span>
               </label>
             </div>
             <div class="option-row">
-              <label class="option-label" for="opt-image-size">Image size</label>
+              <span class="option-label-wrap option-help-wrap">
+                <label class="option-label" for="opt-image-size">Image size</label>
+                <span class="option-help" aria-label="Help" @click.stop="toggleHelp('imageSize')">?</span>
+                <div v-if="openHelpOption === 'imageSize'" class="option-help-popover">{{ optionHelpText.imageSize }}</div>
+              </span>
               <select id="opt-image-size" v-model="imageSize" class="option-select">
                 <option v-for="opt in imageSizeOptions" :key="opt.value" :value="opt.value">
                   {{ opt.label }}
@@ -108,36 +117,37 @@
               </select>
             </div>
             <div class="option-row">
-              <label class="option-label" for="opt-steps">Inference steps</label>
+              <span class="option-label-wrap option-help-wrap">
+                <label class="option-label" for="opt-steps">Inference steps</label>
+                <span class="option-help" aria-label="Help" @click.stop="toggleHelp('steps')">?</span>
+                <div v-if="openHelpOption === 'steps'" class="option-help-popover">{{ optionHelpText.steps }}</div>
+              </span>
               <select id="opt-steps" v-model.number="numInferenceSteps" class="option-select">
                 <option v-for="n in [4, 6, 8, 10, 12]" :key="n" :value="n">{{ n }}</option>
               </select>
             </div>
             <div class="option-row">
-              <label class="option-label" for="opt-format">Output format</label>
-              <select id="opt-format" v-model="outputFormat" class="option-select">
-                <option v-for="opt in outputFormatOptions" :key="opt.value" :value="opt.value">
-                  {{ opt.label }}
-                </option>
-              </select>
-            </div>
-            <div class="option-row">
-              <label class="option-label" for="opt-seed">Seed</label>
+              <span class="option-label-wrap option-help-wrap">
+                <label class="option-label" for="opt-seed">Seed</label>
+                <span class="option-help" aria-label="Help" @click.stop="toggleHelp('seed')">?</span>
+                <div v-if="openHelpOption === 'seed'" class="option-help-popover">{{ optionHelpText.seed }}</div>
+              </span>
               <input
                 id="opt-seed"
-                v-model="seedInput"
+                :value="seedInput"
                 type="text"
                 inputmode="numeric"
                 pattern="[0-9]*"
                 class="option-input"
-                placeholder="Random"
+                placeholder="Random (clear for random)"
+                @input="onSeedInput"
               />
             </div>
           </div>
         </div>
 
         <div v-if="avatar" class="cost-info">
-          <span>Base {{ baseCredit }} C + Avatar {{ avatarCredit }} C</span>
+          <span>Base {{ baseCredit }} C + Avatar Royalty {{ avatarCredit }} C</span>
           <span>Total: {{ totalCredits }} C</span>
         </div>
 
@@ -234,6 +244,7 @@
             v-for="item in sharedByAvatar"
             :key="item.id"
             class="shared-card"
+            @click="selectedGalleryItem = item"
           >
             <div class="shared-thumb-wrap">
               <img
@@ -254,6 +265,12 @@
         </div>
       </div>
     </div>
+
+    <GenerationDetailModal
+      :item="selectedGalleryItem"
+      :image-url-resolver="getImageUrl"
+      @close="selectedGalleryItem = null"
+    />
   </section>
 </template>
 
@@ -261,6 +278,7 @@
 import { computed, ref, watch, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import SearchableSelect from "@/components/SearchableSelect.vue";
+import GenerationDetailModal from "@/components/GenerationDetailModal.vue";
 import { useAuthStore } from "@/stores/auth";
 import {
   avatarsApi,
@@ -269,7 +287,6 @@ import {
   type AvatarItem,
   type GalleryItem,
   type ImageSizeOption,
-  type OutputFormatOption,
 } from "@/services/api";
 import { getAvatarPreviewUrls } from "@/utils/avatarPreview";
 
@@ -323,7 +340,20 @@ async function confirmShareAction() {
   if (id == null) return;
   const targetShared = !shareConfirmIsUnshare.value;
   const prevShared = resultIsShared.value;
+  const prevList = [...sharedByAvatar.value];
   resultIsShared.value = targetShared;
+  if (targetShared) {
+    const optimisticItem: GalleryItem = {
+      id,
+      image_url: getImageUrl(resultImageUrl.value) || "",
+      prompt: prompt.value,
+      created_at: new Date().toISOString(),
+      creator_nickname: authStore.user?.nickname ?? "",
+    };
+    sharedByAvatar.value = [optimisticItem, ...sharedByAvatar.value];
+  } else {
+    sharedByAvatar.value = sharedByAvatar.value.filter((item) => item.id !== id);
+  }
   loadSharedByAvatar();
   try {
     const updated = await generationsApi.toggleShare(id);
@@ -331,6 +361,7 @@ async function confirmShareAction() {
     loadSharedByAvatar();
   } catch {
     resultIsShared.value = prevShared;
+    sharedByAvatar.value = prevList;
     loadSharedByAvatar();
   }
 }
@@ -354,9 +385,26 @@ const allowNsfw = ref(false);
 const optionsExpanded = ref(true);
 const imageSize = ref<ImageSizeOption>("landscape_4_3");
 const numInferenceSteps = ref(8);
-const outputFormat = ref<OutputFormatOption>("png");
-const seedInput = ref("");
+const seedInput = ref("1");
 const loading = ref(false);
+
+type HelpOptionKey = "nsfw" | "imageSize" | "steps" | "seed";
+const openHelpOption = ref<HelpOptionKey | null>(null);
+const optionHelpText: Record<HelpOptionKey, string> = {
+  nsfw: "When on, the safety filter is relaxed so more varied or adult content may be generated.",
+  imageSize: "Aspect ratio and resolution of the generated image.",
+  steps: "More steps usually improve quality but take longer. 8 is a good default.",
+  seed: "Same seed + same prompt gives the same image. Leave empty for random.",
+};
+function toggleHelp(key: HelpOptionKey) {
+  openHelpOption.value = openHelpOption.value === key ? null : key;
+}
+
+function onSeedInput(e: Event) {
+  const target = e.target as HTMLInputElement;
+  const digitsOnly = target.value.replace(/\D/g, "");
+  seedInput.value = digitsOnly;
+}
 
 const imageSizeOptions: { value: ImageSizeOption; label: string }[] = [
   { value: "landscape_4_3", label: "Landscape 4:3" },
@@ -366,11 +414,6 @@ const imageSizeOptions: { value: ImageSizeOption; label: string }[] = [
   { value: "square", label: "Square" },
   { value: "square_hd", label: "Square HD" },
 ];
-const outputFormatOptions: { value: OutputFormatOption; label: string }[] = [
-  { value: "png", label: "PNG" },
-  { value: "jpeg", label: "JPEG" },
-  { value: "webp", label: "WebP" },
-];
 const error = ref("");
 const generationId = ref<number | null>(null);
 const resultImageUrl = ref<string | null>(null);
@@ -378,6 +421,7 @@ const resultIsShared = ref(false);
 
 const sharedByAvatar = ref<GalleryItem[]>([]);
 const sharedByAvatarLoading = ref(false);
+const selectedGalleryItem = ref<GalleryItem | null>(null);
 
 const baseCredit = 1;
 const avatarCredit = computed(
@@ -403,7 +447,7 @@ async function loadAvatar() {
   try {
     const a = await avatarsApi.getById(id);
     avatar.value = a;
-    negativePrompt.value = a.negative_prompt?.trim() || DEFAULT_NEGATIVE_PROMPT;
+    /* Negative prompt (optional)는 아바타별 값으로 덮지 않고, 공통 기본값만 유지 */
   } catch (e: unknown) {
     const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
     avatarError.value = msg || "Failed to load avatar.";
@@ -433,7 +477,7 @@ async function requestGeneration() {
       enable_safety_checker: !allowNsfw.value,
       image_size: imageSize.value,
       num_inference_steps: numInferenceSteps.value,
-      output_format: outputFormat.value,
+      output_format: "png",
       seed: seedNum !== null && !Number.isNaN(seedNum) ? seedNum : null,
     });
     generationId.value = res.id;
@@ -541,7 +585,7 @@ watch(avatarId, loadSharedByAvatar, { immediate: true });
 
 .generation-page-header {
   max-width: 1000px;
-  margin: 0 auto;
+  margin: 0 auto 2.5rem;
   padding: 0 1rem 2rem;
   border-bottom: 1px solid #e5e7eb;
 }
@@ -946,6 +990,71 @@ watch(avatarId, loadSharedByAvatar, { immediate: true });
   color: #64748b;
 }
 
+.option-label-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+  min-width: 7rem;
+}
+
+.option-label-wrap.option-help-wrap {
+  position: relative;
+}
+
+.option-label-wrap .option-label {
+  min-width: 0;
+}
+
+.option-help-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: transparent;
+  cursor: default;
+}
+
+.option-help-popover {
+  position: absolute;
+  left: 0;
+  top: 100%;
+  margin-top: 0.35rem;
+  padding: 0.6rem 0.75rem;
+  min-width: 18rem;
+  max-width: 32rem;
+  width: max-content;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: #374151;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 51;
+  white-space: normal;
+}
+
+.option-help {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.125rem;
+  height: 1.125rem;
+  border-radius: 50%;
+  border: 1px solid #94a3b8;
+  color: #64748b;
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.option-help:hover {
+  background: #e2e8f0;
+  color: #475569;
+  border-color: #64748b;
+}
+
 .options-card-chevron {
   width: 1.25rem;
   height: 1.25rem;
@@ -1198,6 +1307,7 @@ textarea {
 }
 
 .shared-card {
+  cursor: pointer;
   border-radius: 1rem;
   border: 1px solid #e5e7eb;
   overflow: hidden;

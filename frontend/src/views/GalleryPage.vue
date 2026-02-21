@@ -30,6 +30,7 @@
           v-for="item in list"
           :key="item.id"
           class="gallery-card"
+          @click="selectedItem = item"
         >
           <div class="card-thumb-wrap">
             <img
@@ -49,15 +50,22 @@
         </article>
       </div>
     </div>
+
+    <GenerationDetailModal
+      :item="selectedItem"
+      @close="selectedItem = null"
+    />
   </section>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
+import GenerationDetailModal from "@/components/GenerationDetailModal.vue";
 import { galleryApi, type GalleryItem } from "@/services/api";
 
 const list = ref<GalleryItem[]>([]);
 const loading = ref(true);
+const selectedItem = ref<GalleryItem | null>(null);
 
 onMounted(async () => {
   loading.value = true;
@@ -215,6 +223,7 @@ function formatDate(iso: string): string {
 }
 
 .gallery-card {
+  cursor: pointer;
   border-radius: 1rem;
   border: 1px solid #e5e7eb;
   overflow: hidden;
