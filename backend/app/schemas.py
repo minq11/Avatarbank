@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel, EmailStr, Field
 
@@ -65,11 +65,24 @@ class AdminUpgradeRequest(BaseModel):
     email: Optional[EmailStr] = None
 
 
+ImageSizeLiteral = Literal[
+    "square_hd", "square", "portrait_4_3", "portrait_16_9",
+    "landscape_4_3", "landscape_16_9",
+]
+OutputFormatLiteral = Literal["jpeg", "png", "webp"]
+
+
 class GenerationCreateRequest(BaseModel):
     avatar_id: Optional[int] = None
     prompt: str = Field(..., max_length=2000)
+    negative_prompt: Optional[str] = Field(default=None, max_length=2000)
     option_credits: int = Field(default=0, ge=0, le=100)
     idempotency_key: str
+    enable_safety_checker: bool = True
+    image_size: ImageSizeLiteral = "landscape_4_3"
+    num_inference_steps: int = Field(default=8, ge=1, le=20)
+    output_format: OutputFormatLiteral = "png"
+    seed: Optional[int] = Field(default=None, ge=0)
 
 
 class GenerationResponse(BaseModel):

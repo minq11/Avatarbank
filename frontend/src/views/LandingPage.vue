@@ -19,24 +19,43 @@
 
           <!-- Subheadline -->
           <p class="hero-subtitle">
-            An AI avatar marketplace where revenue is shared per image
+            An AI avatar marketplace where revenue is shared with avatar owners
           </p>
 
-          <!-- Prompt Input -->
-          <div class="prompt-input-wrapper">
-            <div class="prompt-input-container">
-              <input
-                v-model="prompt"
-                type="text"
-                placeholder="Describe the image you want to create..."
-                class="prompt-input"
-              />
-              <button class="generate-btn" type="button" @click="goToGenerate">
-                <svg class="generate-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .962 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.582a.5.5 0 0 1 0 .962L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.962 0L9.937 15.5Z"/>
-                </svg>
-                Generate
-              </button>
+          <!-- Generate with Dove (avatar id 9): preview + prompt -->
+          <div class="hero-generate">
+            <div class="hero-generate-preview">
+              <div v-if="defaultAvatar" class="hero-avatar-card">
+                <div class="hero-avatar-img-wrap">
+                  <img :src="dovePreview" :alt="defaultAvatar.title" class="hero-avatar-img" />
+                </div>
+                <p class="hero-avatar-name">{{ defaultAvatar.title }}</p>
+                <p class="hero-avatar-badge">Generate with this avatar</p>
+              </div>
+              <div v-else-if="defaultAvatarLoading" class="hero-avatar-loading">
+                <span>Loading...</span>
+              </div>
+              <div v-else class="hero-avatar-fallback">
+                <span>Dove</span>
+              </div>
+            </div>
+            <div class="hero-generate-input">
+              <div class="prompt-input-container">
+                <textarea
+                  v-model="prompt"
+                  placeholder="Describe the image you want to create..."
+                  class="prompt-input prompt-textarea"
+                  rows="4"
+                />
+              </div>
+              <div class="hero-generate-actions">
+                <button class="generate-btn" type="button" @click="goToGenerate">
+                  <svg class="generate-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .962 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.582a.5.5 0 0 1 0 .962L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.962 0L9.937 15.5Z"/>
+                  </svg>
+                  Generate
+                </button>
+              </div>
             </div>
           </div>
 
@@ -103,18 +122,18 @@
             </p>
 
             <div class="influencer-actions">
-              <RouterLink to="/influencer/dashboard" class="btn-primary-influencer">
+              <RouterLink to="/my/avatars" class="btn-primary-influencer">
                 <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
                 </svg>
                 Start uploading
               </RouterLink>
-              <a href="#revenue" class="btn-link-influencer">
+              <RouterLink to="/revenue-model" class="btn-link-influencer">
                 View revenue model
                 <svg class="arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M5 12h14M12 5l7 7-7 7"/>
                 </svg>
-              </a>
+              </RouterLink>
             </div>
           </div>
 
@@ -146,12 +165,47 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, onMounted } from "vue";
 import { RouterLink, useRouter } from "vue-router";
 import instagramLogo from "@/assets/icons/Instagram_logo_2016.svg?url";
+import dovePreview from "@/assets/dove_preview.png";
+import { avatarsApi } from "@/services/api";
+import type { AvatarDetailItem } from "@/services/api";
 
-const prompt = ref("");
+const DEFAULT_AVATAR_ID = 9;
+
+const defaultPromptText =
+  "A hyper-detailed photographic portrait of Dove, seated gracefully in a white lace-trim top and patterned headscarf, wearing a minimalist necklace. " +
+  "She rests one hand on her head, looking at the camera. Shot on a Canon EOS R5 with an 85mm f/1.4 lens in 8K RAW, featuring cinematic lighting, natural skin tone, flawless anatomy, and razor-sharp detail.";
+
+const prompt = ref(defaultPromptText);
 const router = useRouter();
+const defaultAvatar = ref<AvatarDetailItem | null>(null);
+const defaultAvatarLoading = ref(true);
+
+function getImageUrl(url: string | null | undefined): string {
+  if (!url) return "";
+  if (url.startsWith("http://") || url.startsWith("https://")) return url;
+  const apiBase = import.meta.env.VITE_API_BASE_URL;
+  if (apiBase) return apiBase + url;
+  return `/api${url}`;
+}
+
+onMounted(async () => {
+  try {
+    const a = await avatarsApi.getById(DEFAULT_AVATAR_ID);
+    defaultAvatar.value = a;
+  } catch {
+    defaultAvatar.value = null;
+  } finally {
+    defaultAvatarLoading.value = false;
+  }
+});
+
+function goToGenerate() {
+  const query = prompt.value.trim() ? { prompt: prompt.value.trim() } : {};
+  router.push({ path: `/avatars/${DEFAULT_AVATAR_ID}`, query });
+}
 
 const galleryAvatars = [
   { instagram: "@model_anna" },
@@ -163,10 +217,6 @@ const galleryAvatars = [
   { instagram: "@elegant_maria" },
   { instagram: "@minimal_chris" },
 ];
-
-function goToGenerate() {
-  router.push({ name: "generation" });
-}
 </script>
 
 <style scoped>
@@ -246,6 +296,130 @@ function goToGenerate() {
   line-height: 1.625;
 }
 
+/* Hero Generate: Dove (avatar 9) preview + prompt row */
+.hero-generate {
+  max-width: 56rem;
+  margin: 0 auto 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+}
+@media (min-width: 768px) {
+  .hero-generate {
+    flex-direction: row;
+    justify-content: center;
+    align-items: stretch;
+    gap: 2.5rem;
+  }
+}
+.hero-generate-preview {
+  flex-shrink: 0;
+}
+@media (min-width: 768px) {
+  .hero-generate-preview {
+    height: 260px;
+  }
+}
+.hero-avatar-card {
+  text-align: center;
+  width: 200px;
+}
+@media (min-width: 768px) {
+  .hero-avatar-card {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+  .hero-avatar-card .hero-avatar-img-wrap,
+  .hero-avatar-card .hero-avatar-placeholder {
+    flex: 1;
+    min-height: 0;
+    margin: 0 auto 0.75rem;
+  }
+}
+.hero-avatar-img-wrap {
+  width: 200px;
+  height: 200px;
+  border-radius: 1rem;
+  overflow: hidden;
+  border: 2px solid #e5e7eb;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  margin: 0 auto 0.75rem;
+}
+.hero-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.hero-avatar-placeholder {
+  width: 200px;
+  height: 200px;
+  border-radius: 1rem;
+  background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6366f1;
+  font-weight: 600;
+  margin: 0 auto 0.75rem;
+}
+.hero-avatar-name {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 0.25rem;
+}
+.hero-avatar-badge {
+  font-size: 0.8125rem;
+  color: #6b7280;
+}
+.hero-avatar-loading,
+.hero-avatar-fallback {
+  width: 200px;
+  height: 200px;
+  border-radius: 1rem;
+  background: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+  font-weight: 500;
+}
+.hero-generate-input {
+  flex: 1;
+  width: 100%;
+  max-width: 32rem;
+}
+@media (min-width: 768px) {
+  .hero-generate-input {
+    height: 260px;
+    display: flex;
+    flex-direction: column;
+  }
+  .hero-generate-input .prompt-input-container {
+    flex: 1;
+    min-height: 0;
+    height: 100%;
+  }
+  .hero-generate-input .prompt-input {
+    height: 100%;
+    min-height: 0;
+    padding-top: 1.25rem;
+    padding-bottom: 1.25rem;
+    box-sizing: border-box;
+  }
+  .hero-generate-actions {
+    flex-shrink: 0;
+    margin-top: 0.75rem;
+  }
+}
+.hero-generate-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.75rem;
+}
+
 .prompt-input-wrapper {
   max-width: 48rem;
   margin: 0 auto 2rem;
@@ -258,13 +432,20 @@ function goToGenerate() {
 .prompt-input {
   width: 100%;
   padding: 1.25rem 1.5rem;
-  padding-right: 10rem;
   font-size: 1rem;
   border-radius: 1rem;
   border: 1px solid #e5e7eb;
   background: white;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
   transition: all 0.2s;
+}
+
+.prompt-textarea {
+  resize: vertical;
+  min-height: 6rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-wrap: break-word;
 }
 
 .prompt-input:focus {
@@ -274,10 +455,6 @@ function goToGenerate() {
 }
 
 .generate-btn {
-  position: absolute;
-  right: 0.5rem;
-  top: 50%;
-  transform: translateY(-50%);
   padding: 0.75rem 1.5rem;
   font-size: 0.875rem;
   font-weight: 500;
@@ -286,7 +463,7 @@ function goToGenerate() {
   border-radius: 0.75rem;
   border: none;
   cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 0.5rem;
   transition: all 0.2s;

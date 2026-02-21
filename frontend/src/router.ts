@@ -8,9 +8,11 @@ import InfluencerDashboardPage from "./views/InfluencerDashboardPage.vue";
 import AdminTrainingRequestsPage from "./views/AdminTrainingRequestsPage.vue";
 import GalleryPage from "./views/GalleryPage.vue";
 import MyPage from "./views/MyPage.vue";
+import RevenueModelPage from "./views/RevenueModelPage.vue";
 
 const routes: RouteRecordRaw[] = [
   { path: "/", name: "landing", component: LandingPage },
+  { path: "/revenue-model", name: "revenue-model", component: RevenueModelPage },
   { path: "/market", name: "market", component: MarketPage },
   { path: "/gallery", name: "gallery", component: GalleryPage },
   { path: "/generate", redirect: "/avatars" },
@@ -34,6 +36,10 @@ const routes: RouteRecordRaw[] = [
 const router = createRouter({
   history: createWebHistory(),
   routes,
+  scrollBehavior(_, __, savedPosition) {
+    if (savedPosition) return savedPosition;
+    return { top: 0 };
+  },
 });
 
 export default router;

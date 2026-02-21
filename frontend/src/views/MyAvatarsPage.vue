@@ -733,8 +733,8 @@
       </div>
     </div>
 
-    <!-- Upload LoRA Modal (Training Request Details 스타일, 학습용 사진 제외) -->
-    <div v-if="showUploadLoraModal" class="modal-overlay" @click.self="closeUploadLoraModal">
+    <!-- Upload LoRA Modal (Training Request Details 스타일, 학습용 사진 제외) - 배경 클릭으로 닫기 비활성화 -->
+    <div v-if="showUploadLoraModal" class="modal-overlay">
       <div class="modal-card training-detail-modal">
         <div class="modal-header">
           <h3>Upload LoRA Avatar</h3>
@@ -933,13 +933,55 @@
         </div>
 
         <div class="modal-body">
-          <!-- View Section -->
-          <div class="detail-section">
-            <h4 class="detail-section-title">Preview Image</h4>
+          <!-- Market visibility: 모달 맨 위 -->
+          <div class="form-group form-group-block visibility-block visibility-block-top">
+            <label class="form-label">Market visibility</label>
+            <div class="visibility-options">
+              <label :class="['visibility-option', editForm.status === 'active' ? 'visibility-option-selected' : '']">
+                <input v-model="editForm.status" type="radio" value="active" class="visibility-radio" />
+                <span class="visibility-label">Active</span>
+                <span class="visibility-desc">Show on Market</span>
+              </label>
+              <label :class="['visibility-option', editForm.status === 'hidden' ? 'visibility-option-selected' : '']">
+                <input v-model="editForm.status" type="radio" value="hidden" class="visibility-radio" />
+                <span class="visibility-label">Deactive</span>
+                <span class="visibility-desc">Hide from Market</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Preview Image: 제목 라인 오른쪽에 Change -->
+          <div class="detail-section preview-image-section">
+            <div class="preview-image-section-header">
+              <h4 class="detail-section-title">Preview Image</h4>
+              <input
+                ref="editPreviewImageInput"
+                type="file"
+                accept="image/*"
+                class="file-input file-input-hidden"
+                @change="handleEditPreviewImageChange"
+              />
+              <button
+                v-if="editForm.previewImage"
+                type="button"
+                class="file-upload-btn file-upload-btn-sm"
+                @click="removeEditPreviewImage"
+              >
+                Remove
+              </button>
+              <button
+                v-else
+                type="button"
+                class="file-upload-btn file-upload-btn-sm"
+                @click="() => editPreviewImageInput?.click()"
+              >
+                Change
+              </button>
+            </div>
             <div class="preview-image-large">
               <img
-                v-if="selectedAvatar.preview_image_url"
-                :src="getImageUrl(selectedAvatar.preview_image_url)"
+                v-if="previewImageDisplayUrl"
+                :src="previewImageDisplayUrl"
                 alt="Preview"
               />
               <div v-else class="preview-placeholder">No image</div>
@@ -1000,59 +1042,12 @@
             </div>
 
             <div class="form-group">
-              <label class="form-label">Market visibility</label>
-              <select v-model="editForm.status" class="form-input">
-                <option value="active">Active (show on Market)</option>
-                <option value="hidden">Deactive (hide from Market)</option>
-              </select>
-            </div>
-
-            <div class="form-group">
               <label class="form-label">Description</label>
               <textarea
                 v-model="editForm.description"
                 class="form-textarea"
                 rows="4"
               ></textarea>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Preview Image</label>
-              <div class="file-upload-wrapper">
-                <input
-                  ref="editPreviewImageInput"
-                  type="file"
-                  accept="image/*"
-                  class="file-input"
-                  @change="handleEditPreviewImageChange"
-                />
-                <div v-if="editForm.previewImage" class="preview-image">
-                  <img :src="editForm.previewImageUrl" alt="Preview" />
-                  <button
-                    type="button"
-                    class="remove-image-btn"
-                    @click="removeEditPreviewImage"
-                  >
-                    ×
-                  </button>
-                </div>
-                <button
-                  v-else-if="selectedAvatar.preview_image_url"
-                  type="button"
-                  class="file-upload-btn"
-                  @click="() => editPreviewImageInput?.click()"
-                >
-                  Change Image
-                </button>
-                <button
-                  v-else
-                  type="button"
-                  class="file-upload-btn"
-                  @click="() => editPreviewImageInput?.click()"
-                >
-                  Select Image
-                </button>
-              </div>
             </div>
           </div>
         </div>
@@ -1113,6 +1108,14 @@ function getImageUrl(url: string | null | undefined): string {
   }
   return url;
 }
+
+// 아바타 상세 모달: 큰 미리보기에 표시할 URL (새로 고른 파일 또는 기존 이미지)
+const previewImageDisplayUrl = computed(() => {
+  const url = editForm.value.previewImageUrl;
+  if (!url) return "";
+  if (url.startsWith("blob:")) return url;
+  return getImageUrl(url);
+});
 
 // Refs for file inputs
 const previewImageInput = ref<HTMLInputElement | null>(null);
@@ -2380,6 +2383,20 @@ async function deleteAvatar() {
   margin-bottom: 1rem;
 }
 
+.preview-image-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+.preview-image-section-header .detail-section-title {
+  margin-bottom: 0;
+}
+.file-upload-btn-sm {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.8125rem;
+}
 .preview-image-large {
   width: 100%;
   max-width: 400px;
@@ -2390,7 +2407,6 @@ async function deleteAvatar() {
   background: #f9fafb;
   margin-bottom: 1rem;
 }
-
 .preview-image-large img {
   width: 100%;
   height: 100%;
@@ -2420,7 +2436,7 @@ async function deleteAvatar() {
 
 .detail-label {
   font-size: 0.75rem;
-  font-weight: 500;
+  font-weight: 650;
   color: #6b7280;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -2435,6 +2451,86 @@ async function deleteAvatar() {
   margin-top: 2rem;
   padding-top: 2rem;
   border-top: 1px solid #e5e7eb;
+}
+
+.form-group-block.visibility-block {
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.25rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+}
+.visibility-block-top {
+  margin-bottom: 1.5rem;
+}
+
+.visibility-options {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.visibility-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+.visibility-option.visibility-option-selected {
+  border-color: #4f46e5;
+  background: #eef2ff;
+}
+.visibility-option:hover {
+  border-color: #a5b4fc;
+}
+.visibility-radio {
+  margin: 0;
+  width: 1rem;
+  height: 1rem;
+  accent-color: #4f46e5;
+}
+.visibility-label {
+  font-weight: 600;
+  color: #111827;
+}
+.visibility-desc {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.preview-image-edit-group {
+  margin-top: 0.5rem;
+}
+.preview-image-edit-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.preview-image-edit-header .form-label {
+  margin-bottom: 0;
+}
+.file-input.file-input-hidden {
+  display: none;
+}
+.file-upload-btn-inline {
+  flex-shrink: 0;
+}
+.preview-image-edit-thumb {
+  margin-top: 0.75rem;
+  width: 120px;
+  height: 120px;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+}
+.preview-image-edit-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 /* Buttons */

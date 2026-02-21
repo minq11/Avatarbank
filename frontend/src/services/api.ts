@@ -321,11 +321,26 @@ export interface GalleryItem {
   creator_nickname: string;
 }
 
+export type ImageSizeOption =
+  | "square_hd"
+  | "square"
+  | "portrait_4_3"
+  | "portrait_16_9"
+  | "landscape_4_3"
+  | "landscape_16_9";
+export type OutputFormatOption = "jpeg" | "png" | "webp";
+
 export interface GenerationCreatePayload {
   avatar_id: number;
   prompt: string;
+  negative_prompt?: string | null;
   option_credits: number;
   idempotency_key: string;
+  enable_safety_checker: boolean;
+  image_size: ImageSizeOption;
+  num_inference_steps: number;
+  output_format: OutputFormatOption;
+  seed: number | null;
 }
 
 export const generationsApi = {

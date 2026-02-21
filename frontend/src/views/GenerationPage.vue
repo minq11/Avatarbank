@@ -14,6 +14,14 @@
           <p v-if="avatar.credit_per_generation != null" class="avatar-credit">
             {{ avatar.credit_per_generation }} C per generation
           </p>
+          <div v-if="avatar.description" class="avatar-detail-block">
+            <span class="avatar-detail-label">Description</span>
+            <p class="avatar-detail-value">{{ avatar.description }}</p>
+          </div>
+          <div v-if="avatar.negative_prompt" class="avatar-detail-block">
+            <span class="avatar-detail-label">Negative prompt</span>
+            <p class="avatar-detail-value avatar-detail-mono">{{ avatar.negative_prompt }}</p>
+          </div>
         </div>
         <div v-else-if="avatarError" class="error-state">
           <p>{{ avatarError }}</p>
@@ -26,9 +34,6 @@
 
       <div class="right">
         <h2>AI Image Generation</h2>
-        <p class="sub">
-          Generate an image with this avatar
-        </p>
 
         <label class="field">
           <span>Select Avatar (LoRA)</span>
@@ -41,14 +46,72 @@
           <p v-if="avatarsList.length === 0 && !avatarsListLoading" class="field-hint">No avatars available.</p>
         </label>
 
-        <label class="field">
+        <label class="field field-prompt">
           <span>Prompt</span>
           <textarea
             v-model="prompt"
-            rows="5"
+            rows="8"
             placeholder="Describe the image you want (English recommended)."
+            class="prompt-textarea"
           />
         </label>
+
+        <label class="field">
+          <span>Negative prompt <span class="field-optional">(optional)</span></span>
+          <textarea
+            v-model="negativePrompt"
+            rows="2"
+            placeholder="What to avoid in the image (defaults to avatar's negative prompt if empty)."
+            class="field-textarea-mono"
+          />
+        </label>
+
+        <div class="options-card">
+          <h4 class="options-card-title">Generation options</h4>
+          <div class="options-grid">
+            <div class="option-row option-row-toggle">
+              <span class="option-label">Allow NSFW</span>
+              <label class="option-toggle">
+                <input type="checkbox" v-model="allowNsfw" class="option-checkbox" />
+                <span class="option-toggle-text">{{ allowNsfw ? "On" : "Off" }}</span>
+              </label>
+            </div>
+            <div class="option-row">
+              <label class="option-label" for="opt-image-size">Image size</label>
+              <select id="opt-image-size" v-model="imageSize" class="option-select">
+                <option v-for="opt in imageSizeOptions" :key="opt.value" :value="opt.value">
+                  {{ opt.label }}
+                </option>
+              </select>
+            </div>
+            <div class="option-row">
+              <label class="option-label" for="opt-steps">Inference steps</label>
+              <select id="opt-steps" v-model.number="numInferenceSteps" class="option-select">
+                <option v-for="n in [4, 6, 8, 10, 12]" :key="n" :value="n">{{ n }}</option>
+              </select>
+            </div>
+            <div class="option-row">
+              <label class="option-label" for="opt-format">Output format</label>
+              <select id="opt-format" v-model="outputFormat" class="option-select">
+                <option v-for="opt in outputFormatOptions" :key="opt.value" :value="opt.value">
+                  {{ opt.label }}
+                </option>
+              </select>
+            </div>
+            <div class="option-row">
+              <label class="option-label" for="opt-seed">Seed</label>
+              <input
+                id="opt-seed"
+                v-model="seedInput"
+                type="text"
+                inputmode="numeric"
+                pattern="[0-9]*"
+                class="option-input"
+                placeholder="Random"
+              />
+            </div>
+          </div>
+        </div>
 
         <div v-if="avatar" class="cost-info">
           <span>Base {{ baseCredit }} C + Avatar {{ avatarCredit }} C</span>
@@ -153,7 +216,15 @@ import { computed, ref, watch, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import SearchableSelect from "@/components/SearchableSelect.vue";
 import { useAuthStore } from "@/stores/auth";
-import { avatarsApi, generationsApi, galleryApi, type AvatarItem, type GalleryItem } from "@/services/api";
+import {
+  avatarsApi,
+  generationsApi,
+  galleryApi,
+  type AvatarItem,
+  type GalleryItem,
+  type ImageSizeOption,
+  type OutputFormatOption,
+} from "@/services/api";
 
 const authStore = useAuthStore();
 
@@ -214,7 +285,28 @@ const avatarsListLoading = ref(true);
 const avatar = ref<AvatarItem | null>(null);
 const avatarError = ref("");
 const prompt = ref("");
+const DEFAULT_NEGATIVE_PROMPT = "ugly, low quality, distorted face";
+const negativePrompt = ref(DEFAULT_NEGATIVE_PROMPT);
+const allowNsfw = ref(false);
+const imageSize = ref<ImageSizeOption>("landscape_4_3");
+const numInferenceSteps = ref(8);
+const outputFormat = ref<OutputFormatOption>("png");
+const seedInput = ref("");
 const loading = ref(false);
+
+const imageSizeOptions: { value: ImageSizeOption; label: string }[] = [
+  { value: "landscape_4_3", label: "Landscape 4:3" },
+  { value: "landscape_16_9", label: "Landscape 16:9" },
+  { value: "portrait_4_3", label: "Portrait 4:3" },
+  { value: "portrait_16_9", label: "Portrait 16:9" },
+  { value: "square", label: "Square" },
+  { value: "square_hd", label: "Square HD" },
+];
+const outputFormatOptions: { value: OutputFormatOption; label: string }[] = [
+  { value: "png", label: "PNG" },
+  { value: "jpeg", label: "JPEG" },
+  { value: "webp", label: "WebP" },
+];
 const error = ref("");
 const generationId = ref<number | null>(null);
 const resultImageUrl = ref<string | null>(null);
@@ -239,6 +331,7 @@ async function loadAvatar() {
   if (id == null) {
     avatar.value = null;
     avatarError.value = "";
+    negativePrompt.value = DEFAULT_NEGATIVE_PROMPT;
     return;
   }
   avatar.value = null;
@@ -246,6 +339,7 @@ async function loadAvatar() {
   try {
     const a = await avatarsApi.getById(id);
     avatar.value = a;
+    negativePrompt.value = a.negative_prompt?.trim() || DEFAULT_NEGATIVE_PROMPT;
   } catch (e: unknown) {
     const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
     avatarError.value = msg || "Failed to load avatar.";
@@ -265,11 +359,18 @@ async function requestGeneration() {
   resultIsShared.value = false;
 
   try {
+    const seedNum = seedInput.value.trim() === "" ? null : parseInt(seedInput.value, 10);
     const res = await generationsApi.create({
       avatar_id: avatarId.value,
       prompt: prompt.value.trim(),
+      negative_prompt: negativePrompt.value.trim() || undefined,
       option_credits: 0,
       idempotency_key: crypto.randomUUID(),
+      enable_safety_checker: !allowNsfw.value,
+      image_size: imageSize.value,
+      num_inference_steps: numInferenceSteps.value,
+      output_format: outputFormat.value,
+      seed: seedNum !== null && !Number.isNaN(seedNum) ? seedNum : null,
     });
     generationId.value = res.id;
     resultIsShared.value = res.is_shared === true;
@@ -356,7 +457,13 @@ async function loadAvatarsList() {
   }
 }
 
-onMounted(loadAvatarsList);
+onMounted(() => {
+  loadAvatarsList();
+  const q = route.query.prompt;
+  if (typeof q === "string" && q.trim()) {
+    prompt.value = q.trim();
+  }
+});
 watch(avatarId, loadAvatar, { immediate: true });
 watch(avatarId, loadSharedByAvatar, { immediate: true });
 </script>
@@ -428,6 +535,33 @@ watch(avatarId, loadSharedByAvatar, { immediate: true });
   font-size: 0.85rem;
   color: #64748b;
   margin-top: 0.25rem;
+}
+
+.avatar-detail-block {
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #e2e8f0;
+}
+.avatar-detail-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  margin-bottom: 0.35rem;
+}
+.avatar-detail-value {
+  font-size: 0.875rem;
+  color: #334155;
+  line-height: 1.5;
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.avatar-detail-value.avatar-detail-mono {
+  font-family: ui-monospace, monospace;
+  font-size: 0.8125rem;
 }
 
 .result-area {
@@ -577,6 +711,139 @@ watch(avatarId, loadSharedByAvatar, { immediate: true });
   font-size: 0.9rem;
   font-weight: 500;
   color: #374151;
+}
+
+.field-optional {
+  font-weight: 400;
+  color: #94a3b8;
+  font-size: 0.85rem;
+}
+
+.field-textarea-mono {
+  font-family: ui-monospace, monospace;
+  font-size: 0.875rem;
+}
+
+/* Prompt: 더 높게 */
+.field-prompt .prompt-textarea {
+  min-height: 10rem;
+}
+
+/* Generation options card: 높이 줄임 */
+.options-card {
+  margin-bottom: 1.25rem;
+  padding: 0.75rem 1.25rem;
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.options-card-title {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.options-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.option-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 2rem;
+}
+
+.option-row-toggle {
+  align-items: center;
+}
+
+.option-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  flex-shrink: 0;
+  min-width: 7rem;
+}
+
+.option-select {
+  flex: 1;
+  max-width: 12rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  color: #111827;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.option-select:hover {
+  border-color: #cbd5e1;
+}
+
+.option-select:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+.option-input {
+  flex: 1;
+  max-width: 12rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  color: #111827;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.option-input::placeholder {
+  color: #94a3b8;
+}
+
+.option-input:hover {
+  border-color: #cbd5e1;
+}
+
+.option-input:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+.option-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: #475569;
+  user-select: none;
+}
+
+.option-checkbox {
+  width: 1.125rem;
+  height: 1.125rem;
+  margin: 0;
+  cursor: pointer;
+  accent-color: #6366f1;
+}
+
+.option-toggle-text {
+  font-weight: 500;
+  color: #334155;
 }
 
 .field-hint {

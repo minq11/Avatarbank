@@ -81,7 +81,16 @@ def get_result(request_id: str) -> dict[str, Any]:
         return response.json()
 
 
-def run_generation_sync(prompt: str, lora_url: str | None = None) -> dict[str, Any]:
+def run_generation_sync(
+    prompt: str,
+    lora_url: str | None = None,
+    negative_prompt: str | None = None,
+    enable_safety_checker: bool = True,
+    image_size: str = "landscape_4_3",
+    num_inference_steps: int = 8,
+    output_format: str = "png",
+    seed: int | None = None,
+) -> dict[str, Any]:
     """
     fal-ai/z-image/turbo/lora 동기 호출.
     lora_url이 있으면 해당 LoRA를 적용 (최대 3개까지 가능, 현재 1개만 전달).
@@ -89,8 +98,15 @@ def run_generation_sync(prompt: str, lora_url: str | None = None) -> dict[str, A
     payload: dict[str, Any] = {
         "prompt": prompt,
         "num_images": 1,
-        "enable_safety_checker": True,
+        "enable_safety_checker": enable_safety_checker,
+        "image_size": image_size,
+        "num_inference_steps": num_inference_steps,
+        "output_format": output_format,
     }
+    if negative_prompt:
+        payload["negative_prompt"] = negative_prompt
+    if seed is not None:
+        payload["seed"] = seed
     if lora_url:
         # fal LoRA 입력: path에 공개 URL 또는 presigned URL 전달
         payload["loras"] = [{"path": lora_url}]

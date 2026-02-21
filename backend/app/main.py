@@ -383,7 +383,20 @@ def create_generation(
         lora_url = avatar.lora_path
         if lora_url and "s3" in lora_url.lower() and "amazonaws" in lora_url.lower():
             lora_url = generate_presigned_download_url(lora_url, expires_in=3600)
-        response_payload = run_generation_sync(payload.prompt, lora_url=lora_url)
+        # 아바타 기본 negative prompt + 사용자 입력(optional) 합쳐서 전달
+        parts = [avatar.negative_prompt, payload.negative_prompt]
+        combined = ", ".join(p.strip() for p in parts if p and p.strip())
+        negative = combined if combined else None
+        response_payload = run_generation_sync(
+            payload.prompt,
+            lora_url=lora_url,
+            negative_prompt=negative,
+            enable_safety_checker=payload.enable_safety_checker,
+            image_size=payload.image_size,
+            num_inference_steps=payload.num_inference_steps,
+            output_format=payload.output_format,
+            seed=payload.seed,
+        )
         images = response_payload.get("images") or []
         if images:
             generation.image_url = images[0].get("url")
