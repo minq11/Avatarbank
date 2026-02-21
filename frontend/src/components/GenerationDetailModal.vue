@@ -26,6 +26,27 @@
             <h4 class="detail-label">Created At</h4>
             <p class="detail-value">{{ formatDateTime(item.created_at) }}</p>
           </div>
+          <div v-if="detail !== undefined" class="detail-section">
+            <h4 class="detail-label">Negative prompt (optional)</h4>
+            <p class="detail-value detail-prompt">{{ detail?.negative_prompt?.trim() || "—" }}</p>
+          </div>
+          <div v-if="detail !== undefined" class="detail-section">
+            <h4 class="detail-label">Generation options</h4>
+            <div class="detail-options-grid">
+              <div class="detail-option-item">
+                <span class="detail-option-label">Image size</span>
+                <span class="detail-option-value">{{ detail?.image_size ?? "—" }}</span>
+              </div>
+              <div class="detail-option-item">
+                <span class="detail-option-label">Inference steps</span>
+                <span class="detail-option-value">{{ detail?.num_inference_steps ?? "—" }}</span>
+              </div>
+              <div class="detail-option-item">
+                <span class="detail-option-label">Seed</span>
+                <span class="detail-option-value">{{ detail?.seed ?? "—" }}</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
       <div class="modal-footer">
@@ -47,8 +68,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
-import type { GalleryItem } from "@/services/api";
+import { computed, onMounted, onBeforeUnmount, watch, ref } from "vue";
+import { generationsApi, type GalleryItem, type GenerationItem } from "@/services/api";
 
 const props = defineProps<{
   item: GalleryItem | null;
@@ -59,6 +80,32 @@ const props = defineProps<{
 const emit = defineEmits<{
   close: [];
 }>();
+
+const detail = ref<GenerationItem | null | undefined>(undefined);
+
+watch(
+  () => props.item,
+  async (item) => {
+    if (!item) {
+      detail.value = undefined;
+      return;
+    }
+    detail.value = null;
+    try {
+      detail.value = await generationsApi.getById(item.id);
+    } catch {
+      detail.value = null;
+    }
+  },
+  { immediate: true }
+);
+
+onMounted(() => {
+  document.body.style.overflow = "hidden";
+});
+onBeforeUnmount(() => {
+  document.body.style.overflow = "";
+});
 
 const displayImageUrl = computed(() => {
   if (!props.item?.image_url) return "";
@@ -229,6 +276,35 @@ async function downloadImage() {
   border-radius: 0.5rem;
   border: 1px solid #e5e7eb;
   word-break: break-word;
+}
+
+.detail-options-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+  gap: 0.75rem;
+}
+
+.detail-option-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.75rem;
+  background: #f9fafb;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+}
+
+.detail-option-label {
+  font-size: 0.75rem;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.detail-option-value {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #111827;
 }
 
 .modal-footer {

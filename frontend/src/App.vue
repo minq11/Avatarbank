@@ -56,7 +56,7 @@
                 <span class="nickname-label">{{ authStore.user.nickname }}</span>
                 <span class="badge-separator">|</span>
                 <img :src="diamondIcon" alt="Credit" class="diamond-icon" />
-                <span class="credit-amount">{{ formatCredit(authStore.creditBalance) }}</span>
+                <span class="credit-amount">{{ formatCredit(authStore.creditBalance) }} C</span>
               </div>
               <div class="profile-wrapper">
                 <button

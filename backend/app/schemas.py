@@ -91,6 +91,7 @@ class GenerationResponse(BaseModel):
     buyer_id: int
     credits_used: int
     prompt: str
+    negative_prompt: Optional[str] = None
     request_id: Optional[str] = None
     image_url: Optional[str]
     seed: Optional[str] = None
@@ -98,6 +99,8 @@ class GenerationResponse(BaseModel):
     fail_reason: Optional[str]
     nsfw_flag: Optional[bool] = None
     is_shared: bool = False
+    image_size: Optional[str] = None
+    num_inference_steps: Optional[int] = None
     created_at: datetime
 
     class Config:

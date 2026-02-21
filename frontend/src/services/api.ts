@@ -303,6 +303,7 @@ export interface GenerationItem {
   buyer_id: number;
   credits_used: number;
   prompt: string;
+  negative_prompt?: string | null;
   request_id: string | null;
   image_url: string | null;
   seed: string | null;
@@ -310,6 +311,8 @@ export interface GenerationItem {
   fail_reason: string | null;
   nsfw_flag: boolean | null;
   is_shared?: boolean;
+  image_size?: string | null;
+  num_inference_steps?: number | null;
   created_at: string;
 }
 

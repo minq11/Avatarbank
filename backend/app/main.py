@@ -377,11 +377,17 @@ def create_generation(
     before = buyer.credit_balance
     buyer.credit_balance -= total_credits
 
+    parts = [avatar.negative_prompt, payload.negative_prompt]
+    combined_negative = ", ".join(p.strip() for p in parts if p and p.strip()) or None
+
     generation = Generation(
         avatar_id=payload.avatar_id,
         buyer_id=buyer.id,
         credits_used=total_credits,
         prompt=payload.prompt,
+        negative_prompt=combined_negative,
+        image_size=payload.image_size,
+        num_inference_steps=payload.num_inference_steps,
         status=GenerationStatus.PENDING.value,
     )
     db.add(generation)
@@ -405,14 +411,10 @@ def create_generation(
         lora_url = avatar.lora_path
         if lora_url and "s3" in lora_url.lower() and "amazonaws" in lora_url.lower():
             lora_url = generate_presigned_download_url(lora_url, expires_in=3600)
-        # 아바타 기본 negative prompt + 사용자 입력(optional) 합쳐서 전달
-        parts = [avatar.negative_prompt, payload.negative_prompt]
-        combined = ", ".join(p.strip() for p in parts if p and p.strip())
-        negative = combined if combined else None
         response_payload = run_generation_sync(
             payload.prompt,
             lora_url=lora_url,
-            negative_prompt=negative,
+            negative_prompt=combined_negative,
             enable_safety_checker=payload.enable_safety_checker,
             image_size=payload.image_size,
             num_inference_steps=payload.num_inference_steps,

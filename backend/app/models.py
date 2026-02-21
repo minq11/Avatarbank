@@ -123,6 +123,7 @@ class Generation(Base):
     buyer_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     credits_used = Column(Integer, nullable=False)
     prompt = Column(Text, nullable=False)
+    negative_prompt = Column(Text, nullable=True)
     seed = Column(String, nullable=True)
     request_id = Column(String, nullable=True)
     image_url = Column(String, nullable=True)
@@ -130,6 +131,8 @@ class Generation(Base):
     fail_reason = Column(Text, nullable=True)
     nsfw_flag = Column(Boolean, nullable=False, default=False)
     is_shared = Column(Boolean, nullable=False, default=False)
+    image_size = Column(String, nullable=True)
+    num_inference_steps = Column(Integer, nullable=True)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
 
 
