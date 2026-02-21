@@ -1,5 +1,8 @@
 <template>
   <section class="generation">
+    <div class="generation-page-header">
+      <h2 class="generation-page-title">AI Image Generation</h2>
+    </div>
     <div class="layout" :class="{ 'layout-no-avatar': !avatarId }">
       <div v-if="avatarId != null" class="left">
         <!-- 아바타 미리보기 (LoRA 선택 시에만 표시) -->
@@ -32,9 +35,7 @@
         </div>
       </div>
 
-      <div class="right">
-        <h2>AI Image Generation</h2>
-
+      <div class="right" :class="{ 'options-collapsed': !optionsExpanded }">
         <label class="field">
           <span>Select Avatar (LoRA)</span>
           <SearchableSelect
@@ -67,8 +68,25 @@
         </label>
 
         <div class="options-card">
-          <h4 class="options-card-title">Generation options</h4>
-          <div class="options-grid">
+          <button
+            type="button"
+            class="options-card-header"
+            @click="optionsExpanded = !optionsExpanded"
+            :aria-expanded="optionsExpanded"
+          >
+            <h4 class="options-card-title">Generation options</h4>
+            <svg
+              class="options-card-chevron"
+              :class="{ 'options-card-chevron-open': optionsExpanded }"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M6 9l6 6 6-6"/>
+            </svg>
+          </button>
+          <div v-show="optionsExpanded" class="options-grid">
             <div class="option-row option-row-toggle">
               <span class="option-label">Allow NSFW</span>
               <label class="option-toggle">
@@ -138,9 +156,32 @@
       </div>
     </div>
 
+    <!-- Share 확인 모달 -->
+    <div v-if="showShareConfirm" class="confirm-overlay" @click.self="showShareConfirm = false">
+      <div class="confirm-modal">
+        <h4 class="confirm-title">{{ shareConfirmIsUnshare ? 'Remove from Gallery?' : 'Share to Gallery?' }}</h4>
+        <p class="confirm-message">
+          {{ shareConfirmIsUnshare
+            ? 'This creation will be removed from the public Gallery.'
+            : 'This creation will be visible to everyone in the Gallery.' }}
+        </p>
+        <div class="confirm-actions">
+          <button type="button" class="btn-confirm-cancel" @click="showShareConfirm = false">Cancel</button>
+          <button type="button" class="btn-confirm-ok" @click="confirmShareAction">
+            {{ shareConfirmIsUnshare ? 'Remove' : 'Share' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- 결과 영역 (입력 폼과 구분) -->
     <div v-if="avatarId != null" class="result-area">
-      <div v-if="resultImageUrl" class="result-section">
+      <div v-if="loading" class="result-generating">
+        <div class="result-generating-spinner"></div>
+        <p class="result-generating-text">Creating your image...</p>
+        <p class="result-generating-sub">This may take a moment</p>
+      </div>
+      <div v-else-if="resultImageUrl" class="result-section">
         <div class="result-section-header">
           <h4>Generated Image</h4>
           <div class="result-actions">
@@ -149,7 +190,7 @@
               class="btn-result-action"
               :class="{ 'is-shared': resultIsShared }"
               :title="resultIsShared ? 'Shared to Gallery' : 'Share to Gallery'"
-              @click="toggleResultShare"
+              @click="openShareConfirm"
             >
               <img src="@/assets/icons/shareBtn.svg" alt="" class="btn-result-icon" />
               {{ resultIsShared ? 'Shared' : 'Share' }}
@@ -256,19 +297,29 @@ async function downloadImage(url: string, filename: string) {
   }
 }
 
-async function toggleResultShare() {
+const showShareConfirm = ref(false);
+const shareConfirmIsUnshare = ref(false);
+
+function openShareConfirm() {
+  shareConfirmIsUnshare.value = resultIsShared.value;
+  showShareConfirm.value = true;
+}
+
+async function confirmShareAction() {
+  showShareConfirm.value = false;
   const id = generationId.value;
   if (id == null) return;
-  const message = resultIsShared.value
-    ? "Remove this creation from Gallery?"
-    : "Share this creation to Gallery? It will be visible to everyone.";
-  if (!window.confirm(message)) return;
+  const targetShared = !shareConfirmIsUnshare.value;
+  const prevShared = resultIsShared.value;
+  resultIsShared.value = targetShared;
+  loadSharedByAvatar();
   try {
     const updated = await generationsApi.toggleShare(id);
     resultIsShared.value = updated.is_shared === true;
-    await loadSharedByAvatar();
+    loadSharedByAvatar();
   } catch {
-    // ignore
+    resultIsShared.value = prevShared;
+    loadSharedByAvatar();
   }
 }
 
@@ -288,6 +339,7 @@ const prompt = ref("");
 const DEFAULT_NEGATIVE_PROMPT = "ugly, low quality, distorted face";
 const negativePrompt = ref(DEFAULT_NEGATIVE_PROMPT);
 const allowNsfw = ref(false);
+const optionsExpanded = ref(true);
 const imageSize = ref<ImageSizeOption>("landscape_4_3");
 const numInferenceSteps = ref(8);
 const outputFormat = ref<OutputFormatOption>("png");
@@ -475,6 +527,20 @@ watch(avatarId, loadSharedByAvatar, { immediate: true });
   padding: 2rem 0;
 }
 
+.generation-page-header {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0 1rem 2rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.generation-page-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #111827;
+}
+
 .layout {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
@@ -575,6 +641,104 @@ watch(avatarId, loadSharedByAvatar, { immediate: true });
   padding-right: 1rem;
 }
 
+/* 생성 중 동적 표시 */
+.result-generating {
+  padding: 3rem 2rem;
+  text-align: center;
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1px dashed #cbd5e1;
+  border-radius: 12px;
+}
+.result-generating-spinner {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 1.25rem;
+  border: 3px solid #e2e8f0;
+  border-top-color: #6366f1;
+  border-radius: 50%;
+  animation: result-spin 0.8s linear infinite;
+}
+@keyframes result-spin {
+  to { transform: rotate(360deg); }
+}
+.result-generating-text {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #334155;
+  margin: 0 0 0.35rem;
+}
+.result-generating-sub {
+  font-size: 0.9rem;
+  color: #64748b;
+  margin: 0;
+}
+
+/* Share 확인 모달 */
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+.confirm-modal {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem 1.75rem;
+  max-width: 400px;
+  width: 100%;
+}
+.confirm-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 0.75rem;
+}
+.confirm-message {
+  font-size: 0.9375rem;
+  color: #4b5563;
+  line-height: 1.5;
+  margin: 0 0 1.25rem;
+}
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+.btn-confirm-cancel {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+.btn-confirm-cancel:hover {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+}
+.btn-confirm-ok {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: white;
+  background: #6366f1;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.btn-confirm-ok:hover {
+  background: #4f46e5;
+}
+
 .result-section-header {
   display: flex;
   align-items: center;
@@ -631,15 +795,16 @@ watch(avatarId, loadSharedByAvatar, { immediate: true });
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid #e2e8f0;
-  aspect-ratio: 1;
-  max-width: 400px;
+  max-width: 100%;
   background: #f1f5f9;
+  display: inline-block;
 }
 
 .result-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  display: block;
+  max-width: 100%;
+  height: auto;
+  vertical-align: top;
 }
 
 .loading-state,
@@ -729,18 +894,39 @@ watch(avatarId, loadSharedByAvatar, { immediate: true });
   min-height: 10rem;
 }
 
-/* Generation options card: 높이 줄임 */
+.right.options-collapsed .field-prompt .prompt-textarea {
+  min-height: 22rem;
+}
+
+/* Generation options card: 접기 */
 .options-card {
   margin-bottom: 1.25rem;
-  padding: 0.75rem 1.25rem;
   background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
   border: 1px solid #e2e8f0;
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+
+.options-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.75rem 1.25rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  gap: 0.5rem;
+}
+
+.options-card-header:hover {
+  background: rgba(0, 0, 0, 0.02);
 }
 
 .options-card-title {
-  margin: 0 0 0.5rem 0;
+  margin: 0;
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.04em;
@@ -748,7 +934,20 @@ watch(avatarId, loadSharedByAvatar, { immediate: true });
   color: #64748b;
 }
 
+.options-card-chevron {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+  transition: transform 0.2s;
+}
+
+.options-card-chevron-open {
+  transform: rotate(180deg);
+}
+
 .options-grid {
+  padding: 0 1.25rem 0.75rem;
+  padding-top: 0;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
