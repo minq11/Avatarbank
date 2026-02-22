@@ -139,19 +139,25 @@
                 <span v-if="modalAvatar.gender" class="option-tag">{{ modalAvatar.gender }}</span>
                 <span class="option-tag credit-tag">{{ modalAvatar.credit_per_generation != null ? modalAvatar.credit_per_generation : 1 }} C / gen</span>
               </div>
-              <div class="modal-creator">
-                <span class="creator-label">By</span>
-                <span class="creator-name">@{{ modalAvatar.creator_nickname || '—' }}</span>
+              <div class="modal-identity">
+                <span class="identity-label">Identity</span>
+                <span class="identity-value">{{ modalAvatar.is_real_person ? 'Real person' : 'Fictional character' }}</span>
+              </div>
+              <div v-if="modalAvatar.is_real_person && modalAvatar.instagram_id" class="modal-instagram-row">
+                <img src="@/assets/icons/Instagram_logo_2016.svg" alt="" class="modal-instagram-icon" />
                 <a
-                  v-if="modalAvatar.instagram_id"
                   :href="instagramUrl(modalAvatar.instagram_id)"
                   target="_blank"
                   rel="noopener noreferrer"
-                  class="instagram-link"
+                  class="modal-instagram-link"
                   title="Instagram"
                 >
-                  <img src="@/assets/icons/Instagram_logo_2016.svg" alt="Instagram" class="instagram-icon" />
+                  {{ formatInstagramId(modalAvatar.instagram_id) }}
                 </a>
+              </div>
+              <div class="modal-creator">
+                <span class="creator-label">By</span>
+                <span class="creator-name">@{{ modalAvatar.creator_nickname || '—' }}</span>
               </div>
             </div>
           </div>
@@ -212,7 +218,16 @@
             <h4 class="creations-title">Creations with this avatar</h4>
             <div v-if="modalCreations.length === 0 && !modalCreationsLoading" class="creations-empty">No shared creations yet.</div>
             <div v-else class="creations-grid">
-              <div v-for="item in modalCreations" :key="item.id" class="creation-thumb">
+              <div
+                v-for="item in modalCreations"
+                :key="item.id"
+                class="creation-thumb"
+                role="button"
+                tabindex="0"
+                @click.stop="selectedGalleryItem = item"
+                @keydown.enter.prevent="selectedGalleryItem = item"
+                @keydown.space.prevent="selectedGalleryItem = item"
+              >
                 <img :src="item.image_url" :alt="item.prompt" loading="lazy" />
                 <p class="creation-prompt">{{ truncate(item.prompt, 32) }}</p>
               </div>
@@ -241,12 +256,20 @@
         </template>
       </div>
     </div>
+
+    <!-- Creations 상세: 공통 컴포넌트 -->
+    <GenerationDetailModal
+      :item="selectedGalleryItem"
+      :image-url-resolver="getImageUrl"
+      @close="selectedGalleryItem = null"
+    />
   </section>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, nextTick } from "vue";
 import { useRouter } from "vue-router";
+import GenerationDetailModal from "@/components/GenerationDetailModal.vue";
 import { useAuthStore } from "@/stores/auth";
 import {
   avatarsApi,
@@ -279,6 +302,11 @@ function instagramUrl(id: string): string {
   if (!clean) return "#";
   if (clean.startsWith("http")) return clean;
   return `https://www.instagram.com/${clean}/`;
+}
+
+function formatInstagramId(id: string): string {
+  const trimmed = id.trim();
+  return trimmed.startsWith("@") ? trimmed : `@${trimmed}`;
 }
 
 function truncate(s: string, max: number): string {
@@ -327,6 +355,7 @@ const modalRating = ref<AvatarRatingItem | null>(null);
 const modalComments = ref<AvatarCommentItem[]>([]);
 const modalCreations = ref<GalleryItem[]>([]);
 const modalCreationsLoading = ref(false);
+const selectedGalleryItem = ref<GalleryItem | null>(null);
 const hasMoreCreations = ref(true);
 const creationsContainerRef = ref<HTMLElement | null>(null);
 const creationsSentinelRef = ref<HTMLElement | null>(null);
@@ -339,6 +368,7 @@ function openModal(a: AvatarItem) {
   modalAvatar.value = {
     ...a,
     creator_nickname: "",
+    is_real_person: false,
     instagram_id: null,
   };
   modalRating.value = { up_count: 0, down_count: 0, my_vote: null };
@@ -1037,11 +1067,58 @@ watch(
   font-weight: 500;
 }
 
+.modal-identity {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.identity-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.identity-value {
+  font-size: 0.875rem;
+  color: #374151;
+}
+
+.modal-instagram-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.35rem;
+}
+
+.modal-instagram-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+}
+
+.modal-instagram-link {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #4f46e5;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.modal-instagram-link:hover {
+  color: #6366f1;
+  text-decoration: underline;
+}
+
 .modal-creator {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   flex-wrap: wrap;
+  margin-top: 0.25rem;
 }
 
 .creator-label {
@@ -1053,22 +1130,6 @@ watch(
   font-size: 0.9rem;
   font-weight: 500;
   color: #4f46e5;
-}
-
-.instagram-link {
-  display: inline-flex;
-  align-items: center;
-  color: #6b7280;
-  transition: opacity 0.2s;
-}
-
-.instagram-link:hover {
-  opacity: 0.8;
-}
-
-.instagram-icon {
-  width: 1.25rem;
-  height: 1.25rem;
 }
 
 .modal-rating {
@@ -1255,6 +1316,12 @@ watch(
   border-radius: 0.5rem;
   overflow: hidden;
   background: #f3f4f6;
+  cursor: pointer;
+  transition: opacity 0.2s, box-shadow 0.2s;
+}
+.creation-thumb:hover {
+  opacity: 0.9;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .creation-thumb img {

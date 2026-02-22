@@ -197,9 +197,10 @@ class AvatarListResponse(AvatarResponse):
 
 
 class AvatarDetailResponse(AvatarResponse):
-    """마켓 모달용: 만든 사람, 인스타(실제인물 시)."""
+    """마켓 모달용: 만든 사람, 실존인물 여부, 인스타(실제인물 시)."""
 
     creator_nickname: str = ""
+    is_real_person: bool = False
     instagram_id: Optional[str] = None
 
 

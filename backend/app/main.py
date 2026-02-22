@@ -1241,19 +1241,23 @@ def get_avatar_public(
             detail="Avatar is not available for image generation",
         )
     creator_nickname = ""
+    is_real_person = False
     instagram_id = None
     owner = db.query(User).filter(User.id == avatar.user_id).first()
     if owner:
         creator_nickname = owner.nickname or ""
     if avatar.training_request_id:
         tr = db.query(TrainingRequest).filter(TrainingRequest.id == avatar.training_request_id).first()
-        if tr and tr.instagram_id:
-            instagram_id = tr.instagram_id
+        if tr:
+            is_real_person = tr.is_real_person or False
+            if tr.instagram_id:
+                instagram_id = tr.instagram_id
     from .s3_utils import to_presigned_url_if_s3
 
     data = AvatarResponse.model_validate(avatar).model_dump()
     data["preview_image_url"] = to_presigned_url_if_s3(avatar.preview_image_url) or data.get("preview_image_url")
     data["creator_nickname"] = creator_nickname
+    data["is_real_person"] = is_real_person
     data["instagram_id"] = instagram_id
     return AvatarDetailResponse(**data)
 

@@ -22,6 +22,10 @@
           <p v-if="avatar.credit_per_generation != null" class="avatar-credit">
             {{ avatar.credit_per_generation }} C per generation
           </p>
+          <div class="avatar-detail-block avatar-identity-block">
+            <span class="avatar-detail-label">Identity</span>
+            <p class="avatar-detail-value">{{ avatar.is_real_person ? 'Real person' : 'Fictional character' }}</p>
+          </div>
           <div v-if="avatar.description" class="avatar-detail-block">
             <span class="avatar-detail-label">Description</span>
             <p class="avatar-detail-value">{{ avatar.description }}</p>
@@ -130,7 +134,7 @@
               <span class="option-label-wrap option-help-wrap">
                 <label class="option-label" for="opt-seed">Seed</label>
                 <span class="option-help" aria-label="Help" @click.stop="toggleHelp('seed')">?</span>
-                <div v-if="openHelpOption === 'seed'" class="option-help-popover">{{ optionHelpText.seed }}</div>
+                <div v-if="openHelpOption === 'seed'" class="option-help-popover option-help-popover-above">{{ optionHelpText.seed }}</div>
               </span>
               <input
                 id="opt-seed"
@@ -285,6 +289,7 @@ import {
   generationsApi,
   galleryApi,
   type AvatarItem,
+  type AvatarDetailItem,
   type GalleryItem,
   type ImageSizeOption,
 } from "@/services/api";
@@ -376,7 +381,7 @@ const avatarId = computed(() => {
 
 const avatarsList = ref<AvatarItem[]>([]);
 const avatarsListLoading = ref(true);
-const avatar = ref<AvatarItem | null>(null);
+const avatar = ref<AvatarDetailItem | null>(null);
 const avatarError = ref("");
 const prompt = ref("");
 const DEFAULT_NEGATIVE_PROMPT = "ugly, low quality, distorted face";
@@ -961,7 +966,7 @@ watch(avatarId, loadSharedByAvatar, { immediate: true });
   border: 1px solid #e2e8f0;
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-  overflow: hidden;
+  overflow: visible;
 }
 
 .options-card-header {
@@ -1032,6 +1037,14 @@ watch(avatarId, loadSharedByAvatar, { immediate: true });
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   z-index: 51;
   white-space: normal;
+}
+
+/* Seed 등 하단 옵션: 팝오버를 위로 표시해 카드에 잘리지 않게 */
+.option-help-popover-above {
+  top: auto;
+  bottom: 100%;
+  margin-top: 0;
+  margin-bottom: 0.35rem;
 }
 
 .option-help {

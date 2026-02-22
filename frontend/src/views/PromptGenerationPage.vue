@@ -234,6 +234,7 @@ onUnmounted(() => {
 
 .header h1 {
   font-size: 2.5rem;
+  margin-top: 0.75rem;
   margin-bottom: 0.75rem;
   color: #111827;
 }

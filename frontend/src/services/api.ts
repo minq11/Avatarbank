@@ -184,9 +184,10 @@ export interface AvatarFilterOptions {
   genders: string[];
 }
 
-/** 마켓 모달용: creator_nickname, instagram_id 포함 */
+/** 마켓 모달용: creator_nickname, 실존인물 여부, instagram_id 포함 */
 export interface AvatarDetailItem extends AvatarItem {
   creator_nickname: string;
+  is_real_person: boolean;
   instagram_id: string | null;
 }
 

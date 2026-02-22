@@ -77,7 +77,7 @@
                 class="card-share-btn"
                 :class="{ 'is-shared': g.is_shared === true }"
                 :title="g.is_shared ? 'Shared to Gallery' : 'Share to Gallery'"
-                @click.stop="toggleShare(g)"
+                @click.stop="openShareConfirm(g)"
               >
                 <img src="@/assets/icons/shareBtn.svg" alt="" class="card-share-icon" />
                 {{ g.is_shared === true ? 'Shared' : 'Share' }}
@@ -177,7 +177,7 @@
             class="modal-secondary"
             :class="{ 'is-shared': selectedGeneration.is_shared === true }"
             :title="selectedGeneration.is_shared === true ? 'Shared to Gallery' : 'Share to Gallery'"
-            @click="toggleShare(selectedGeneration)"
+            @click="openShareConfirm(selectedGeneration)"
           >
             <img src="@/assets/icons/shareBtn.svg" alt="" class="modal-btn-icon" />
             {{ selectedGeneration.is_shared === true ? 'Shared' : 'Share' }}
@@ -203,6 +203,26 @@
         </div>
       </div>
     </div>
+
+    <!-- Share 확인 모달 (AI Image Generation과 동일) -->
+    <div v-if="showShareConfirm && shareConfirmTarget" class="confirm-overlay" @click.self="closeShareConfirm">
+      <div class="confirm-modal">
+        <h4 class="confirm-title">
+          {{ shareConfirmTarget.is_shared === true ? 'Remove from Gallery?' : 'Share to Gallery?' }}
+        </h4>
+        <p class="confirm-message">
+          {{ shareConfirmTarget.is_shared === true
+            ? 'This creation will be removed from the public Gallery.'
+            : 'This creation will be visible to everyone in the Gallery.' }}
+        </p>
+        <div class="confirm-actions">
+          <button type="button" class="btn-confirm-cancel" @click="closeShareConfirm">Cancel</button>
+          <button type="button" class="btn-confirm-ok" @click="confirmShareAction">
+            {{ shareConfirmTarget.is_shared === true ? 'Remove' : 'Share' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </section>
 </template>
 
@@ -215,6 +235,8 @@ const list = ref<GenerationItem[]>([]);
 const loading = ref(true);
 const authRequired = ref(false);
 const selectedGeneration = ref<GenerationItem | null>(null);
+const showShareConfirm = ref(false);
+const shareConfirmTarget = ref<GenerationItem | null>(null);
 
 onMounted(async () => {
   loading.value = true;
@@ -299,20 +321,31 @@ async function downloadImage(): Promise<void> {
   }
 }
 
-async function toggleShare(g: GenerationItem): Promise<void> {
+function openShareConfirm(g: GenerationItem): void {
   if (g.status !== "success" || !g.image_url) return;
-  const isShared = g.is_shared === true;
-  const message = isShared
-    ? "Remove this creation from Gallery?"
-    : "Share this creation to Gallery? It will be visible to everyone.";
-  if (!window.confirm(message)) return;
+  shareConfirmTarget.value = g;
+  showShareConfirm.value = true;
+}
+
+function closeShareConfirm(): void {
+  showShareConfirm.value = false;
+  shareConfirmTarget.value = null;
+}
+
+async function confirmShareAction(): Promise<void> {
+  const g = shareConfirmTarget.value;
+  closeShareConfirm();
+  if (!g || g.status !== "success" || !g.image_url) return;
+  const prevList = list.value.map((x) => (x.id === g.id ? { ...x } : x));
+  const prevSelected = selectedGeneration.value?.id === g.id ? { ...selectedGeneration.value } : null;
   try {
     const updated = await generationsApi.toggleShare(g.id);
     const idx = list.value.findIndex((x) => x.id === g.id);
     if (idx !== -1) list.value[idx] = updated;
     if (selectedGeneration.value?.id === g.id) selectedGeneration.value = updated;
   } catch {
-    // ignore
+    list.value = prevList;
+    if (prevSelected) selectedGeneration.value = prevSelected;
   }
 }
 </script>
@@ -850,5 +883,71 @@ async function toggleShare(g: GenerationItem): Promise<void> {
 .modal-btn-icon {
   width: 1rem;
   height: 1rem;
+}
+
+/* Share 확인 모달 (AI Image Generation과 동일) */
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+.confirm-modal {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem 1.75rem;
+  max-width: 400px;
+  width: 100%;
+}
+.confirm-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 0.75rem;
+}
+.confirm-message {
+  font-size: 0.9375rem;
+  color: #4b5563;
+  line-height: 1.5;
+  margin: 0 0 1.25rem;
+}
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+.btn-confirm-cancel {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+.btn-confirm-cancel:hover {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+}
+.btn-confirm-ok {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: white;
+  background: #6366f1;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.btn-confirm-ok:hover {
+  background: #4f46e5;
 }
 </style>

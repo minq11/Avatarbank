@@ -39,7 +39,8 @@ Python 3.14를 사용하는 경우:
 ```powershell
 cd backend
 # python -m venv venv
-.\venv\Scripts\Activate.ps1
+
+
 ```
 
 **Windows (CMD):**
