@@ -161,9 +161,15 @@ export interface AvatarItem {
   description: string | null;
   nationality: string | null;
   gender: string | null;
+  age: number | null;
+  height: number | null;
+  weight: number | null;
+  special_notes: string | null;
   preview_image_url: string | null;
   credit_per_generation: number | null;
   negative_prompt: string | null;
+  is_real_person?: boolean;
+  instagram_id?: string | null;
   status: string;
   created_at: string;
   updated_at: string;
@@ -301,6 +307,7 @@ export const avatarsApi = {
 export interface GenerationItem {
   id: number;
   avatar_id: number | null;
+  avatar_title: string | null;
   buyer_id: number;
   credits_used: number;
   prompt: string;
@@ -314,6 +321,8 @@ export interface GenerationItem {
   is_shared?: boolean;
   image_size?: string | null;
   num_inference_steps?: number | null;
+  enable_safety_checker?: boolean | null;
+  lora_scale?: number | null;
   created_at: string;
 }
 
@@ -345,6 +354,7 @@ export interface GenerationCreatePayload {
   num_inference_steps: number;
   output_format: OutputFormatOption;
   seed: number | null;
+  lora_scale?: number;
 }
 
 export const generationsApi = {
@@ -410,6 +420,7 @@ export interface TrainingRequestDetailItem {
   credit_per_generation: number;
   national: string | null;
   gender: string | null;
+  age: number | null;
   description: string | null;
   is_real_person: boolean;
   instagram_id: string | null;
@@ -429,6 +440,7 @@ export interface CreateTrainingRequestData {
   credit_per_generation: number;
   national: string;
   gender: string;
+  age?: number | null;
   description: string;
   is_real_person: boolean;
   instagram_id?: string;
@@ -467,6 +479,7 @@ export const trainingRequestsApi = {
     formData.append("credit_per_generation", data.credit_per_generation.toString());
     formData.append("national", data.national);
     formData.append("gender", data.gender);
+    if (data.age != null) formData.append("age", String(data.age));
     formData.append("description", data.description);
     // is_real_person은 boolean이어야 함 (null이면 false로 변환)
     const isRealPerson = data.is_real_person === true;

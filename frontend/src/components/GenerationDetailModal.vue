@@ -6,6 +6,16 @@
         <button class="modal-close" type="button" @click="close" aria-label="Close">×</button>
       </div>
       <div class="modal-body detail-modal-body">
+        <div v-if="detail && detail.avatar_id != null" class="detail-avatar-row">
+          <span class="detail-avatar-label">Avatar</span>
+          <router-link
+            :to="generationPageLink"
+            class="detail-avatar-link"
+            @click="close"
+          >
+            {{ detail.avatar_title || `Avatar #${detail.avatar_id}` }}
+          </router-link>
+        </div>
         <div class="detail-image-wrapper">
           <img
             :src="displayImageUrl"
@@ -33,6 +43,14 @@
           <div v-if="detail !== undefined" class="detail-section">
             <h4 class="detail-label">Generation options</h4>
             <div class="detail-options-grid">
+              <div class="detail-option-item">
+                <span class="detail-option-label">Allow NSFW</span>
+                <span class="detail-option-value">{{ detail?.enable_safety_checker === false ? "On" : detail?.enable_safety_checker === true ? "Off" : "—" }}</span>
+              </div>
+              <div class="detail-option-item">
+                <span class="detail-option-label">LoRA strength</span>
+                <span class="detail-option-value">{{ detail?.lora_scale != null ? Number(detail.lora_scale).toFixed(1) : "—" }}</span>
+              </div>
               <div class="detail-option-item">
                 <span class="detail-option-label">Image size</span>
                 <span class="detail-option-value">{{ detail?.image_size ?? "—" }}</span>
@@ -69,7 +87,10 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onBeforeUnmount, watch, ref } from "vue";
+import { useRouter } from "vue-router";
 import { generationsApi, type GalleryItem, type GenerationItem } from "@/services/api";
+
+const router = useRouter();
 
 const props = defineProps<{
   item: GalleryItem | null;
@@ -110,6 +131,19 @@ onBeforeUnmount(() => {
 const displayImageUrl = computed(() => {
   if (!props.item?.image_url) return "";
   return props.imageUrlResolver ? props.imageUrlResolver(props.item.image_url) : props.item.image_url;
+});
+
+const generationPageLink = computed(() => {
+  const d = detail.value;
+  if (!d || d.avatar_id == null) return { path: "/avatars" };
+  const query: Record<string, string> = {
+    prompt: d.prompt || "",
+    image_size: (d.image_size as string) || "landscape_4_3",
+    num_inference_steps: String(d.num_inference_steps ?? 8),
+  };
+  if (d.seed != null && d.seed !== "") query.seed = String(d.seed);
+  if (d.lora_scale != null) query.lora_scale = String(d.lora_scale);
+  return { path: `/avatars/${d.avatar_id}`, query };
 });
 
 function close() {
@@ -224,6 +258,44 @@ async function downloadImage() {
   flex-direction: column;
   gap: 1.5rem;
   background: #ffffff;
+}
+
+.detail-avatar-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  padding: 0.75rem 1rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+}
+
+.detail-avatar-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.detail-avatar-link {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #4f46e5;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.detail-avatar-link:hover {
+  color: #6366f1;
+  text-decoration: underline;
+}
+
+.detail-avatar-hint {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  margin-left: auto;
 }
 
 .detail-image-wrapper {

@@ -28,17 +28,29 @@ function resolveS3Url(s3Path: string | null | undefined): string {
   return API_BASE + (s3Path.startsWith("/") ? s3Path : "/" + s3Path);
 }
 
+// 1x1 transparent PNG – preview 없을 때 서버 요청 없이 사용
+const EMPTY_PREVIEW_DATA_URI =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+
 /**
  * Returns { primary, fallback } for avatar preview.
  * Use primary as img src; on error set src to fallback.
+ * preview_image_url이 없으면 /static/preview_image/{id}.png를 요청하지 않고 빈 이미지 데이터 URI를 씀.
  */
 export function getAvatarPreviewUrls(
   avatarId: number,
   s3PreviewPath: string | null | undefined
 ): { primary: string; fallback: string } {
-  const fallback = resolveS3Url(s3PreviewPath);
-  const primary =
-    assetMap[avatarId] ??
-    (avatarId ? `${API_BASE}/static/preview_image/${avatarId}.png` : fallback);
-  return { primary, fallback: fallback || primary };
+  const hasS3 = !!s3PreviewPath?.trim();
+  const s3Url = resolveS3Url(s3PreviewPath);
+  const fromAsset = assetMap[avatarId];
+
+  if (fromAsset) {
+    return { primary: fromAsset, fallback: s3Url || fromAsset };
+  }
+  if (hasS3) {
+    return { primary: s3Url, fallback: s3Url };
+  }
+  // preview 없음: /static/preview_image/{id}.png 요청하지 않음 (404 무한 재시도 방지)
+  return { primary: EMPTY_PREVIEW_DATA_URI, fallback: EMPTY_PREVIEW_DATA_URI };
 }

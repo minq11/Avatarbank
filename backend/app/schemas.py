@@ -1,7 +1,8 @@
 from datetime import datetime
+from decimal import Decimal
 from typing import Literal, Optional
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 
 class TokenPair(BaseModel):
@@ -83,11 +84,13 @@ class GenerationCreateRequest(BaseModel):
     num_inference_steps: int = Field(default=8, ge=1, le=20)
     output_format: OutputFormatLiteral = "png"
     seed: Optional[int] = Field(default=None, ge=0)
+    lora_scale: float = Field(default=1.6, ge=0.0, le=4.0)
 
 
 class GenerationResponse(BaseModel):
     id: int
     avatar_id: Optional[int] = None
+    avatar_title: Optional[str] = None
     buyer_id: int
     credits_used: int
     prompt: str
@@ -101,6 +104,8 @@ class GenerationResponse(BaseModel):
     is_shared: bool = False
     image_size: Optional[str] = None
     num_inference_steps: Optional[int] = None
+    enable_safety_checker: Optional[bool] = None
+    lora_scale: Optional[float] = None
     created_at: datetime
 
     class Config:
@@ -154,6 +159,7 @@ class TrainingRequestDetailResponse(BaseModel):
     credit_per_generation: int
     national: Optional[str] = None
     gender: Optional[str] = None
+    age: Optional[int] = None
     description: Optional[str] = None
     is_real_person: bool
     instagram_id: Optional[str] = None
@@ -177,12 +183,27 @@ class AvatarResponse(BaseModel):
     description: Optional[str] = None
     nationality: Optional[str] = None
     gender: Optional[str] = None
+    age: Optional[int] = None
+    height: Optional[float] = None
+    weight: Optional[float] = None
+    special_notes: Optional[str] = None
     preview_image_url: Optional[str] = None
     credit_per_generation: Optional[int] = None
     negative_prompt: Optional[str] = None
+    is_real_person: bool = False
+    instagram_id: Optional[str] = None
     status: str
     created_at: datetime
     updated_at: datetime
+
+    @field_validator("height", "weight", mode="before")
+    @classmethod
+    def coerce_decimal(cls, v: Optional[Decimal | float]) -> Optional[float]:
+        if v is None:
+            return None
+        if isinstance(v, Decimal):
+            return float(v)
+        return v
 
     class Config:
         from_attributes = True

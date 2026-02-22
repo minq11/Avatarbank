@@ -34,6 +34,16 @@ from .models import (
     User,
 )
 from .fal_client import run_generation_sync
+
+# Fal 프롬프트용: DB에 저장된 국적/성별 코드를 풀네임으로 변환 (KR->Korean, M->male 등)
+NATIONALITY_FOR_PROMPT = {
+    "KR": "Korean", "US": "American", "JP": "Japanese", "CN": "Chinese",
+    "GB": "British", "FR": "French", "DE": "German", "IT": "Italian",
+    "ES": "Spanish", "BR": "Brazilian", "IN": "Indian", "RU": "Russian",
+    "AU": "Australian", "CA": "Canadian", "MX": "Mexican", "ETC": " ",
+}
+GENDER_FOR_PROMPT = {"M": "male", "W": "female", "ETC": " "}
+
 from .schemas import (
     AdminTrainingRequestResponse,
     AdminUpgradeRequest,
@@ -388,6 +398,8 @@ def create_generation(
         negative_prompt=combined_negative,
         image_size=payload.image_size,
         num_inference_steps=payload.num_inference_steps,
+        enable_safety_checker=payload.enable_safety_checker,
+        lora_scale=payload.lora_scale,
         status=GenerationStatus.PENDING.value,
     )
     db.add(generation)
@@ -405,6 +417,20 @@ def create_generation(
     db.commit()
     db.refresh(generation)
 
+    # Fal에 넘길 프롬프트: 맨 앞에 국적 + 성별 + 나이 한 줄 추가 (코드는 풀네임으로 변환, 내부용)
+    prefix_parts = []
+    if getattr(avatar, "nationality", None) and str(avatar.nationality).strip():
+        code = str(avatar.nationality).strip().upper()
+        prefix_parts.append(NATIONALITY_FOR_PROMPT.get(code, avatar.nationality.strip()))
+    if getattr(avatar, "gender", None) and str(avatar.gender).strip():
+        code = str(avatar.gender).strip().upper()
+        prefix_parts.append(GENDER_FOR_PROMPT.get(code, avatar.gender.strip()))
+    if getattr(avatar, "age", None) is not None:
+        prefix_parts.append(f"{avatar.age} years old")
+    prompt_for_fal = payload.prompt
+    if prefix_parts:
+        prompt_for_fal = ", ".join(prefix_parts) + ". " + payload.prompt
+
     try:
         from .s3_utils import generate_presigned_download_url
 
@@ -412,8 +438,9 @@ def create_generation(
         if lora_url and "s3" in lora_url.lower() and "amazonaws" in lora_url.lower():
             lora_url = generate_presigned_download_url(lora_url, expires_in=3600)
         response_payload = run_generation_sync(
-            payload.prompt,
+            prompt_for_fal,
             lora_url=lora_url,
+            lora_scale=payload.lora_scale,
             negative_prompt=combined_negative,
             enable_safety_checker=payload.enable_safety_checker,
             image_size=payload.image_size,
@@ -465,8 +492,13 @@ def get_generation(
     generation = db.query(Generation).filter(Generation.id == generation_id).first()
     if not generation:
         raise HTTPException(status_code=404, detail="Generation not found.")
-
-    return GenerationResponse.model_validate(generation)
+    data = GenerationResponse.model_validate(generation).model_dump()
+    if generation.avatar_id:
+        avatar = db.query(Avatar).filter(Avatar.id == generation.avatar_id).first()
+        data["avatar_title"] = avatar.title if avatar else None
+    else:
+        data["avatar_title"] = None
+    return GenerationResponse(**data)
 
 
 @app.get("/my/generations", response_model=list[GenerationResponse], tags=["generation"])
@@ -574,6 +606,7 @@ async def create_training_request(
     credit_per_generation: int = Form(...),
     national: str = Form(...),
     gender: str = Form(...),
+    age: int = Form(None),
     description: str = Form(...),
     is_real_person: bool = Form(False),
     instagram_id: str = Form(None),
@@ -647,6 +680,7 @@ async def create_training_request(
         credit_per_generation=credit_per_generation,
         national=national,
         gender=gender,
+        age=age,
         description=description,
         is_real_person=is_real_person,
         instagram_id=instagram_id if is_real_person is True else None,
@@ -1068,6 +1102,9 @@ async def admin_upload_lora(
         avatar.description = tr.description
         avatar.nationality = tr.national
         avatar.gender = tr.gender
+        avatar.age = tr.age
+        avatar.is_real_person = tr.is_real_person or False
+        avatar.instagram_id = tr.instagram_id
         avatar.negative_prompt = tr.negative_prompt
         avatar.credit_per_generation = tr.credit_per_generation
         if tr.preview_image_url:
@@ -1080,6 +1117,9 @@ async def admin_upload_lora(
             description=tr.description,
             nationality=tr.national,
             gender=tr.gender,
+            age=tr.age,
+            is_real_person=tr.is_real_person or False,
+            instagram_id=tr.instagram_id,
             negative_prompt=tr.negative_prompt,
             credit_per_generation=tr.credit_per_generation,
             lora_path=lora_url,
@@ -1241,15 +1281,15 @@ def get_avatar_public(
             detail="Avatar is not available for image generation",
         )
     creator_nickname = ""
-    is_real_person = False
-    instagram_id = None
+    is_real_person = getattr(avatar, "is_real_person", False) or False
+    instagram_id = getattr(avatar, "instagram_id", None)
     owner = db.query(User).filter(User.id == avatar.user_id).first()
     if owner:
         creator_nickname = owner.nickname or ""
     if avatar.training_request_id:
         tr = db.query(TrainingRequest).filter(TrainingRequest.id == avatar.training_request_id).first()
         if tr:
-            is_real_person = tr.is_real_person or False
+            is_real_person = tr.is_real_person or is_real_person
             if tr.instagram_id:
                 instagram_id = tr.instagram_id
     from .s3_utils import to_presigned_url_if_s3
@@ -1414,9 +1454,10 @@ async def upload_lora_avatar(
     description: str = Form(None),
     national: str = Form(None),
     gender: str = Form(None),
+    age: int = Form(None),
     negative_prompt: str = Form(None),
     credit_per_generation: int = Form(None),
-    is_real_person: bool = Form(False),
+    is_real_person: str = Form("false"),
     instagram_id: str = Form(None),
     preview_image: UploadFile = File(None),
     lora_file: UploadFile = File(..., description=".safetensors LoRA file"),
@@ -1429,6 +1470,8 @@ async def upload_lora_avatar(
     from io import BytesIO
 
     from .storage import upload_file_for_app
+
+    is_real_person_bool = (is_real_person or "").strip().lower() in ("true", "1", "yes")
 
     filename = lora_file.filename or "model.safetensors"
     if not filename.lower().endswith(".safetensors"):
@@ -1491,6 +1534,9 @@ async def upload_lora_avatar(
         description=description.strip() if description else None,
         nationality=national.strip() if national else None,
         gender=gender.strip() if gender else None,
+        age=age,
+        is_real_person=is_real_person_bool,
+        instagram_id=instagram_id.strip() if instagram_id and instagram_id.strip() else None,
         negative_prompt=negative_prompt.strip() if negative_prompt else None,
         credit_per_generation=credit_per_generation if credit_per_generation is not None else 1,
         lora_path=lora_url,

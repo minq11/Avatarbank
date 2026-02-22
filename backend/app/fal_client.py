@@ -84,6 +84,7 @@ def get_result(request_id: str) -> dict[str, Any]:
 def run_generation_sync(
     prompt: str,
     lora_url: str | None = None,
+    lora_scale: float = 1.6,
     negative_prompt: str | None = None,
     enable_safety_checker: bool = True,
     image_size: str = "landscape_4_3",
@@ -93,7 +94,7 @@ def run_generation_sync(
 ) -> dict[str, Any]:
     """
     fal-ai/z-image/turbo/lora 동기 호출.
-    lora_url이 있으면 해당 LoRA를 적용 (최대 3개까지 가능, 현재 1개만 전달).
+    lora_url이 있으면 해당 LoRA를 적용 (scale 0~4, 기본 1).
     """
     payload: dict[str, Any] = {
         "prompt": prompt,
@@ -108,8 +109,7 @@ def run_generation_sync(
     if seed is not None:
         payload["seed"] = seed
     if lora_url:
-        # fal LoRA 입력: path에 공개 URL 또는 presigned URL 전달
-        payload["loras"] = [{"path": lora_url}]
+        payload["loras"] = [{"path": lora_url, "scale": lora_scale}]
     url = _build_sync_url()
     with httpx.Client(timeout=120) as client:
         response = client.post(url, json=payload, headers=_headers())

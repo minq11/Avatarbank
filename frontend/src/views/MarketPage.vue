@@ -83,6 +83,18 @@
           @click="openModal(a)"
         >
           <div class="card-thumb-wrap">
+            <a
+              v-if="a.is_real_person && a.instagram_id"
+              :href="instagramUrl(a.instagram_id)"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="card-thumb-instagram"
+              title="Instagram"
+              @click.stop
+            >
+              <img src="@/assets/icons/Instagram_logo_2016.svg" alt="" class="card-thumb-instagram-icon" />
+              <span>{{ formatInstagramId(a.instagram_id) }}</span>
+            </a>
             <img
               v-if="getPreviewUrls(a).primary"
               :src="getPreviewUrls(a).primary"
@@ -134,31 +146,49 @@
             </div>
             <div class="modal-info">
               <p v-if="modalAvatar.description" class="modal-desc">{{ modalAvatar.description }}</p>
-              <div class="modal-options">
-                <span v-if="modalAvatar.nationality" class="option-tag">{{ modalAvatar.nationality }}</span>
-                <span v-if="modalAvatar.gender" class="option-tag">{{ modalAvatar.gender }}</span>
-                <span class="option-tag credit-tag">{{ modalAvatar.credit_per_generation != null ? modalAvatar.credit_per_generation : 1 }} C / gen</span>
-              </div>
-              <div class="modal-identity">
-                <span class="identity-label">Identity</span>
-                <span class="identity-value">{{ modalAvatar.is_real_person ? 'Real person' : 'Fictional character' }}</span>
-              </div>
-              <div v-if="modalAvatar.is_real_person && modalAvatar.instagram_id" class="modal-instagram-row">
-                <img src="@/assets/icons/Instagram_logo_2016.svg" alt="" class="modal-instagram-icon" />
-                <a
-                  :href="instagramUrl(modalAvatar.instagram_id)"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="modal-instagram-link"
-                  title="Instagram"
-                >
-                  {{ formatInstagramId(modalAvatar.instagram_id) }}
-                </a>
-              </div>
-              <div class="modal-creator">
-                <span class="creator-label">By</span>
-                <span class="creator-name">@{{ modalAvatar.creator_nickname || '—' }}</span>
-              </div>
+              <table class="modal-info-table">
+                <tbody>
+                  <tr v-if="modalAvatar.nationality">
+                    <th scope="row">Nationality</th>
+                    <td>{{ modalAvatar.nationality }}</td>
+                  </tr>
+                  <tr v-if="modalAvatar.gender">
+                    <th scope="row">Gender</th>
+                    <td>{{ modalAvatar.gender }}</td>
+                  </tr>
+                  <tr v-if="modalAvatar.age != null">
+                    <th scope="row">Age</th>
+                    <td>{{ modalAvatar.age }}</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Credit</th>
+                    <td>{{ modalAvatar.credit_per_generation != null ? modalAvatar.credit_per_generation : 1 }} C / gen</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Identity</th>
+                    <td>{{ modalAvatar.is_real_person ? 'Real person' : 'Fictional character' }}</td>
+                  </tr>
+                  <tr v-if="modalAvatar.is_real_person && modalAvatar.instagram_id">
+                    <th scope="row">Instagram</th>
+                    <td>
+                      <a
+                        :href="instagramUrl(modalAvatar.instagram_id)"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="modal-instagram-link"
+                        title="Instagram"
+                      >
+                        <img src="@/assets/icons/Instagram_logo_2016.svg" alt="" class="modal-instagram-icon-inline" />
+                        {{ formatInstagramId(modalAvatar.instagram_id) }}
+                      </a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Creator</th>
+                    <td class="creator-cell">@{{ modalAvatar.creator_nickname || '—' }}</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
 
@@ -831,8 +861,37 @@ watch(
 }
 
 .card-thumb-wrap {
+  position: relative;
   aspect-ratio: 1;
   background: #f3f4f6;
+  overflow: hidden;
+}
+
+.card-thumb-instagram {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.5rem;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.6) 0%, transparent 100%);
+  color: #fff;
+  text-decoration: none;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+.card-thumb-instagram:hover {
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.75) 0%, transparent 100%);
+  color: #fff;
+}
+.card-thumb-instagram-icon {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  filter: brightness(0) invert(1);
 }
 
 .card-thumb {
@@ -1046,62 +1105,49 @@ watch(
   overflow: hidden;
 }
 
-.modal-options {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-bottom: 0.75rem;
+.modal-info-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  margin-top: 0.75rem;
 }
 
-.option-tag {
-  font-size: 0.8rem;
-  padding: 0.25rem 0.5rem;
-  background: #f3f4f6;
-  color: #4b5563;
-  border-radius: 0.375rem;
+.modal-info-table th,
+.modal-info-table td {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid #e5e7eb;
 }
 
-.credit-tag {
-  background: #eef2ff;
-  color: #4f46e5;
+.modal-info-table tr:last-child th,
+.modal-info-table tr:last-child td {
+  border-bottom: none;
+}
+
+.modal-info-table th {
+  font-weight: 600;
+  color: #6b7280;
+  width: 7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-size: 0.75rem;
+}
+
+.modal-info-table td {
+  color: #111827;
   font-weight: 500;
 }
 
-.modal-identity {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-top: 0.25rem;
-}
-
-.identity-label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #6b7280;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.identity-value {
-  font-size: 0.875rem;
-  color: #374151;
-}
-
-.modal-instagram-row {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  margin-top: 0.35rem;
-}
-
-.modal-instagram-icon {
-  width: 1.25rem;
-  height: 1.25rem;
-  flex-shrink: 0;
+.modal-info-table .creator-cell {
+  color: #4f46e5;
 }
 
 .modal-instagram-link {
-  font-size: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.875rem;
   font-weight: 500;
   color: #4f46e5;
   text-decoration: none;
@@ -1113,23 +1159,10 @@ watch(
   text-decoration: underline;
 }
 
-.modal-creator {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-  margin-top: 0.25rem;
-}
-
-.creator-label {
-  font-size: 0.85rem;
-  color: #6b7280;
-}
-
-.creator-name {
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: #4f46e5;
+.modal-instagram-icon-inline {
+  width: 1.125rem;
+  height: 1.125rem;
+  flex-shrink: 0;
 }
 
 .modal-rating {

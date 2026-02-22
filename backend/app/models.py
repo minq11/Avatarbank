@@ -5,6 +5,7 @@ from sqlalchemy import (
     Boolean,
     Column,
     DateTime,
+    Float,
     ForeignKey,
     Integer,
     Numeric,
@@ -66,6 +67,7 @@ class Avatar(Base):
     description = Column(Text, nullable=True)
     nationality = Column(String, nullable=True)
     gender = Column(String, nullable=True)
+    age = Column(Integer, nullable=True)
     height = Column(Numeric(5, 2), nullable=True)
     weight = Column(Numeric(5, 2), nullable=True)
     special_notes = Column(Text, nullable=True)
@@ -75,6 +77,8 @@ class Avatar(Base):
     nsfw_allowed = Column(Boolean, nullable=False, default=False)
     is_public = Column(Boolean, nullable=False, default=False)
     preview_image_url = Column(String, nullable=True)
+    is_real_person = Column(Boolean, nullable=False, default=False)
+    instagram_id = Column(String, nullable=True)
     status = Column(String, nullable=False, default=AvatarStatus.PENDING)
     deleted_at = Column(DateTime, nullable=True)  # 논리 삭제
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
@@ -133,6 +137,8 @@ class Generation(Base):
     is_shared = Column(Boolean, nullable=False, default=False)
     image_size = Column(String, nullable=True)
     num_inference_steps = Column(Integer, nullable=True)
+    enable_safety_checker = Column(Boolean, nullable=True)  # True = safety on (no NSFW)
+    lora_scale = Column(Float, nullable=True)  # LoRA scale 0–4
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
 
 
@@ -282,6 +288,7 @@ class TrainingRequest(Base):
     credit_per_generation = Column(Integer, nullable=False)
     national = Column(String, nullable=True)
     gender = Column(String, nullable=True)
+    age = Column(Integer, nullable=True)
     description = Column(Text, nullable=True)
     is_real_person = Column(Boolean, nullable=False, default=False)
     instagram_id = Column(String, nullable=True)

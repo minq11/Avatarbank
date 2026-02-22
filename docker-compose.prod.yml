@@ -1,6 +1,4 @@
 # 운영 환경용 Docker Compose
-version: '3.8'
-
 services:
   # 백엔드 API
   backend:

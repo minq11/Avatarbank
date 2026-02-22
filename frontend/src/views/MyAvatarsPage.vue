@@ -254,6 +254,18 @@
             </div>
 
             <div class="form-group">
+              <label class="form-label">Age <span class="field-optional">(optional)</span></label>
+              <input
+                v-model.number="trainingForm.age"
+                type="number"
+                min="1"
+                max="120"
+                class="form-input"
+                placeholder="Age"
+              />
+            </div>
+
+            <div class="form-group">
               <label class="form-label">Description <span class="required">*</span></label>
               <textarea
                 v-model="trainingForm.description"
@@ -625,6 +637,16 @@
             </div>
 
             <div class="form-group">
+              <label class="form-label">Age</label>
+              <input
+                :value="selectedRequest.age != null ? selectedRequest.age : ''"
+                type="text"
+                class="form-input"
+                readonly
+              />
+            </div>
+
+            <div class="form-group">
               <label class="form-label">Description</label>
               <textarea
                 :value="selectedRequest.description || ''"
@@ -805,9 +827,9 @@
               <input
                 v-model.number="uploadLoraForm.creditPerGeneration"
                 type="number"
-                min="1"
+                min="0"
                 class="form-input"
-                placeholder="Credits per generation"
+                placeholder="Credits per generation (0 allowed)"
               />
             </div>
 
@@ -850,6 +872,18 @@
                   <span>Etc</span>
                 </label>
               </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Age <span class="field-optional">(optional)</span></label>
+              <input
+                v-model.number="uploadLoraForm.age"
+                type="number"
+                min="1"
+                max="120"
+                class="form-input"
+                placeholder="Age"
+              />
             </div>
 
             <div class="form-group">
@@ -1014,6 +1048,27 @@
                 <p class="detail-value">{{ selectedAvatar.gender || "N/A" }}</p>
               </div>
               <div class="detail-item">
+                <label class="detail-label">Age</label>
+                <p class="detail-value">{{ selectedAvatar.age != null ? selectedAvatar.age : "N/A" }}</p>
+              </div>
+              <div class="detail-item">
+                <label class="detail-label">Identity</label>
+                <p class="detail-value">{{ selectedAvatar.is_real_person ? "Real person" : "Fictional character" }}</p>
+              </div>
+              <div v-if="selectedAvatar.is_real_person && selectedAvatar.instagram_id" class="detail-item">
+                <label class="detail-label">Instagram</label>
+                <p class="detail-value">
+                  <a
+                    :href="instagramUrl(selectedAvatar.instagram_id!)"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="detail-instagram-link"
+                  >
+                    {{ formatInstagramId(selectedAvatar.instagram_id) }}
+                  </a>
+                </p>
+              </div>
+              <div class="detail-item">
                 <label class="detail-label">Description</label>
                 <p class="detail-value">{{ selectedAvatar.description || "N/A" }}</p>
               </div>
@@ -1116,6 +1171,17 @@ function getImageUrl(url: string | null | undefined): string {
   return url;
 }
 
+function instagramUrl(id: string): string {
+  const clean = id.replace(/^@/, "").trim();
+  if (!clean) return "#";
+  if (clean.startsWith("http")) return clean;
+  return `https://www.instagram.com/${clean}/`;
+}
+function formatInstagramId(id: string): string {
+  const trimmed = id.trim();
+  return trimmed.startsWith("@") ? trimmed : `@${trimmed}`;
+}
+
 // 아바타 상세 모달: 큰 미리보기에 표시할 URL (새로 고른 파일 → blob, 기존 → local/API/S3)
 const previewImageDisplayUrl = computed(() => {
   if (editForm.value.previewImage) return editForm.value.previewImageUrl || "";
@@ -1162,6 +1228,7 @@ const trainingForm = ref({
   creditPerGeneration: 1,
   national: "",
   gender: "",
+  age: null as number | null,
   description: "",
   previewImage: null as File | null,
   previewImageUrl: "",
@@ -1192,6 +1259,7 @@ const uploadLoraForm = ref({
   creditPerGeneration: 1,
   national: "",
   gender: "",
+  age: null as number | null,
   description: "",
   previewImage: null as File | null,
   previewImageUrl: "",
@@ -1218,13 +1286,13 @@ const isTrainingFormValid = computed(() => {
   );
 });
 
-// Training Request와 동일 필수값 (사진 관련만 제외)
+// Training Request와 동일 필수값 (사진 관련만 제외). Credit per generation은 0 허용.
 const isUploadLoraFormValid = computed(() => {
   const form = uploadLoraForm.value;
   return (
     form.avatarName.trim() !== "" &&
     form.negativePrompt.trim() !== "" &&
-    form.creditPerGeneration > 0 &&
+    form.creditPerGeneration >= 0 &&
     form.national !== "" &&
     form.gender !== "" &&
     form.description.trim() !== "" &&
@@ -1318,6 +1386,7 @@ function openUploadLoraModal() {
     creditPerGeneration: 1,
     national: "",
     gender: "",
+    age: null,
     description: "",
     previewImage: null,
     previewImageUrl: "",
@@ -1364,6 +1433,7 @@ async function submitUploadLora() {
     fd.append("credit_per_generation", String(form.creditPerGeneration));
     if (form.national) fd.append("national", form.national);
     if (form.gender) fd.append("gender", form.gender);
+    if (form.age != null) fd.append("age", String(form.age));
     if (form.description.trim()) fd.append("description", form.description.trim());
     if (form.previewImage) fd.append("preview_image", form.previewImage);
     fd.append("lora_file", form.loraFile);
@@ -1410,6 +1480,7 @@ async function resetTrainingForm() {
     creditPerGeneration: 1,
     national: "",
     gender: "",
+    age: null,
     description: "",
     previewImage: null,
     previewImageUrl: "",
@@ -1654,6 +1725,7 @@ async function submitTrainingRequest() {
       credit_per_generation: trainingForm.value.creditPerGeneration,
       national: trainingForm.value.national,
       gender: trainingForm.value.gender,
+      age: trainingForm.value.age,
       description: trainingForm.value.description,
       is_real_person: trainingForm.value.isRealPerson === true,
       instagram_id: trainingForm.value.isRealPerson === true ? trainingForm.value.instagramId : undefined,
@@ -2455,6 +2527,13 @@ async function deleteAvatar() {
 .detail-value {
   font-size: 0.875rem;
   color: #111827;
+}
+.detail-instagram-link {
+  color: #6366f1;
+  text-decoration: none;
+}
+.detail-instagram-link:hover {
+  text-decoration: underline;
 }
 
 .edit-section {

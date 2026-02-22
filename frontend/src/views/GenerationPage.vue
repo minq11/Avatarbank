@@ -7,6 +7,18 @@
       <div v-if="avatarId != null" class="left">
         <!-- 아바타 미리보기 (LoRA 선택 시에만 표시) -->
         <div v-if="avatar" class="avatar-preview">
+          <div v-if="avatar.is_real_person && avatar.instagram_id" class="avatar-preview-instagram">
+            <a
+              :href="instagramUrl(avatar.instagram_id)"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="avatar-preview-instagram-link"
+              title="Instagram"
+            >
+              <img src="@/assets/icons/Instagram_logo_2016.svg" alt="" class="avatar-preview-instagram-icon" />
+              <span>{{ formatInstagramId(avatar.instagram_id) }}</span>
+            </a>
+          </div>
           <div v-if="avatarPreviewUrls.primary" class="preview-img-wrap">
             <img
               :src="avatarPreviewUrls.primary"
@@ -19,21 +31,67 @@
             <span>No preview</span>
           </div>
           <p class="avatar-name">{{ avatar.title }}</p>
-          <p v-if="avatar.credit_per_generation != null" class="avatar-credit">
-            {{ avatar.credit_per_generation }} C per generation
-          </p>
-          <div class="avatar-detail-block avatar-identity-block">
-            <span class="avatar-detail-label">Identity</span>
-            <p class="avatar-detail-value">{{ avatar.is_real_person ? 'Real person' : 'Fictional character' }}</p>
-          </div>
-          <div v-if="avatar.description" class="avatar-detail-block">
-            <span class="avatar-detail-label">Description</span>
-            <p class="avatar-detail-value">{{ avatar.description }}</p>
-          </div>
-          <div v-if="avatar.negative_prompt" class="avatar-detail-block">
-            <span class="avatar-detail-label">Negative prompt</span>
-            <p class="avatar-detail-value avatar-detail-mono">{{ avatar.negative_prompt }}</p>
-          </div>
+          <table class="avatar-info-table">
+            <tbody>
+              <tr v-if="avatar.description">
+                <th scope="row">Description</th>
+                <td class="avatar-detail-value">{{ avatar.description }}</td>
+              </tr>
+              <tr v-if="avatar.nationality">
+                <th scope="row">Nationality</th>
+                <td>{{ avatar.nationality }}</td>
+              </tr>
+              <tr v-if="avatar.gender">
+                <th scope="row">Gender</th>
+                <td>{{ avatar.gender }}</td>
+              </tr>
+              <tr v-if="avatar.age != null">
+                <th scope="row">Age</th>
+                <td>{{ avatar.age }}</td>
+              </tr>
+              <tr v-if="avatar.height != null">
+                <th scope="row">Height</th>
+                <td>{{ avatar.height }} cm</td>
+              </tr>
+              <tr v-if="avatar.weight != null">
+                <th scope="row">Weight</th>
+                <td>{{ avatar.weight }} kg</td>
+              </tr>
+              <tr v-if="avatar.special_notes">
+                <th scope="row">Special notes</th>
+                <td class="avatar-detail-value">{{ avatar.special_notes }}</td>
+              </tr>
+              <tr>
+                <th scope="row">Credit</th>
+                <td>{{ avatar.credit_per_generation != null ? avatar.credit_per_generation : 1 }} C / gen</td>
+              </tr>
+              <tr>
+                <th scope="row">Identity</th>
+                <td>{{ avatar.is_real_person ? 'Real person' : 'Fictional character' }}</td>
+              </tr>
+              <tr v-if="avatar.is_real_person && avatar.instagram_id">
+                <th scope="row">Instagram</th>
+                <td>
+                  <a
+                    :href="instagramUrl(avatar.instagram_id)"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="avatar-instagram-link"
+                  >
+                    {{ formatInstagramId(avatar.instagram_id) }}
+                  </a>
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">Creator</th>
+                <td>@{{ avatar.creator_nickname || '—' }}</td>
+              </tr>
+              <tr v-if="avatar.negative_prompt">
+                <th scope="row">Negative prompt</th>
+                <td class="avatar-detail-value avatar-detail-mono">{{ avatar.negative_prompt }}</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
         <div v-else-if="avatarError" class="error-state">
           <p>{{ avatarError }}</p>
@@ -146,6 +204,28 @@
                 placeholder="Random (clear for random)"
                 @input="onSeedInput"
               />
+            </div>
+            <div class="option-row">
+              <span class="option-label-wrap option-help-wrap">
+                <span class="option-label">LoRA strength</span>
+                <span class="option-help" aria-label="Help" @click.stop="toggleHelp('loraScale')">?</span>
+                <div v-if="openHelpOption === 'loraScale'" class="option-help-popover option-help-popover-above">{{ optionHelpText.loraScale }}</div>
+              </span>
+              <div class="option-lora-scale">
+                <input
+                  id="opt-lora-scale"
+                  v-model.number="loraScale"
+                  type="range"
+                  min="0"
+                  max="4"
+                  step="0.1"
+                  class="option-range"
+                  aria-valuemin="0"
+                  aria-valuemax="4"
+                  :aria-valuenow="loraScale"
+                />
+                <span class="option-lora-scale-value">{{ loraScale.toFixed(1) }}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -391,15 +471,17 @@ const optionsExpanded = ref(true);
 const imageSize = ref<ImageSizeOption>("landscape_4_3");
 const numInferenceSteps = ref(8);
 const seedInput = ref("1");
+const loraScale = ref(1.6);
 const loading = ref(false);
 
-type HelpOptionKey = "nsfw" | "imageSize" | "steps" | "seed";
+type HelpOptionKey = "nsfw" | "imageSize" | "steps" | "seed" | "loraScale";
 const openHelpOption = ref<HelpOptionKey | null>(null);
 const optionHelpText: Record<HelpOptionKey, string> = {
   nsfw: "When on, the safety filter is relaxed so more varied or adult content may be generated.",
   imageSize: "Aspect ratio and resolution of the generated image.",
   steps: "More steps usually improve quality but take longer. 8 is a good default.",
   seed: "Same seed + same prompt gives the same image. Leave empty for random.",
+  loraScale: "How strongly to apply the avatar LoRA (0–4). 1.6 is default; higher = more avatar likeness, lower = more prompt-driven.",
 };
 function toggleHelp(key: HelpOptionKey) {
   openHelpOption.value = openHelpOption.value === key ? null : key;
@@ -484,6 +566,7 @@ async function requestGeneration() {
       num_inference_steps: numInferenceSteps.value,
       output_format: "png",
       seed: seedNum !== null && !Number.isNaN(seedNum) ? seedNum : null,
+      lora_scale: loraScale.value,
     });
     generationId.value = res.id;
     resultIsShared.value = res.is_shared === true;
@@ -543,6 +626,18 @@ function formatDate(iso: string): string {
   }
 }
 
+function instagramUrl(id: string): string {
+  const clean = id.replace(/^@/, "").trim();
+  if (!clean) return "#";
+  if (clean.startsWith("http")) return clean;
+  return `https://www.instagram.com/${clean}/`;
+}
+
+function formatInstagramId(id: string): string {
+  const trimmed = id.trim();
+  return trimmed.startsWith("@") ? trimmed : `@${trimmed}`;
+}
+
 async function loadSharedByAvatar() {
   const id = avatarId.value;
   if (id == null) {
@@ -570,13 +665,37 @@ async function loadAvatarsList() {
   }
 }
 
+const VALID_IMAGE_SIZES: ImageSizeOption[] = [
+  "landscape_4_3", "landscape_16_9", "portrait_4_3", "portrait_16_9", "square", "square_hd",
+];
+
+function applyQueryToForm() {
+  const q = route.query;
+  if (typeof q.prompt === "string" && q.prompt.trim()) {
+    prompt.value = q.prompt.trim();
+  }
+  if (typeof q.seed === "string") {
+    const s = q.seed.trim().replace(/\D/g, "");
+    if (s !== "") seedInput.value = s;
+  }
+  if (typeof q.image_size === "string" && VALID_IMAGE_SIZES.includes(q.image_size as ImageSizeOption)) {
+    imageSize.value = q.image_size as ImageSizeOption;
+  }
+  if (typeof q.num_inference_steps === "string") {
+    const n = parseInt(q.num_inference_steps, 10);
+    if (!Number.isNaN(n) && n >= 4 && n <= 20) numInferenceSteps.value = n;
+  }
+  if (typeof q.lora_scale === "string") {
+    const s = parseFloat(q.lora_scale);
+    if (!Number.isNaN(s) && s >= 0 && s <= 4) loraScale.value = s;
+  }
+}
+
 onMounted(() => {
   loadAvatarsList();
-  const q = route.query.prompt;
-  if (typeof q === "string" && q.trim()) {
-    prompt.value = q.trim();
-  }
+  applyQueryToForm();
 });
+watch(() => route.query, applyQueryToForm, { immediate: false });
 watch(avatarId, loadAvatar, { immediate: true });
 watch(avatarId, loadSharedByAvatar, { immediate: true });
 </script>
@@ -629,6 +748,31 @@ watch(avatarId, loadSharedByAvatar, { immediate: true });
   padding: 1rem;
 }
 
+.avatar-preview-instagram {
+  margin-bottom: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: linear-gradient(135deg, #fdf2f8, #fce7f3);
+  border-radius: 10px;
+  border: 1px solid #fbcfe8;
+}
+.avatar-preview-instagram-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #831843;
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+.avatar-preview-instagram-link:hover {
+  text-decoration: underline;
+}
+.avatar-preview-instagram-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+}
+
 .preview-img-wrap,
 .preview-placeholder {
   border-radius: 12px;
@@ -658,37 +802,59 @@ watch(avatarId, loadSharedByAvatar, { immediate: true });
   color: #111827;
 }
 
-.avatar-credit {
-  font-size: 0.85rem;
-  color: #64748b;
-  margin-top: 0.25rem;
+.avatar-info-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  margin-top: 0.75rem;
 }
 
-.avatar-detail-block {
-  margin-top: 1rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid #e2e8f0;
+.avatar-info-table th,
+.avatar-info-table td {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid #e2e8f0;
 }
-.avatar-detail-label {
-  display: block;
-  font-size: 0.75rem;
+
+.avatar-info-table tr:last-child th,
+.avatar-info-table tr:last-child td {
+  border-bottom: none;
+}
+
+.avatar-info-table th {
   font-weight: 600;
   color: #64748b;
+  width: 7rem;
   text-transform: uppercase;
-  letter-spacing: 0.025em;
-  margin-bottom: 0.35rem;
+  letter-spacing: 0.03em;
+  font-size: 0.75rem;
 }
-.avatar-detail-value {
-  font-size: 0.875rem;
+
+.avatar-info-table td {
   color: #334155;
+  font-weight: 500;
   line-height: 1.5;
-  margin: 0;
-  white-space: pre-wrap;
   word-break: break-word;
 }
-.avatar-detail-value.avatar-detail-mono {
+
+.avatar-info-table .avatar-detail-value {
+  font-size: 0.875rem;
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.avatar-info-table .avatar-detail-mono {
   font-family: ui-monospace, monospace;
   font-size: 0.8125rem;
+}
+
+.avatar-info-table .avatar-instagram-link {
+  color: #6366f1;
+  text-decoration: none;
+}
+.avatar-info-table .avatar-instagram-link:hover {
+  text-decoration: underline;
 }
 
 .result-area {
@@ -1154,6 +1320,26 @@ watch(avatarId, loadSharedByAvatar, { immediate: true });
   outline: none;
   border-color: #6366f1;
   box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+.option-lora-scale {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+  max-width: 12rem;
+}
+.option-range {
+  flex: 1;
+  min-width: 5rem;
+  height: 0.5rem;
+  accent-color: #6366f1;
+}
+.option-lora-scale-value {
+  font-variant-numeric: tabular-nums;
+  min-width: 2.25rem;
+  font-size: 0.875rem;
+  color: #475569;
 }
 
 .option-toggle {

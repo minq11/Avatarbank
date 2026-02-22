@@ -175,7 +175,7 @@ import type { AvatarDetailItem } from "@/services/api";
 const DEFAULT_AVATAR_ID = 9;
 
 const defaultPromptText =
-  "A hyper-detailed photographic portrait of Dove, seated gracefully in a white lace-trim top and patterned headscarf, wearing a minimalist necklace. " +
+  "A hyper-detailed photographic portrait of Woman, seated gracefully in a white lace-trim top and patterned headscarf, wearing a minimalist necklace. " +
   "She rests one hand on her head, looking at the camera. Shot on a Canon EOS R5 with an 85mm f/1.4 lens in 8K RAW, featuring cinematic lighting, natural skin tone, flawless anatomy, and razor-sharp detail.";
 
 const prompt = ref(defaultPromptText);
