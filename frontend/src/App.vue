@@ -15,6 +15,7 @@
           <nav class="center-nav">
             <RouterLink to="/market" class="nav-link">Market</RouterLink>
             <RouterLink to="/gallery" class="nav-link">Gallery</RouterLink>
+            <RouterLink to="/studio" class="nav-link">Creator Studio</RouterLink>
           </nav>
 
           <!-- Right Side - Language + Auth -->
@@ -82,6 +83,13 @@
                     @click="showProfileMenu = false"
                   >
                     My Avatars
+                  </RouterLink>
+                  <RouterLink
+                    to="/studio"
+                    class="dropdown-item"
+                    @click="showProfileMenu = false"
+                  >
+                    Creator Studio
                   </RouterLink>
                   <RouterLink
                     v-if="authStore.isAdmin"

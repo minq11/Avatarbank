@@ -555,3 +555,155 @@ export const trainingRequestsApi = {
   },
 };
 
+// ---------------------------------------------------------------------------
+// Creator Studio (구독 / 템플릿 / 리딤 코드) + 팬 리딤
+// ---------------------------------------------------------------------------
+
+export interface Plan {
+  id: number;
+  code: string;
+  name: string;
+  monthly_quota: number;
+  price_usd: number;
+  max_avatars: number;
+  max_active_codes: number;
+  allow_nsfw: boolean;
+}
+
+export interface SubscriptionInfo {
+  plan_code: string;
+  plan_name: string;
+  status: string;
+  quota_remaining: number;
+  monthly_quota: number;
+  current_period_end: string | null;
+}
+
+export interface TemplateItem {
+  id: number;
+  avatar_id: number;
+  name: string;
+  prompt: string;
+  negative_prompt: string | null;
+  image_size: string | null;
+  num_inference_steps: number | null;
+  lora_scale: number | null;
+  preview_image_url: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface CreateTemplatePayload {
+  avatar_id: number;
+  name: string;
+  prompt: string;
+  negative_prompt?: string | null;
+  image_size?: string;
+  num_inference_steps?: number;
+  lora_scale?: number;
+}
+
+export interface CodeItem {
+  id: number;
+  code: string;
+  avatar_id: number;
+  template_id: number | null;
+  max_uses: number | null;
+  used_count: number;
+  is_active: boolean;
+  expires_at: string | null;
+  created_at: string;
+}
+
+export interface CreateCodePayload {
+  avatar_id: number;
+  template_id?: number | null;
+  max_uses?: number | null;
+  count?: number;
+  expires_at?: string | null;
+}
+
+export interface RedeemInfo {
+  code: string;
+  creator_nickname: string;
+  avatar_id: number;
+  avatar_title: string;
+  avatar_preview_url: string | null;
+  uses_left: number | null;
+  templates: TemplateItem[];
+}
+
+export interface RedeemGenerateResult {
+  status: string;
+  image_url: string | null;
+  fail_reason: string | null;
+  uses_left: number | null;
+}
+
+export const studioApi = {
+  getPlans: async (): Promise<Plan[]> => {
+    const response = await api.get<Plan[]>("/plans");
+    return response.data;
+  },
+  getSubscription: async (): Promise<SubscriptionInfo | null> => {
+    const response = await api.get<SubscriptionInfo | null>("/my/subscription");
+    return response.data;
+  },
+  subscribe: async (planCode: string): Promise<SubscriptionInfo> => {
+    const response = await api.post<SubscriptionInfo>("/my/subscription", {
+      plan_code: planCode,
+    });
+    return response.data;
+  },
+  getTemplates: async (): Promise<TemplateItem[]> => {
+    const response = await api.get<TemplateItem[]>("/my/templates");
+    return response.data;
+  },
+  createTemplate: async (data: CreateTemplatePayload): Promise<TemplateItem> => {
+    const response = await api.post<TemplateItem>("/my/templates", data);
+    return response.data;
+  },
+  deleteTemplate: async (id: number): Promise<void> => {
+    await api.delete(`/my/templates/${id}`);
+  },
+  getCodes: async (): Promise<CodeItem[]> => {
+    const response = await api.get<CodeItem[]>("/my/codes");
+    return response.data;
+  },
+  createCodes: async (data: CreateCodePayload): Promise<CodeItem[]> => {
+    const response = await api.post<CodeItem[]>("/my/codes", data);
+    return response.data;
+  },
+  deactivateCode: async (id: number): Promise<void> => {
+    await api.delete(`/my/codes/${id}`);
+  },
+  generateSelf: async (data: {
+    avatar_id: number;
+    prompt: string;
+    negative_prompt?: string | null;
+    image_size?: string;
+    num_inference_steps?: number;
+    lora_scale?: number;
+    seed?: number | null;
+  }): Promise<{ id: number; status: string; image_url: string | null; fail_reason: string | null }> => {
+    const response = await api.post("/my/generate", data);
+    return response.data;
+  },
+};
+
+export const redeemApi = {
+  /** 팬: 코드 정보 + 사용 가능 템플릿 (비로그인) */
+  getInfo: async (code: string): Promise<RedeemInfo> => {
+    const response = await api.get<RedeemInfo>(`/r/${encodeURIComponent(code)}`);
+    return response.data;
+  },
+  /** 팬: 템플릿으로 생성 (비로그인) */
+  generate: async (code: string, templateId: number, seed?: number | null): Promise<RedeemGenerateResult> => {
+    const response = await api.post<RedeemGenerateResult>(`/r/${encodeURIComponent(code)}/generate`, {
+      template_id: templateId,
+      seed: seed ?? null,
+    });
+    return response.data;
+  },
+};
+

@@ -9,6 +9,8 @@ import AdminTrainingRequestsPage from "./views/AdminTrainingRequestsPage.vue";
 import GalleryPage from "./views/GalleryPage.vue";
 import MyPage from "./views/MyPage.vue";
 import RevenueModelPage from "./views/RevenueModelPage.vue";
+import CreatorStudioPage from "./views/CreatorStudioPage.vue";
+import RedeemPage from "./views/RedeemPage.vue";
 
 const routes: RouteRecordRaw[] = [
   { path: "/", name: "landing", component: LandingPage },
@@ -21,6 +23,8 @@ const routes: RouteRecordRaw[] = [
   { path: "/my/generations", name: "my-generations", component: MyGenerationsPage },
   { path: "/my/avatars", name: "my-avatars", component: MyAvatarsPage },
   { path: "/my/page", name: "my-page", component: MyPage },
+  { path: "/studio", name: "creator-studio", component: CreatorStudioPage },
+  { path: "/r/:code", name: "redeem", component: RedeemPage },
   {
     path: "/influencer/dashboard",
     name: "influencer-dashboard",
