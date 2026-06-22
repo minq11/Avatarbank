@@ -96,10 +96,12 @@ def run_generation_sync(
     fal-ai/z-image/turbo/lora 동기 호출.
     lora_url이 있으면 해당 LoRA를 적용 (scale 0~4, 기본 1).
     """
+    # SFW 전용 정책: NSFW 비활성. 호출자가 무엇을 보내든 항상 safety checker ON.
+    # (Creator Studio 피벗 — 결제사/앱스토어/딥페이크 법 리스크 회피)
     payload: dict[str, Any] = {
         "prompt": prompt,
         "num_images": 1,
-        "enable_safety_checker": enable_safety_checker,
+        "enable_safety_checker": True,
         "image_size": image_size,
         "num_inference_steps": num_inference_steps,
         "output_format": output_format,

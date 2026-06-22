@@ -34,6 +34,7 @@ from .models import (
     User,
 )
 from .fal_client import run_generation_sync
+from .studio import router as studio_router, seed_plans
 
 # Fal 프롬프트용: DB에 저장된 국적/성별 코드를 풀네임으로 변환 (KR->Korean, M->male 등)
 NATIONALITY_FOR_PROMPT = {
@@ -94,6 +95,19 @@ app.add_middleware(
 @app.on_event("startup")
 def on_startup() -> None:
     Base.metadata.create_all(bind=engine)
+    # Creator Studio 기본 요금제 시드 (멱등)
+    from .db import SessionLocal
+    db = SessionLocal()
+    try:
+        seed_plans(db)
+    except Exception:
+        db.rollback()
+    finally:
+        db.close()
+
+
+# Creator Studio 라우터 (구독/템플릿/코드/리딤)
+app.include_router(studio_router)
 
 
 @app.get("/health", tags=["system"])

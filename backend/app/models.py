@@ -124,7 +124,7 @@ class Generation(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     avatar_id = Column(Integer, ForeignKey("avatars.id"), nullable=True)
-    buyer_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    buyer_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # 팬(비회원) 생성은 null
     credits_used = Column(Integer, nullable=False)
     prompt = Column(Text, nullable=False)
     negative_prompt = Column(Text, nullable=True)
@@ -139,6 +139,11 @@ class Generation(Base):
     num_inference_steps = Column(Integer, nullable=True)
     enable_safety_checker = Column(Boolean, nullable=True)  # True = safety on (no NSFW)
     lora_scale = Column(Float, nullable=True)  # LoRA scale 0–4
+    # Creator Studio 피벗: 쿼터 기반 생성 귀속/출처
+    creator_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # 쿼터 소유 크리에이터
+    redeem_code_id = Column(Integer, ForeignKey("redeem_codes.id"), nullable=True)  # 팬 코드 생성 시
+    template_id = Column(Integer, ForeignKey("generation_templates.id"), nullable=True)
+    source = Column(String, nullable=True)  # "self" | "fan"
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
 
 
@@ -306,4 +311,89 @@ class TrainingRequest(Base):
     updated_at = Column(
         DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
     )
+
+
+# ---------------------------------------------------------------------------
+# Creator Studio 피벗: 구독 / 요금제 / 리딤 코드 / 생성 템플릿
+# ---------------------------------------------------------------------------
+
+
+class Plan(Base):
+    """구독 요금제. 월 생성 쿼터(이미지 수)를 정의."""
+
+    __tablename__ = "plans"
+
+    id = Column(Integer, primary_key=True, index=True)
+    code = Column(String, unique=True, nullable=False, index=True)  # free/starter/pro/studio
+    name = Column(String, nullable=False)
+    monthly_quota = Column(Integer, nullable=False, default=0)  # 월 생성 가능 이미지 수
+    price_usd = Column(Numeric(10, 2), nullable=False, default=0)
+    max_avatars = Column(Integer, nullable=False, default=1)  # 등록 가능 아바타 수
+    max_active_codes = Column(Integer, nullable=False, default=0)  # 동시 활성 코드 수
+    allow_nsfw = Column(Boolean, nullable=False, default=False)  # 미래 확장용. 현재 전부 False
+    is_active = Column(Boolean, nullable=False, default=True)
+    sort_order = Column(Integer, nullable=False, default=0)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+
+class SubscriptionStatus(str, Enum):
+    ACTIVE = "active"
+    CANCELED = "canceled"
+    EXPIRED = "expired"
+
+
+class Subscription(Base):
+    """크리에이터의 현재 구독 + 남은 쿼터."""
+
+    __tablename__ = "subscriptions"
+    __table_args__ = (UniqueConstraint("user_id", name="uq_subscriptions_user"),)
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    plan_id = Column(Integer, ForeignKey("plans.id"), nullable=False)
+    status = Column(String, nullable=False, default=SubscriptionStatus.ACTIVE.value)
+    quota_remaining = Column(Integer, nullable=False, default=0)  # 이번 주기 남은 생성 수
+    current_period_start = Column(DateTime, nullable=False, default=datetime.utcnow)
+    current_period_end = Column(DateTime, nullable=True)  # 다음 갱신/리셋 시점
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = Column(
+        DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+
+class GenerationTemplate(Base):
+    """크리에이터가 승인한 생성 프리셋. 팬은 이 프롬프트 범위 안에서만 생성 가능 (SFW 통제)."""
+
+    __tablename__ = "generation_templates"
+
+    id = Column(Integer, primary_key=True, index=True)
+    creator_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    avatar_id = Column(Integer, ForeignKey("avatars.id"), nullable=False)
+    name = Column(String, nullable=False)
+    prompt = Column(Text, nullable=False)  # 고정 프롬프트 (팬에게 노출/적용)
+    negative_prompt = Column(Text, nullable=True)
+    image_size = Column(String, nullable=True, default="portrait_4_3")
+    num_inference_steps = Column(Integer, nullable=True, default=8)
+    lora_scale = Column(Float, nullable=True, default=1.6)
+    preview_image_url = Column(String, nullable=True)
+    is_active = Column(Boolean, nullable=False, default=True)
+    deleted_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+
+class RedeemCode(Base):
+    """팬에게 배포하는 생성 코드. 1회/다회/무제한, 만료, 연결된 아바타·템플릿."""
+
+    __tablename__ = "redeem_codes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    code = Column(String, unique=True, nullable=False, index=True)
+    creator_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    avatar_id = Column(Integer, ForeignKey("avatars.id"), nullable=False)
+    template_id = Column(Integer, ForeignKey("generation_templates.id"), nullable=True)
+    max_uses = Column(Integer, nullable=True)  # null = 무제한(쿼터 소진 시까지), 1 = 일회용
+    used_count = Column(Integer, nullable=False, default=0)
+    is_active = Column(Boolean, nullable=False, default=True)
+    expires_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
 

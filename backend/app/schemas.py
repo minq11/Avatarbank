@@ -255,3 +255,133 @@ class AvatarUpdateRequest(BaseModel):
     description: Optional[str] = None
 
 
+# ---------------------------------------------------------------------------
+# Creator Studio 피벗 스키마
+# ---------------------------------------------------------------------------
+
+
+class PlanResponse(BaseModel):
+    id: int
+    code: str
+    name: str
+    monthly_quota: int
+    price_usd: float
+    max_avatars: int
+    max_active_codes: int
+    allow_nsfw: bool
+
+    @field_validator("price_usd", mode="before")
+    @classmethod
+    def coerce_price(cls, v: Optional[Decimal | float]) -> float:
+        if v is None:
+            return 0.0
+        if isinstance(v, Decimal):
+            return float(v)
+        return v
+
+    class Config:
+        from_attributes = True
+
+
+class SubscribeRequest(BaseModel):
+    plan_code: str = Field(..., min_length=1, max_length=50)
+
+
+class SubscriptionResponse(BaseModel):
+    plan_code: str
+    plan_name: str
+    status: str
+    quota_remaining: int
+    monthly_quota: int
+    current_period_end: Optional[datetime] = None
+
+
+class TemplateCreateRequest(BaseModel):
+    avatar_id: int
+    name: str = Field(..., min_length=1, max_length=100)
+    prompt: str = Field(..., min_length=1, max_length=2000)
+    negative_prompt: Optional[str] = Field(default=None, max_length=2000)
+    image_size: ImageSizeLiteral = "portrait_4_3"
+    num_inference_steps: int = Field(default=8, ge=1, le=20)
+    lora_scale: float = Field(default=1.6, ge=0.0, le=4.0)
+
+
+class TemplateResponse(BaseModel):
+    id: int
+    avatar_id: int
+    name: str
+    prompt: str
+    negative_prompt: Optional[str] = None
+    image_size: Optional[str] = None
+    num_inference_steps: Optional[int] = None
+    lora_scale: Optional[float] = None
+    preview_image_url: Optional[str] = None
+    is_active: bool = True
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class CodeCreateRequest(BaseModel):
+    avatar_id: int
+    template_id: Optional[int] = None
+    max_uses: Optional[int] = Field(default=1, ge=1, le=100000)  # null 보내면 무제한
+    count: int = Field(default=1, ge=1, le=500)  # 한 번에 발급할 코드 개수
+    expires_at: Optional[datetime] = None
+
+
+class CodeResponse(BaseModel):
+    id: int
+    code: str
+    avatar_id: int
+    template_id: Optional[int] = None
+    max_uses: Optional[int] = None
+    used_count: int = 0
+    is_active: bool = True
+    expires_at: Optional[datetime] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class StudioGenerateRequest(BaseModel):
+    """크리에이터 본인 생성 (쿼터 차감, SFW 강제)."""
+
+    avatar_id: int
+    prompt: str = Field(..., max_length=2000)
+    negative_prompt: Optional[str] = Field(default=None, max_length=2000)
+    image_size: ImageSizeLiteral = "portrait_4_3"
+    num_inference_steps: int = Field(default=8, ge=1, le=20)
+    output_format: OutputFormatLiteral = "png"
+    seed: Optional[int] = Field(default=None, ge=0)
+    lora_scale: float = Field(default=1.6, ge=0.0, le=4.0)
+
+
+class RedeemInfoResponse(BaseModel):
+    """팬이 코드로 진입 시 보는 정보 (공개)."""
+
+    code: str
+    creator_nickname: str
+    avatar_id: int
+    avatar_title: str
+    avatar_preview_url: Optional[str] = None
+    uses_left: Optional[int] = None  # null = 무제한
+    templates: list[TemplateResponse] = []
+
+
+class RedeemGenerateRequest(BaseModel):
+    """팬이 템플릿으로 생성 (자유 프롬프트 불가, 템플릿 선택만)."""
+
+    template_id: int
+    seed: Optional[int] = Field(default=None, ge=0)
+
+
+class RedeemGenerateResponse(BaseModel):
+    status: str
+    image_url: Optional[str] = None
+    fail_reason: Optional[str] = None
+    uses_left: Optional[int] = None
+
+
