@@ -19,6 +19,7 @@ from .config import settings
 from .db import get_db
 from .dependencies import get_current_user
 from .fal_client import run_generation_sync
+from .moderation import assert_sfw_prompt
 from .models import (
     Avatar,
     AvatarStatus,
@@ -205,15 +206,24 @@ def _run_generation(
             seed=seed,
         )
         images = response_payload.get("images") or []
-        if images:
-            generation.image_url = images[0].get("url")
+        is_nsfw = any(response_payload.get("has_nsfw_concepts") or [])
+        generation.nsfw_flag = is_nsfw
         generation.seed = (
             str(response_payload.get("seed"))
             if response_payload.get("seed") is not None
             else None
         )
-        generation.nsfw_flag = any(response_payload.get("has_nsfw_concepts") or [])
-        generation.status = GenerationStatus.SUCCESS.value
+        if is_nsfw:
+            # SFW 정책: 결과가 NSFW 로 감지되면 이미지를 서빙하지 않고 실패 처리 + 쿼터 환불.
+            generation.image_url = None
+            generation.status = GenerationStatus.FAILED.value
+            generation.fail_reason = "Blocked: generated image was flagged as NSFW."
+            if sub is not None:
+                sub.quota_remaining += 1
+        else:
+            if images:
+                generation.image_url = images[0].get("url")
+            generation.status = GenerationStatus.SUCCESS.value
         db.commit()
         db.refresh(generation)
     except Exception as exc:
@@ -346,6 +356,8 @@ def create_template(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> TemplateResponse:
+    assert_sfw_prompt(payload.prompt)
+    assert_sfw_prompt(payload.negative_prompt)
     _owned_active_avatar(db, payload.avatar_id, current_user)
     template = GenerationTemplate(
         creator_id=current_user.id,
@@ -475,7 +487,9 @@ def studio_generate(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """크리에이터 본인이 쿼터를 써서 직접 생성 (SFW)."""
+    """크리에이터 본인이 쿼터를 써서 직접 생성 (SFW, 프롬프트 모더레이션)."""
+    assert_sfw_prompt(payload.prompt)
+    assert_sfw_prompt(payload.negative_prompt)
     avatar = _owned_active_avatar(db, payload.avatar_id, current_user)
     if not avatar.lora_path:
         raise HTTPException(status_code=400, detail="This avatar has no LoRA file yet.")
@@ -555,6 +569,7 @@ def redeem_info(code_str: str, db: Session = Depends(get_db)) -> RedeemInfoRespo
         avatar_title=avatar.title,
         avatar_preview_url=preview,
         uses_left=uses_left,
+        free_prompt_allowed=(code.template_id is None),
         templates=[TemplateResponse.model_validate(t) for t in templates],
     )
 
@@ -565,24 +580,12 @@ def redeem_generate(
     payload: RedeemGenerateRequest,
     db: Session = Depends(get_db),
 ) -> RedeemGenerateResponse:
-    """팬이 템플릿을 골라 생성. 자유 프롬프트 불가. 크리에이터 쿼터 + 코드 사용 차감."""
+    """
+    팬 생성. 템플릿을 고르거나(template_id) 자유 프롬프트(prompt)를 직접 입력.
+    자유 프롬프트는 fal 호출 전 모더레이션. 코드가 특정 템플릿에 묶여 있으면 자유 프롬프트 불가.
+    크리에이터 쿼터 + 코드 사용 차감.
+    """
     code = _get_redeemable_code(db, code_str)
-
-    template = (
-        db.query(GenerationTemplate)
-        .filter(
-            GenerationTemplate.id == payload.template_id,
-            GenerationTemplate.creator_id == code.creator_id,
-            GenerationTemplate.avatar_id == code.avatar_id,
-            GenerationTemplate.deleted_at.is_(None),
-            GenerationTemplate.is_active == True,  # noqa: E712
-        )
-        .first()
-    )
-    if not template:
-        raise HTTPException(status_code=404, detail="Template not available for this code.")
-    if code.template_id is not None and code.template_id != template.id:
-        raise HTTPException(status_code=403, detail="This code is restricted to a specific template.")
 
     avatar = db.query(Avatar).filter(Avatar.id == code.avatar_id).first()
     if not avatar or avatar.deleted_at is not None or not avatar.lora_path:
@@ -595,15 +598,51 @@ def redeem_generate(
     if not sub or sub.status != SubscriptionStatus.ACTIVE.value or sub.quota_remaining <= 0:
         raise HTTPException(status_code=409, detail="Creator has no quota left. Please try later.")
 
+    template: Optional[GenerationTemplate] = None
+    if payload.template_id is not None:
+        template = (
+            db.query(GenerationTemplate)
+            .filter(
+                GenerationTemplate.id == payload.template_id,
+                GenerationTemplate.creator_id == code.creator_id,
+                GenerationTemplate.avatar_id == code.avatar_id,
+                GenerationTemplate.deleted_at.is_(None),
+                GenerationTemplate.is_active == True,  # noqa: E712
+            )
+            .first()
+        )
+        if not template:
+            raise HTTPException(status_code=404, detail="Template not available for this code.")
+        if code.template_id is not None and code.template_id != template.id:
+            raise HTTPException(status_code=403, detail="This code is restricted to a specific template.")
+        gen_prompt = template.prompt
+        gen_negative = template.negative_prompt
+        gen_image_size = template.image_size or "portrait_4_3"
+        gen_steps = template.num_inference_steps or 8
+        gen_lora = template.lora_scale if template.lora_scale is not None else 1.6
+    else:
+        # 자유 프롬프트 경로
+        if code.template_id is not None:
+            raise HTTPException(
+                status_code=403,
+                detail="This code only allows a specific look — free prompts are disabled.",
+            )
+        assert_sfw_prompt(payload.prompt)  # 차단 시 쿼터/코드 소모 없음
+        gen_prompt = payload.prompt or ""
+        gen_negative = None
+        gen_image_size = payload.image_size
+        gen_steps = 8
+        gen_lora = 1.6
+
     generation = _run_generation(
         db,
         creator=creator,
         avatar=avatar,
-        prompt=template.prompt,
-        negative_prompt=template.negative_prompt,
-        image_size=template.image_size or "portrait_4_3",
-        num_inference_steps=template.num_inference_steps or 8,
-        lora_scale=template.lora_scale if template.lora_scale is not None else 1.6,
+        prompt=gen_prompt,
+        negative_prompt=gen_negative,
+        image_size=gen_image_size,
+        num_inference_steps=gen_steps,
+        lora_scale=gen_lora,
         output_format="png",
         seed=payload.seed,
         source="fan",

@@ -630,6 +630,7 @@ export interface RedeemInfo {
   avatar_title: string;
   avatar_preview_url: string | null;
   uses_left: number | null;
+  free_prompt_allowed: boolean;
   templates: TemplateItem[];
 }
 
@@ -697,11 +698,15 @@ export const redeemApi = {
     const response = await api.get<RedeemInfo>(`/r/${encodeURIComponent(code)}`);
     return response.data;
   },
-  /** 팬: 템플릿으로 생성 (비로그인) */
-  generate: async (code: string, templateId: number, seed?: number | null): Promise<RedeemGenerateResult> => {
+  /** 팬: 템플릿 또는 자유 프롬프트로 생성 (비로그인) */
+  generate: async (
+    code: string,
+    opts: { templateId?: number | null; prompt?: string | null; seed?: number | null }
+  ): Promise<RedeemGenerateResult> => {
     const response = await api.post<RedeemGenerateResult>(`/r/${encodeURIComponent(code)}/generate`, {
-      template_id: templateId,
-      seed: seed ?? null,
+      template_id: opts.templateId ?? null,
+      prompt: opts.prompt ?? null,
+      seed: opts.seed ?? null,
     });
     return response.data;
   },

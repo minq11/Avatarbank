@@ -2,7 +2,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Literal, Optional
 
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 
 
 class TokenPair(BaseModel):
@@ -368,14 +368,31 @@ class RedeemInfoResponse(BaseModel):
     avatar_title: str
     avatar_preview_url: Optional[str] = None
     uses_left: Optional[int] = None  # null = 무제한
+    free_prompt_allowed: bool = True  # 코드가 특정 템플릿에 묶이면 False
     templates: list[TemplateResponse] = []
 
 
 class RedeemGenerateRequest(BaseModel):
-    """팬이 템플릿으로 생성 (자유 프롬프트 불가, 템플릿 선택만)."""
+    """팬 생성. 템플릿을 고르거나(template_id), 자유 프롬프트를 직접 입력(prompt)."""
 
-    template_id: int
+    template_id: Optional[int] = None
+    prompt: Optional[str] = Field(default=None, max_length=2000)
+    image_size: ImageSizeLiteral = "portrait_4_3"
     seed: Optional[int] = Field(default=None, ge=0)
+
+    @field_validator("prompt")
+    @classmethod
+    def _strip_prompt(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return None
+        v = v.strip()
+        return v or None
+
+    @model_validator(mode="after")
+    def _require_one(self) -> "RedeemGenerateRequest":
+        if self.template_id is None and not self.prompt:
+            raise ValueError("Either template_id or prompt is required.")
+        return self
 
 
 class RedeemGenerateResponse(BaseModel):

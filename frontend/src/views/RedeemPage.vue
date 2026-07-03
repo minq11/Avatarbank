@@ -44,12 +44,28 @@
           </div>
         </div>
 
-        <!-- Template grid -->
+        <!-- Generate -->
         <div v-else>
-          <p v-if="info.templates.length === 0" class="state-box">
-            This creator hasn't published any looks yet.
-          </p>
-          <div v-else class="template-grid">
+          <!-- Mode switch (only when both options exist) -->
+          <div v-if="info.free_prompt_allowed && info.templates.length" class="mode-tabs">
+            <button
+              class="mode-tab"
+              :class="{ active: mode === 'template' }"
+              @click="mode = 'template'"
+            >
+              Pick a look
+            </button>
+            <button
+              class="mode-tab"
+              :class="{ active: mode === 'prompt' }"
+              @click="mode = 'prompt'"
+            >
+              Describe your own
+            </button>
+          </div>
+
+          <!-- Template grid -->
+          <div v-if="mode === 'template' && info.templates.length" class="template-grid">
             <button
               v-for="t in info.templates"
               :key="t.id"
@@ -66,16 +82,26 @@
             </button>
           </div>
 
+          <!-- Free prompt -->
+          <div v-if="mode === 'prompt'" class="prompt-box">
+            <textarea
+              v-model="freePrompt"
+              rows="3"
+              placeholder="Describe the scene, outfit, or vibe you want… (keep it safe-for-work)"
+              :disabled="generating"
+            ></textarea>
+          </div>
+
           <button
             class="btn-primary generate-btn"
-            :disabled="!selectedTemplateId || generating"
+            :disabled="!canGenerate || generating"
             @click="generate"
           >
             <span v-if="generating" class="spinner small"></span>
             {{ generating ? "Creating your picture…" : "Create my picture" }}
           </button>
           <p v-if="errorMessage" class="inline-error">{{ errorMessage }}</p>
-          <p class="disclaimer">AI-generated image. Looks are pre-approved by the creator.</p>
+          <p class="disclaimer">AI-generated image with {{ info.creator_nickname }}'s likeness. SFW only.</p>
         </div>
       </template>
     </div>
@@ -83,7 +109,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useRoute } from "vue-router";
 import { redeemApi, type RedeemInfo } from "../services/api";
 
@@ -93,9 +119,16 @@ const code = String(route.params.code || "");
 const loading = ref(true);
 const generating = ref(false);
 const info = ref<RedeemInfo | null>(null);
+const mode = ref<"template" | "prompt">("template");
 const selectedTemplateId = ref<number | null>(null);
+const freePrompt = ref("");
 const resultImage = ref<string | null>(null);
 const errorMessage = ref<string>("");
+
+const canGenerate = computed(() => {
+  if (mode.value === "template") return selectedTemplateId.value != null;
+  return freePrompt.value.trim().length > 0;
+});
 
 const extractError = (e: any, fallback: string): string =>
   e?.response?.data?.detail || fallback;
@@ -104,10 +137,13 @@ const loadInfo = async () => {
   loading.value = true;
   errorMessage.value = "";
   try {
-    info.value = await redeemApi.getInfo(code);
-    if (info.value.templates.length === 1) {
-      selectedTemplateId.value = info.value.templates[0].id;
+    const data = await redeemApi.getInfo(code);
+    info.value = data;
+    if (data.templates.length === 1) {
+      selectedTemplateId.value = data.templates[0].id;
     }
+    // 템플릿이 없고 자유 프롬프트만 가능하면 프롬프트 모드로
+    mode.value = data.templates.length === 0 && data.free_prompt_allowed ? "prompt" : "template";
   } catch (e: any) {
     errorMessage.value = extractError(e, "This code is invalid or has expired.");
     info.value = null;
@@ -117,11 +153,15 @@ const loadInfo = async () => {
 };
 
 const generate = async () => {
-  if (!selectedTemplateId.value) return;
+  if (!canGenerate.value) return;
   generating.value = true;
   errorMessage.value = "";
   try {
-    const res = await redeemApi.generate(code, selectedTemplateId.value);
+    const opts =
+      mode.value === "template"
+        ? { templateId: selectedTemplateId.value }
+        : { prompt: freePrompt.value.trim() };
+    const res = await redeemApi.generate(code, opts);
     if (res.status === "success" && res.image_url) {
       resultImage.value = res.image_url;
       if (info.value) info.value.uses_left = res.uses_left;
@@ -205,6 +245,47 @@ onMounted(loadInfo);
   font-size: 0.8rem;
   color: #9333ea;
   font-weight: 600;
+}
+
+.mode-tabs {
+  display: inline-flex;
+  gap: 0.25rem;
+  background: #f3f4f6;
+  border-radius: 0.75rem;
+  padding: 0.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.mode-tab {
+  border: none;
+  background: transparent;
+  border-radius: 0.55rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #6b7280;
+  cursor: pointer;
+}
+
+.mode-tab.active {
+  background: #fff;
+  color: #111827;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.prompt-box {
+  margin-bottom: 1.5rem;
+}
+
+.prompt-box textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #d1d5db;
+  border-radius: 0.75rem;
+  padding: 0.85rem 1rem;
+  font-size: 0.95rem;
+  font-family: inherit;
+  resize: vertical;
 }
 
 .template-grid {
