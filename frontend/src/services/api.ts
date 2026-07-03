@@ -12,6 +12,9 @@ const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
   (import.meta.env.DEV ? "/api" : "http://localhost:8000");
 
+/** 정적/이미지 엔드포인트 절대 URL 조립용 (예: QR SVG) */
+export const apiBaseUrl = API_BASE_URL;
+
 // Create axios instance
 export const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
@@ -664,9 +667,17 @@ export const studioApi = {
     const response = await api.post<TemplateItem>("/my/templates", data);
     return response.data;
   },
+  uploadTemplatePreview: async (id: number, file: File): Promise<TemplateItem> => {
+    const formData = new FormData();
+    formData.append("preview_image", file);
+    const response = await api.post<TemplateItem>(`/my/templates/${id}/preview`, formData);
+    return response.data;
+  },
   deleteTemplate: async (id: number): Promise<void> => {
     await api.delete(`/my/templates/${id}`);
   },
+  /** QR SVG 절대 URL (리딤 링크 등을 인코딩) */
+  qrUrl: (data: string): string => `${apiBaseUrl}/qr.svg?data=${encodeURIComponent(data)}`,
   getCodes: async (): Promise<CodeItem[]> => {
     const response = await api.get<CodeItem[]>("/my/codes");
     return response.data;

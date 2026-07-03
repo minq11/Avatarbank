@@ -9,10 +9,12 @@ Creator Studio 피벗 라우터.
 """
 
 from datetime import datetime, timedelta
+from io import BytesIO
 import secrets
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
 from .config import settings
@@ -134,6 +136,15 @@ def _build_prompt_for_fal(avatar: Avatar, prompt: str) -> str:
     if prefix_parts:
         return ", ".join(prefix_parts) + ". " + prompt
     return prompt
+
+
+def _template_response(t: GenerationTemplate) -> TemplateResponse:
+    """템플릿 응답 + preview_image_url 을 S3 presigned URL 로 변환."""
+    from .s3_utils import to_presigned_url_if_s3
+
+    data = TemplateResponse.model_validate(t).model_dump()
+    data["preview_image_url"] = to_presigned_url_if_s3(t.preview_image_url) or t.preview_image_url
+    return TemplateResponse(**data)
 
 
 def _run_generation(
@@ -347,7 +358,7 @@ def list_my_templates(
         .order_by(GenerationTemplate.created_at.desc())
         .all()
     )
-    return [TemplateResponse.model_validate(t) for t in rows]
+    return [_template_response(t) for t in rows]
 
 
 @router.post("/my/templates", response_model=TemplateResponse, status_code=status.HTTP_201_CREATED)
@@ -373,7 +384,42 @@ def create_template(
     db.add(template)
     db.commit()
     db.refresh(template)
-    return TemplateResponse.model_validate(template)
+    return _template_response(template)
+
+
+@router.post("/my/templates/{template_id}/preview", response_model=TemplateResponse)
+async def upload_template_preview(
+    template_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    preview_image: UploadFile = File(...),
+):
+    """룩(템플릿) 썸네일 이미지 업로드 → S3 저장. 팬이 룩을 시각적으로 고를 수 있게."""
+    from .storage import upload_file_for_app
+
+    template = (
+        db.query(GenerationTemplate)
+        .filter(
+            GenerationTemplate.id == template_id,
+            GenerationTemplate.creator_id == current_user.id,
+            GenerationTemplate.deleted_at.is_(None),
+        )
+        .first()
+    )
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found.")
+
+    content = await preview_image.read()
+    url = upload_file_for_app(
+        BytesIO(content),
+        preview_image.filename or "preview.jpg",
+        folder=f"templates/{template_id}",
+        content_type=preview_image.content_type or "image/jpeg",
+    )
+    template.preview_image_url = url
+    db.commit()
+    db.refresh(template)
+    return _template_response(template)
 
 
 @router.delete("/my/templates/{template_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -570,7 +616,25 @@ def redeem_info(code_str: str, db: Session = Depends(get_db)) -> RedeemInfoRespo
         avatar_preview_url=preview,
         uses_left=uses_left,
         free_prompt_allowed=(code.template_id is None),
-        templates=[TemplateResponse.model_validate(t) for t in templates],
+        templates=[_template_response(t) for t in templates],
+    )
+
+
+@router.get("/qr.svg")
+def qr_svg(data: str):
+    """임의 문자열(주로 리딤 링크)을 QR 코드 SVG 로 변환. 공개 — 링크 자체가 공유 대상."""
+    if not data or len(data) > 1024:
+        raise HTTPException(status_code=400, detail="Invalid data.")
+    import qrcode
+    import qrcode.image.svg
+
+    img = qrcode.make(data, image_factory=qrcode.image.svg.SvgPathImage, box_size=10, border=2)
+    buf = BytesIO()
+    img.save(buf)
+    return Response(
+        content=buf.getvalue(),
+        media_type="image/svg+xml",
+        headers={"Cache-Control": "public, max-age=86400"},
     )
 
 

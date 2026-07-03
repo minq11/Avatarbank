@@ -597,4 +597,45 @@ onMounted(loadInfo);
     transform: rotate(360deg);
   }
 }
+
+/* Mobile (fan links open mostly on phones) */
+@media (max-width: 560px) {
+  .redeem-page {
+    padding: 1.5rem 1rem 3rem;
+  }
+
+  .redeem-header {
+    flex-direction: column;
+    text-align: center;
+    gap: 0.85rem;
+  }
+
+  .creator-avatar {
+    width: 72px;
+    height: 72px;
+  }
+
+  .title {
+    font-size: 1.5rem;
+  }
+
+  .template-grid {
+    grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+    gap: 0.75rem;
+  }
+
+  .result-actions {
+    flex-direction: column;
+  }
+
+  .result-actions .btn-primary,
+  .result-actions .btn-secondary {
+    width: 100%;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    padding: 0.9rem 1.25rem;
+  }
+}
 </style>
