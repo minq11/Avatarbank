@@ -38,10 +38,37 @@
         <!-- Result -->
         <div v-if="resultImage" class="result-box">
           <img :src="resultImage" alt="Your generated image" class="result-img" />
+
           <div class="result-actions">
-            <a :href="resultImage" download="my-photo.png" class="btn-primary">Download</a>
-            <button class="btn-secondary" @click="resultImage = null">Make another</button>
+            <a :href="resultImage" download="my-photo.png" class="btn-primary">⬇ Download</a>
+            <button v-if="canNativeShare" class="btn-secondary" @click="nativeShare">↗ Share</button>
+            <a class="btn-secondary" :href="xShareUrl" target="_blank" rel="noopener">Share on X</a>
+            <button class="btn-secondary" @click="copyPageLink">
+              {{ linkCopied ? "✓ Copied" : "🔗 Copy link" }}
+            </button>
           </div>
+
+          <button class="btn-ghost" @click="makeAnother">＋ Make another</button>
+
+          <!-- 이번 세션에 만든 것들 -->
+          <div v-if="sessionResults.length > 1" class="session-strip">
+            <button
+              v-for="(img, i) in sessionResults"
+              :key="i"
+              class="strip-thumb"
+              :class="{ active: img === resultImage }"
+              @click="resultImage = img"
+            >
+              <img :src="img" alt="" />
+            </button>
+          </div>
+        </div>
+
+        <!-- Generating overlay -->
+        <div v-else-if="generating" class="generating-box">
+          <div class="spinner"></div>
+          <p class="gen-msg">{{ loadingMessage }}</p>
+          <p class="gen-sub">This usually takes a few seconds.</p>
         </div>
 
         <!-- Generate -->
@@ -109,7 +136,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRoute } from "vue-router";
 import { redeemApi, type RedeemInfo } from "../services/api";
 
@@ -123,12 +150,73 @@ const mode = ref<"template" | "prompt">("template");
 const selectedTemplateId = ref<number | null>(null);
 const freePrompt = ref("");
 const resultImage = ref<string | null>(null);
+const sessionResults = ref<string[]>([]);
 const errorMessage = ref<string>("");
+const linkCopied = ref(false);
 
 const canGenerate = computed(() => {
   if (mode.value === "template") return selectedTemplateId.value != null;
   return freePrompt.value.trim().length > 0;
 });
+
+// 공유 관련
+const canNativeShare = typeof navigator !== "undefined" && !!(navigator as any).share;
+const pageUrl = typeof window !== "undefined" ? window.location.href : "";
+const xShareUrl = computed(() => {
+  const text = `I just made an AI photo with ${info.value?.creator_nickname ?? "a creator"} ✨`;
+  return `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(pageUrl)}`;
+});
+
+const nativeShare = async () => {
+  try {
+    await (navigator as any).share({
+      title: "My AI photo",
+      text: `Made with ${info.value?.creator_nickname ?? "a creator"} ✨`,
+      url: pageUrl,
+    });
+  } catch {
+    /* user cancelled */
+  }
+};
+
+const copyPageLink = async () => {
+  try {
+    await navigator.clipboard.writeText(pageUrl);
+    linkCopied.value = true;
+    setTimeout(() => (linkCopied.value = false), 1800);
+  } catch {
+    /* ignore */
+  }
+};
+
+const makeAnother = () => {
+  resultImage.value = null;
+  errorMessage.value = "";
+};
+
+// 생성 대기 중 로딩 문구 로테이션
+const LOADING_MESSAGES = [
+  "Warming up the camera…",
+  "Styling the shot…",
+  "Adding the finishing touches…",
+  "Almost ready…",
+];
+const loadingMessage = ref(LOADING_MESSAGES[0]);
+let loadingTimer: ReturnType<typeof setInterval> | null = null;
+const startLoadingMessages = () => {
+  let i = 0;
+  loadingMessage.value = LOADING_MESSAGES[0];
+  loadingTimer = setInterval(() => {
+    i = (i + 1) % LOADING_MESSAGES.length;
+    loadingMessage.value = LOADING_MESSAGES[i];
+  }, 2500);
+};
+const stopLoadingMessages = () => {
+  if (loadingTimer) {
+    clearInterval(loadingTimer);
+    loadingTimer = null;
+  }
+};
 
 const extractError = (e: any, fallback: string): string =>
   e?.response?.data?.detail || fallback;
@@ -156,6 +244,7 @@ const generate = async () => {
   if (!canGenerate.value) return;
   generating.value = true;
   errorMessage.value = "";
+  startLoadingMessages();
   try {
     const opts =
       mode.value === "template"
@@ -164,6 +253,7 @@ const generate = async () => {
     const res = await redeemApi.generate(code, opts);
     if (res.status === "success" && res.image_url) {
       resultImage.value = res.image_url;
+      sessionResults.value.push(res.image_url);
       if (info.value) info.value.uses_left = res.uses_left;
     } else {
       errorMessage.value = res.fail_reason || "Generation failed. Please try again.";
@@ -172,9 +262,11 @@ const generate = async () => {
     errorMessage.value = extractError(e, "Generation failed. Please try again.");
   } finally {
     generating.value = false;
+    stopLoadingMessages();
   }
 };
 
+onUnmounted(stopLoadingMessages);
 onMounted(loadInfo);
 </script>
 
@@ -406,9 +498,67 @@ onMounted(loadInfo);
 
 .result-actions {
   display: flex;
-  gap: 0.75rem;
+  gap: 0.6rem;
   justify-content: center;
+  flex-wrap: wrap;
   margin-top: 1.25rem;
+}
+
+.btn-ghost {
+  margin-top: 0.85rem;
+  background: none;
+  border: none;
+  color: #7c3aed;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.session-strip {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 1.5rem;
+}
+
+.strip-thumb {
+  width: 56px;
+  height: 72px;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  border: 2px solid transparent;
+  padding: 0;
+  cursor: pointer;
+  background: #f3f4f6;
+}
+
+.strip-thumb.active {
+  border-color: #7c3aed;
+}
+
+.strip-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.generating-box {
+  text-align: center;
+  padding: 3rem 1rem;
+}
+
+.gen-msg {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #374151;
+  margin: 0.5rem 0 0.25rem;
+}
+
+.gen-sub {
+  font-size: 0.85rem;
+  color: #9ca3af;
+  margin: 0;
 }
 
 .inline-error {

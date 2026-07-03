@@ -164,6 +164,11 @@
         </section>
       </template>
     </div>
+
+    <!-- Toast -->
+    <transition name="toast">
+      <div v-if="toast" class="toast" :class="toast.kind">{{ toast.msg }}</div>
+    </transition>
   </div>
 </template>
 
@@ -195,6 +200,15 @@ const creatingCodes = ref(false);
 const newTemplate = ref({ avatar_id: 0, name: "", prompt: "" });
 const newCode = ref({ avatar_id: 0, template_id: 0, max_uses: 1, count: 1 });
 
+const toast = ref<{ msg: string; kind: "ok" | "err" } | null>(null);
+let toastTimer: ReturnType<typeof setTimeout> | null = null;
+const showToast = (msg: string, kind: "ok" | "err" = "ok") => {
+  toast.value = { msg, kind };
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => (toast.value = null), 2600);
+};
+const errMsg = (e: any, fallback: string): string => e?.response?.data?.detail || fallback;
+
 const avatarTitle = (id: number) => avatars.value.find((a) => a.id === id)?.title || "—";
 const templatesForAvatar = (avatarId: number) =>
   templates.value.filter((t) => t.avatar_id === avatarId);
@@ -217,8 +231,9 @@ const subscribe = async (planCode: string) => {
   subscribing.value = true;
   try {
     subscription.value = await studioApi.subscribe(planCode);
+    showToast("Plan activated 🎉");
   } catch (e: any) {
-    alert(e?.response?.data?.detail || "Failed to subscribe.");
+    showToast(errMsg(e, "Failed to subscribe."), "err");
   } finally {
     subscribing.value = false;
   }
@@ -230,8 +245,9 @@ const createTemplate = async () => {
     await studioApi.createTemplate({ ...newTemplate.value });
     newTemplate.value = { avatar_id: 0, name: "", prompt: "" };
     templates.value = await studioApi.getTemplates();
+    showToast("Look added");
   } catch (e: any) {
-    alert(e?.response?.data?.detail || "Failed to add look.");
+    showToast(errMsg(e, "Failed to add look."), "err");
   } finally {
     creatingTemplate.value = false;
   }
@@ -239,38 +255,49 @@ const createTemplate = async () => {
 
 const deleteTemplate = async (id: number) => {
   if (!confirm("Delete this look?")) return;
-  await studioApi.deleteTemplate(id);
-  templates.value = await studioApi.getTemplates();
+  try {
+    await studioApi.deleteTemplate(id);
+    templates.value = await studioApi.getTemplates();
+    showToast("Look deleted");
+  } catch (e: any) {
+    showToast(errMsg(e, "Failed to delete."), "err");
+  }
 };
 
 const createCodes = async () => {
   creatingCodes.value = true;
   try {
-    await studioApi.createCodes({
+    const created = await studioApi.createCodes({
       avatar_id: newCode.value.avatar_id,
       template_id: newCode.value.template_id || null,
       max_uses: newCode.value.max_uses || 1,
       count: newCode.value.count || 1,
     });
     codes.value = await studioApi.getCodes();
+    showToast(`${created.length} code${created.length === 1 ? "" : "s"} generated`);
   } catch (e: any) {
-    alert(e?.response?.data?.detail || "Failed to generate codes.");
+    showToast(errMsg(e, "Failed to generate codes."), "err");
   } finally {
     creatingCodes.value = false;
   }
 };
 
 const deactivateCode = async (id: number) => {
-  await studioApi.deactivateCode(id);
-  codes.value = await studioApi.getCodes();
+  try {
+    await studioApi.deactivateCode(id);
+    codes.value = await studioApi.getCodes();
+    showToast("Code disabled");
+  } catch (e: any) {
+    showToast(errMsg(e, "Failed to disable code."), "err");
+  }
 };
 
 const copyLink = async (code: string) => {
   try {
     await navigator.clipboard.writeText(redeemUrl(code));
-    alert("Link copied!");
+    showToast("Redeem link copied 🔗");
   } catch {
-    /* ignore */
+    showToast("Couldn't copy link", "err");
   }
 };
 
@@ -522,5 +549,39 @@ textarea {
 
 .btn-text.danger {
   color: #dc2626;
+}
+
+/* Toast */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 2rem;
+  transform: translateX(-50%);
+  z-index: 100;
+  padding: 0.75rem 1.25rem;
+  border-radius: 0.75rem;
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  box-shadow: 0 12px 28px -12px rgba(0, 0, 0, 0.4);
+}
+
+.toast.ok {
+  background: #111827;
+}
+
+.toast.err {
+  background: #dc2626;
+}
+
+.toast-enter-active,
+.toast-leave-active {
+  transition: opacity 0.25s, transform 0.25s;
+}
+
+.toast-enter-from,
+.toast-leave-to {
+  opacity: 0;
+  transform: translate(-50%, 12px);
 }
 </style>
