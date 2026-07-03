@@ -23,6 +23,7 @@ _BLOCKED_WORDS_EN = [
     "fellatio", "blowjob", "handjob", "hentai", "bdsm", "fetish", "bikini",
     "lingerie", "underwear", "panties", "thong", "upskirt", "camel toe",
     "onlyfans", "nsfl", "gore", "child", "loli", "shota", "minor",
+    "undress", "undressed", "undressing",
 ]
 
 # 성적/불법 관련 차단어 (한글, 부분 문자열 매칭).
@@ -43,6 +44,30 @@ _WORD_RE = re.compile(
     re.IGNORECASE,
 )
 
+# --- 난독화 우회 방어 ---------------------------------------------------------
+# "n.u.d.e", "p0rn", "s-e-x-y" 같은 leet/구분자 우회를 잡기 위해
+# 텍스트를 정규화(leet 치환 + 구분자 제거)한 뒤 부분 문자열로 검사한다.
+# 오탐을 줄이기 위해 4자 이상 & 일반 단어에 잘 안 섞이는 고신뢰 표현만 사용.
+_LEET_MAP = str.maketrans({
+    "@": "a", "4": "a", "3": "e", "1": "i", "!": "i",
+    "0": "o", "5": "s", "$": "s", "7": "t",
+})
+_SEP_RE = re.compile(r"[\s\.\-_\*\+,/\\|~`'\"()\[\]{}]+")
+
+_BLOCKED_COMPACT = [
+    # "undress" 류는 sundress 오탐이 있어 여기서 제외 (단어 경계 리스트에서 처리)
+    "nude", "naked", "nsfw", "porn", "sexy", "topless", "bottomless",
+    "nipple", "areola", "genital", "blowjob", "handjob", "hentai",
+    "masturbat", "cumshot", "orgasm", "onlyfans", "fellatio", "erotic",
+    "upskirt", "lingerie", "boobs", "titties",
+    "noclothes", "withoutclothes", "seethrough",
+]
+
+
+def _compact(text: str) -> str:
+    """소문자화 + leet 치환 + 구분자 제거."""
+    return _SEP_RE.sub("", text.lower().translate(_LEET_MAP))
+
 
 def check_prompt(text: Optional[str]) -> Tuple[bool, Optional[str]]:
     """
@@ -62,6 +87,12 @@ def check_prompt(text: Optional[str]) -> Tuple[bool, Optional[str]]:
             return False, term
     for term in _BLOCKED_SUBSTR_KO:
         if term in text:
+            return False, term
+
+    # 난독화 우회 검사 (leet/구분자 제거 후)
+    compacted = _compact(text)
+    for term in _BLOCKED_COMPACT:
+        if term in compacted:
             return False, term
 
     return True, None

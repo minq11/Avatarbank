@@ -92,7 +92,27 @@
 
 ## 7. 남은 일 (사람 결정 필요)
 - 실제 **결제 연동**(Stripe 등) — 구독 POST 는 현재 스텁.
+  - 운영에서는 `SUBSCRIPTION_STUB_PAID_PLANS=False` 로 두면 유료 플랜은 스텁으로 활성화 불가(402). 무료 플랜은 항상 허용.
 - 요금제 가격/쿼터 수치 확정 (현재 임시값: Free 10 / Starter 300 / Pro 1000 / Studio 3000).
 - 마이그레이션 적용: `python migrations/add_studio_tables.py` (신규).
 - 기존 공개 마켓(`/avatars`, `/gallery`)을 유지할지/숨길지 — 현재는 유지(재사용 가능).
-- 프론트 신규 페이지는 **런타임 검증 전** (DB/빌드 환경 없음). 리뷰 후 `npm run dev` 로 확인 필요.
+- 프론트 신규 페이지: **빌드 검증 완료** (Docker builder 스테이지, vite build 통과 — 2026-07-03).
+  브라우저 런타임 확인은 `docker-compose -f docker-compose.dev.yml up` 후 수동 점검 권장.
+
+## 8. 보안/정합성 하드닝 (2026-07-03 적용)
+- **쿼터 원자적 차감**: `_run_generation` 이 조건부 UPDATE(`quota_remaining > 0`)로 차감.
+  동시 요청 race 로 쿼터 초과 생성 불가. 부족하면 409. 실패/NSFW 차단 시 원자적 환불.
+- **리딤 코드 사용 원자적 선점**: `POST /r/{code}/generate` 가 생성 *전에*
+  `used_count < max_uses` 조건부 UPDATE 로 1회 선점, 실패 시 반납. max_uses 초과 불가.
+- **공개 리딤 레이트리밋**: `/r/*`, `/qr.svg` 에 IP당 분당 제한 (인메모리 슬라이딩 윈도우).
+  `REDEEM_INFO_RATE_LIMIT_PER_MINUTE`(기본 30) / `REDEEM_GENERATE_RATE_LIMIT_PER_MINUTE`(기본 6).
+  멀티 인스턴스 운영 시 Redis 기반으로 교체 필요 (`app/rate_limit.py` 주석 참고).
+- **생성물 접근 제어**: `GET /generations/{id}` 는 공유(is_shared)된 것만 공개.
+  비공유는 소유자(buyer/creator)·관리자만 (타인은 404).
+- **플랜 한도 실제 적용**: 코드 발급 시 구독 필수 + `max_active_codes` 초과 시 400.
+- **레거시 `/generations` 경로도 SFW 일관 적용**: 프롬프트 사전 모더레이션 +
+  safety checker 강제 기록 + NSFW 결과 이미지 차단·크레딧 환불.
+- **모더레이션 난독화 방어**: leet(`p0rn`)·구분자(`n.u.d.e`) 우회를 정규화 후 검사.
+- **운영 안전장치**: `ENV=production` 에서 기본 `JWT_SECRET_KEY(CHANGE_ME)` 면 기동 거부.
+- **CORS**: 운영 도메인은 `CORS_EXTRA_ORIGINS` 환경변수(콤마 구분)로 추가.
+- 통합 테스트 24케이스 통과 (구독/템플릿/코드/리딤/환불/접근제어/레이트리밋/모더레이션).

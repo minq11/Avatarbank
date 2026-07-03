@@ -15,6 +15,7 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from fastapi.responses import Response
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from .config import settings
@@ -22,6 +23,7 @@ from .db import get_db
 from .dependencies import get_current_user
 from .fal_client import run_generation_sync
 from .moderation import assert_sfw_prompt
+from .rate_limit import rate_limit_redeem_generate, rate_limit_redeem_info
 from .models import (
     Avatar,
     AvatarStatus,
@@ -166,7 +168,8 @@ def _run_generation(
 ) -> Generation:
     """
     쿼터 1 차감 → fal 호출(SFW 강제) → 성공/실패 기록.
-    호출 전 쿼터(quota_remaining>0)·avatar.lora_path 는 검증되어 있어야 함.
+    호출 전 avatar.lora_path 는 검증되어 있어야 함.
+    쿼터 차감은 여기서 원자적으로 수행 (동시 요청 race 방지) — 부족하면 409.
     실패 시 쿼터 환불.
     """
     sub = _get_subscription(db, creator)
@@ -192,9 +195,26 @@ def _run_generation(
     )
     db.add(generation)
 
-    # 쿼터 선차감
+    # 쿼터 원자적 선차감: quota_remaining > 0 인 행만 -1 (조건부 UPDATE).
+    # 호출자의 사전 체크는 UX용 fast-fail일 뿐, 동시 요청 시 최종 방어선은 여기.
     if sub is not None:
-        sub.quota_remaining = max(0, sub.quota_remaining - 1)
+        deducted = (
+            db.query(Subscription)
+            .filter(
+                Subscription.id == sub.id,
+                Subscription.status == SubscriptionStatus.ACTIVE.value,
+                Subscription.quota_remaining > 0,
+            )
+            .update(
+                {Subscription.quota_remaining: Subscription.quota_remaining - 1},
+                synchronize_session=False,
+            )
+        )
+        if not deducted:
+            db.rollback()
+            raise HTTPException(
+                status_code=409, detail="No generation quota left this period."
+            )
     db.commit()
     db.refresh(generation)
 
@@ -229,8 +249,7 @@ def _run_generation(
             generation.image_url = None
             generation.status = GenerationStatus.FAILED.value
             generation.fail_reason = "Blocked: generated image was flagged as NSFW."
-            if sub is not None:
-                sub.quota_remaining += 1
+            _refund_quota(db, sub)
         else:
             if images:
                 generation.image_url = images[0].get("url")
@@ -241,12 +260,21 @@ def _run_generation(
         generation.status = GenerationStatus.FAILED.value
         generation.fail_reason = str(exc)
         # 쿼터 환불
-        if sub is not None:
-            sub.quota_remaining += 1
+        _refund_quota(db, sub)
         db.commit()
         db.refresh(generation)
 
     return generation
+
+
+def _refund_quota(db: Session, sub: Optional[Subscription]) -> None:
+    """쿼터 1 환불 (원자적 UPDATE). commit 은 호출자 몫."""
+    if sub is None:
+        return
+    db.query(Subscription).filter(Subscription.id == sub.id).update(
+        {Subscription.quota_remaining: Subscription.quota_remaining + 1},
+        synchronize_session=False,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -299,6 +327,14 @@ def subscribe(
     plan = db.query(Plan).filter(Plan.code == payload.plan_code, Plan.is_active == True).first()  # noqa: E712
     if not plan:
         raise HTTPException(status_code=404, detail="Plan not found.")
+
+    # 결제 미연동 가드: 운영에서 SUBSCRIPTION_STUB_PAID_PLANS=False 로 두면
+    # 유료 플랜은 이 스텁으로 활성화할 수 없다 (무료 플랜은 항상 허용).
+    if float(plan.price_usd or 0) > 0 and not settings.SUBSCRIPTION_STUB_PAID_PLANS:
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail="Payment is not integrated yet. Paid plans are unavailable.",
+        )
 
     now = datetime.utcnow()
     sub = db.query(Subscription).filter(Subscription.user_id == current_user.id).first()
@@ -471,6 +507,26 @@ def create_codes(
 ) -> List[CodeResponse]:
     """코드 1개 이상 발급. template_id 지정 시 팬은 그 템플릿만 사용 가능."""
     _owned_active_avatar(db, payload.avatar_id, current_user)
+
+    # 플랜의 동시 활성 코드 한도 적용 (구독 필수 — 코드는 크리에이터 쿼터를 소모하므로)
+    sub = _get_subscription(db, current_user)
+    if not sub or sub.status != SubscriptionStatus.ACTIVE.value:
+        raise HTTPException(status_code=403, detail="Active subscription required to issue codes.")
+    plan = db.query(Plan).filter(Plan.id == sub.plan_id).first()
+    if plan is not None:
+        active_count = (
+            db.query(RedeemCode)
+            .filter(RedeemCode.creator_id == current_user.id, RedeemCode.is_active == True)  # noqa: E712
+            .count()
+        )
+        if active_count + payload.count > plan.max_active_codes:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"Active code limit exceeded: your plan allows {plan.max_active_codes} "
+                    f"active codes (currently {active_count})."
+                ),
+            )
     if payload.template_id is not None:
         tpl = (
             db.query(GenerationTemplate)
@@ -572,6 +628,16 @@ def studio_generate(
 # ---------------------------------------------------------------------------
 
 
+def _release_code_use(db: Session, code_id: int) -> None:
+    """선점했던 코드 사용 1회 반납 (원자적 UPDATE). commit 은 호출자 몫."""
+    db.query(RedeemCode).filter(
+        RedeemCode.id == code_id, RedeemCode.used_count > 0
+    ).update(
+        {RedeemCode.used_count: RedeemCode.used_count - 1},
+        synchronize_session=False,
+    )
+
+
 def _get_redeemable_code(db: Session, code_str: str) -> RedeemCode:
     code = db.query(RedeemCode).filter(RedeemCode.code == code_str.strip().upper()).first()
     if not code or not code.is_active:
@@ -584,7 +650,11 @@ def _get_redeemable_code(db: Session, code_str: str) -> RedeemCode:
 
 
 @router.get("/r/{code_str}", response_model=RedeemInfoResponse)
-def redeem_info(code_str: str, db: Session = Depends(get_db)) -> RedeemInfoResponse:
+def redeem_info(
+    code_str: str,
+    db: Session = Depends(get_db),
+    _rl: None = Depends(rate_limit_redeem_info),
+) -> RedeemInfoResponse:
     """팬이 코드로 진입 시 보는 정보 + 사용 가능한 템플릿."""
     code = _get_redeemable_code(db, code_str)
     avatar = db.query(Avatar).filter(Avatar.id == code.avatar_id).first()
@@ -621,7 +691,7 @@ def redeem_info(code_str: str, db: Session = Depends(get_db)) -> RedeemInfoRespo
 
 
 @router.get("/qr.svg")
-def qr_svg(data: str):
+def qr_svg(data: str, _rl: None = Depends(rate_limit_redeem_info)):
     """임의 문자열(주로 리딤 링크)을 QR 코드 SVG 로 변환. 공개 — 링크 자체가 공유 대상."""
     if not data or len(data) > 1024:
         raise HTTPException(status_code=400, detail="Invalid data.")
@@ -643,6 +713,7 @@ def redeem_generate(
     code_str: str,
     payload: RedeemGenerateRequest,
     db: Session = Depends(get_db),
+    _rl: None = Depends(rate_limit_redeem_generate),
 ) -> RedeemGenerateResponse:
     """
     팬 생성. 템플릿을 고르거나(template_id) 자유 프롬프트(prompt)를 직접 입력.
@@ -698,28 +769,54 @@ def redeem_generate(
         gen_steps = 8
         gen_lora = 1.6
 
-    generation = _run_generation(
-        db,
-        creator=creator,
-        avatar=avatar,
-        prompt=gen_prompt,
-        negative_prompt=gen_negative,
-        image_size=gen_image_size,
-        num_inference_steps=gen_steps,
-        lora_scale=gen_lora,
-        output_format="png",
-        seed=payload.seed,
-        source="fan",
-        buyer_id=None,
-        redeem_code=code,
-        template=template,
+    # 코드 사용 원자적 선점: 동시 요청이 max_uses 를 초과하지 못하도록
+    # used_count < max_uses 조건부 UPDATE 로 먼저 1 확보. 생성 실패 시 아래에서 반납.
+    reserved = (
+        db.query(RedeemCode)
+        .filter(
+            RedeemCode.id == code.id,
+            RedeemCode.is_active == True,  # noqa: E712
+            or_(RedeemCode.max_uses.is_(None), RedeemCode.used_count < RedeemCode.max_uses),
+        )
+        .update(
+            {RedeemCode.used_count: RedeemCode.used_count + 1},
+            synchronize_session=False,
+        )
     )
+    if not reserved:
+        db.rollback()
+        raise HTTPException(status_code=410, detail="This code has been fully used.")
+    db.commit()
 
-    if generation.status == GenerationStatus.SUCCESS.value:
-        code.used_count += 1
+    try:
+        generation = _run_generation(
+            db,
+            creator=creator,
+            avatar=avatar,
+            prompt=gen_prompt,
+            negative_prompt=gen_negative,
+            image_size=gen_image_size,
+            num_inference_steps=gen_steps,
+            lora_scale=gen_lora,
+            output_format="png",
+            seed=payload.seed,
+            source="fan",
+            buyer_id=None,
+            redeem_code=code,
+            template=template,
+        )
+    except HTTPException:
+        # 쿼터 소진(409) 등으로 생성 자체가 시작 안 됨 → 코드 사용 반납
+        _release_code_use(db, code.id)
         db.commit()
-        db.refresh(code)
+        raise
 
+    if generation.status != GenerationStatus.SUCCESS.value:
+        # 생성 실패(NSFW 차단 포함) → 코드 사용 반납 (쿼터는 _run_generation 이 환불)
+        _release_code_use(db, code.id)
+        db.commit()
+
+    db.refresh(code)
     uses_left = None if code.max_uses is None else max(0, code.max_uses - code.used_count)
     return RedeemGenerateResponse(
         status=generation.status,

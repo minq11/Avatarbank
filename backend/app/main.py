@@ -2,6 +2,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
 import io
+import logging
 import zipfile
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile, status
@@ -71,21 +72,28 @@ from .schemas import (
     UserBase,
 )
 
+logger = logging.getLogger(__name__)
+
 app = FastAPI(title=settings.PROJECT_NAME)
 
 # CORS 설정 (로컬/운영 Docker: localhost, 127.0.0.1 모든 포트 허용)
+# 운영 도메인은 CORS_EXTRA_ORIGINS 환경변수(콤마 구분)로 추가.
+_cors_origins = [
+    "http://localhost",
+    "http://localhost:80",
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1",
+    "http://127.0.0.1:80",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:5173",
+]
+_cors_origins += [
+    o.strip() for o in settings.CORS_EXTRA_ORIGINS.split(",") if o.strip()
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost",
-        "http://localhost:80",
-        "http://localhost:3000",
-        "http://localhost:5173",
-        "http://127.0.0.1",
-        "http://127.0.0.1:80",
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:5173",
-    ],
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
@@ -94,6 +102,16 @@ app.add_middleware(
 
 @app.on_event("startup")
 def on_startup() -> None:
+    # 안전장치: 기본 JWT 시크릿으로는 운영 환경 기동 금지
+    if settings.JWT_SECRET_KEY == "CHANGE_ME":
+        if settings.ENV.strip().lower() in ("prod", "production"):
+            raise RuntimeError(
+                "JWT_SECRET_KEY is still the default value. "
+                "Set a strong secret in the environment before running in production."
+            )
+        logger.warning(
+            "JWT_SECRET_KEY is using the default value — change it before deploying."
+        )
     Base.metadata.create_all(bind=engine)
     # Creator Studio 기본 요금제 시드 (멱등)
     from .db import SessionLocal
@@ -368,7 +386,13 @@ def create_generation(
     이미지 생성 요청. 로그인 필수.
     get_current_user로 인증 검증 - 토큰 없거나 유효하지 않으면 401 반환.
     """
-    # TODO: 프롬프트 필터링, idempotency 체크 구현
+    # SFW 정책: fal 호출 전 프롬프트 사전 모더레이션 (차단 시 크레딧 소모 0)
+    from .moderation import assert_sfw_prompt
+
+    assert_sfw_prompt(payload.prompt)
+    assert_sfw_prompt(payload.negative_prompt)
+
+    # TODO: idempotency 체크 구현
 
     # 인증된 사용자를 buyer로 사용
     buyer = current_user
@@ -412,7 +436,7 @@ def create_generation(
         negative_prompt=combined_negative,
         image_size=payload.image_size,
         num_inference_steps=payload.num_inference_steps,
-        enable_safety_checker=payload.enable_safety_checker,
+        enable_safety_checker=True,  # SFW 전용 정책 — 클라이언트 값 무시하고 강제 ON
         lora_scale=payload.lora_scale,
         status=GenerationStatus.PENDING.value,
     )
@@ -456,24 +480,42 @@ def create_generation(
             lora_url=lora_url,
             lora_scale=payload.lora_scale,
             negative_prompt=combined_negative,
-            enable_safety_checker=payload.enable_safety_checker,
+            enable_safety_checker=True,  # SFW 전용 정책 — 강제 ON
             image_size=payload.image_size,
             num_inference_steps=payload.num_inference_steps,
             output_format=payload.output_format,
             seed=payload.seed,
         )
         images = response_payload.get("images") or []
-        if images:
-            generation.image_url = images[0].get("url")
         generation.seed = (
             str(response_payload.get("seed"))
             if response_payload.get("seed") is not None
             else None
         )
-        generation.nsfw_flag = any(
-            response_payload.get("has_nsfw_concepts") or []
-        )
-        generation.status = GenerationStatus.SUCCESS.value
+        is_nsfw = any(response_payload.get("has_nsfw_concepts") or [])
+        generation.nsfw_flag = is_nsfw
+        if is_nsfw:
+            # SFW 정책: NSFW 감지 시 이미지 서빙 차단 + 실패 처리 + 크레딧 환불
+            generation.image_url = None
+            generation.status = GenerationStatus.FAILED.value
+            generation.fail_reason = "Blocked: generated image was flagged as NSFW."
+            refund_before = buyer.credit_balance
+            buyer.credit_balance += total_credits
+            db.add(
+                Transaction(
+                    user_id=buyer.id,
+                    type="refund",
+                    amount=total_credits,
+                    currency="CREDIT",
+                    credit_before=refund_before,
+                    credit_after=buyer.credit_balance,
+                    reference_id=str(generation.id),
+                )
+            )
+        else:
+            if images:
+                generation.image_url = images[0].get("url")
+            generation.status = GenerationStatus.SUCCESS.value
         db.commit()
         db.refresh(generation)
     except Exception as exc:
@@ -502,10 +544,21 @@ def create_generation(
 def get_generation(
     generation_id: int,
     db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional),
 ) -> GenerationResponse:
+    """생성 단건 조회. 공유(is_shared)된 것은 공개, 아니면 소유자(buyer/creator) 또는 관리자만."""
     generation = db.query(Generation).filter(Generation.id == generation_id).first()
     if not generation:
         raise HTTPException(status_code=404, detail="Generation not found.")
+    if not generation.is_shared:
+        is_owner = current_user is not None and (
+            generation.buyer_id == current_user.id
+            or generation.creator_id == current_user.id
+        )
+        is_admin = current_user is not None and _is_admin_email(current_user.email)
+        if not (is_owner or is_admin):
+            # 존재 여부 노출 방지를 위해 403 대신 404
+            raise HTTPException(status_code=404, detail="Generation not found.")
     data = GenerationResponse.model_validate(generation).model_dump()
     if generation.avatar_id:
         avatar = db.query(Avatar).filter(Avatar.id == generation.avatar_id).first()

@@ -40,6 +40,19 @@ class Settings(BaseSettings):
     # Admin
     ADMIN_EMAIL_WHITELIST: str = ""
 
+    # CORS: 기본 localhost 외 추가 허용 오리진 (콤마 구분, 운영 도메인 등)
+    # 예: "https://avatarbank.example.com,https://www.avatarbank.example.com"
+    CORS_EXTRA_ORIGINS: str = ""
+
+    # 결제 미연동 스텁으로 "유료" 플랜 구독 허용 여부.
+    # 운영에서는 False로 두고 결제(Stripe 등) 웹훅에서만 구독을 활성화할 것.
+    SUBSCRIPTION_STUB_PAID_PLANS: bool = True
+
+    # 공개 리딤 엔드포인트(/r/*) 레이트리밋 — IP당 분당 요청 수. 0 = 비활성.
+    # 리딤 생성은 크리에이터 쿼터를 소모하므로 조회보다 훨씬 낮게 잡는다.
+    REDEEM_INFO_RATE_LIMIT_PER_MINUTE: int = 30
+    REDEEM_GENERATE_RATE_LIMIT_PER_MINUTE: int = 6
+
     # 아바타 preview 로컬 복사 (frontend assets 또는 서빙용 디렉터리)
     # 설정 시 PUT /my/avatars/{id} preview 업로드 시 여기에도 저장하고, GET /static/preview_image/{id}.png 로 서빙
     PREVIEW_LOCAL_DIR: str = ""

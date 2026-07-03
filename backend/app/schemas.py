@@ -91,7 +91,7 @@ class GenerationResponse(BaseModel):
     id: int
     avatar_id: Optional[int] = None
     avatar_title: Optional[str] = None
-    buyer_id: int
+    buyer_id: Optional[int] = None  # 팬(비회원) 리딤 생성은 null
     credits_used: int
     prompt: str
     negative_prompt: Optional[str] = None
