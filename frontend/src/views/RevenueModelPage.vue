@@ -4,9 +4,9 @@
     <section class="revenue-hero">
       <div class="revenue-container">
         <div class="revenue-hero-content">
-          <h1 class="revenue-title">Revenue model for creators</h1>
+          <h1 class="revenue-title">크리에이터 수익 모델</h1>
           <p class="revenue-lead">
-            You upload photos. We train your AI avatar. You earn whenever someone generates an image with it.
+            사진을 올리면 AI 아바타를 학습해 드려요. 누군가 그 아바타로 이미지를 생성할 때마다 수익이 쌓입니다.
           </p>
         </div>
       </div>
@@ -15,35 +15,35 @@
     <!-- Creator flow: model → earnings -->
     <section class="revenue-section">
       <div class="revenue-container">
-        <h2 class="section-heading">From model to earnings</h2>
-        <p class="flow-intro">Here’s how you get your avatar on the platform and start earning.</p>
+        <h2 class="section-heading">모델에서 수익까지</h2>
+        <p class="flow-intro">아바타를 플랫폼에 올리고 수익을 내기 시작하는 과정이에요.</p>
         <div class="flow-timeline">
           <div class="flow-step">
             <span class="flow-step-num">1</span>
             <div class="flow-step-body">
-              <h3 class="flow-step-title">Become a creator</h3>
-              <p class="flow-step-desc">Sign up, then request creator status by sending a DM to our official Instagram with your AvatarBank nickname. Once we verify you, your account is upgraded and you get access to the creator dashboard.</p>
+              <h3 class="flow-step-title">크리에이터 되기</h3>
+              <p class="flow-step-desc">회원가입 후, 공식 인스타그램으로 AvatarBank 닉네임과 함께 DM을 보내 크리에이터 전환을 요청하세요. 본인 확인이 끝나면 계정이 업그레이드되고 크리에이터 대시보드를 이용할 수 있어요.</p>
             </div>
           </div>
           <div class="flow-step">
             <span class="flow-step-num">2</span>
             <div class="flow-step-body">
-              <h3 class="flow-step-title">Submit a training request</h3>
-              <p class="flow-step-desc">In <strong>My Avatars</strong>, create a new request: add your avatar name, description, and set your <strong>credit per generation</strong> (how much you earn each time someone generates an image with your avatar). Upload training photos—front (at least 4), side (at least 4), full body (at least 1), and a few extra. If it’s a real-person likeness, we’ll confirm via Instagram DM before training.</p>
+              <h3 class="flow-step-title">학습 요청 제출</h3>
+              <p class="flow-step-desc"><strong>내 아바타</strong>에서 새 요청을 만드세요: 아바타 이름·설명을 입력하고 <strong>생성당 크레딧</strong>(누군가 이 아바타로 이미지를 생성할 때마다 받는 수익)을 설정합니다. 학습 사진을 올리세요 — 정면(4장 이상), 측면(4장 이상), 전신(1장 이상), 그리고 기타 몇 장. 실존 인물 기반이라면 학습 전 인스타그램 DM으로 본인 확인을 진행해요.</p>
             </div>
           </div>
           <div class="flow-step">
             <span class="flow-step-num">3</span>
             <div class="flow-step-body">
-              <h3 class="flow-step-title">We train and publish your avatar</h3>
-              <p class="flow-step-desc">We review your request, run the AI training, and add your avatar to the marketplace. You’ll get a notification when it’s live. You can then adjust options (e.g. credit per generation) in the avatar detail screen.</p>
+              <h3 class="flow-step-title">아바타 학습·공개</h3>
+              <p class="flow-step-desc">요청을 검토하고 AI 학습을 진행한 뒤 아바타를 마켓에 추가해요. 공개되면 알림을 보내드립니다. 이후 아바타 상세 화면에서 옵션(예: 생성당 크레딧)을 조정할 수 있어요.</p>
             </div>
           </div>
           <div class="flow-step">
             <span class="flow-step-num">4</span>
             <div class="flow-step-body">
-              <h3 class="flow-step-title">Earn and cash out</h3>
-              <p class="flow-step-desc">Every time a user generates an image with your avatar, the <strong>option credits</strong> they pay go to you (the base 1 credit stays with the platform). Earnings show up in your dashboard. When you’re ready, request a payout: <strong>10 credits = 1 USD</strong>. Payouts are processed by admin approval and sent via PayPal.</p>
+              <h3 class="flow-step-title">수익 정산·출금</h3>
+              <p class="flow-step-desc">사용자가 내 아바타로 이미지를 생성할 때마다, 그들이 낸 <strong>옵션 크레딧</strong>이 나에게 들어와요(기본 1크레딧은 플랫폼 몫). 수익은 대시보드에 표시됩니다. 준비되면 출금을 요청하세요: <strong>10크레딧 = 1 USD</strong>. 출금은 관리자 승인 후 PayPal로 지급돼요.</p>
             </div>
           </div>
         </div>
@@ -53,15 +53,15 @@
     <!-- What you earn (summary) -->
     <section class="revenue-section revenue-section-alt">
       <div class="revenue-container">
-        <h2 class="section-heading">What you earn</h2>
+        <h2 class="section-heading">내 수익 구조</h2>
         <div class="earn-card">
           <p class="earn-desc">
-            Each image generation costs the user <strong>1 base credit (platform) + optional credits (yours)</strong>. You set the optional amount per avatar. So if a user pays 1 + 4 credits for one image, you receive 4 credits. Only creators can withdraw; buyers earn credits but cannot cash out.
+            이미지 1회 생성 비용은 <strong>기본 1크레딧(플랫폼) + 옵션 크레딧(내 몫)</strong>이에요. 옵션 금액은 아바타별로 직접 정합니다. 사용자가 이미지 하나에 1+4 크레딧을 내면 내가 4크레딧을 받아요. 출금은 크리에이터만 가능하며, 구매자는 크레딧을 벌 수 있지만 출금은 안 돼요.
           </p>
           <ul class="earn-list">
-            <li><strong>Your share:</strong> 100% of the optional credits users pay when generating with your avatar.</li>
-            <li><strong>Dashboard:</strong> total earnings and per-avatar stats in your creator dashboard.</li>
-            <li><strong>Payout:</strong> 10 credits = 1 USD, subject to minimum and admin approval; paid via PayPal.</li>
+            <li><strong>내 몫:</strong> 사용자가 내 아바타로 생성할 때 낸 옵션 크레딧의 100%.</li>
+            <li><strong>대시보드:</strong> 크리에이터 대시보드에서 총수익과 아바타별 통계 확인.</li>
+            <li><strong>출금:</strong> 10크레딧 = 1 USD, 최소 금액·관리자 승인 조건, PayPal 지급.</li>
           </ul>
         </div>
       </div>
@@ -70,10 +70,10 @@
     <!-- Guidelines -->
     <section class="revenue-section">
       <div class="revenue-container">
-        <h2 class="section-heading">Guidelines</h2>
+        <h2 class="section-heading">가이드라인</h2>
         <div class="guidelines-card">
           <p class="guidelines-desc">
-            We keep the marketplace <strong>safe for work</strong>—upload photos that are appropriate for all audiences. Adult or explicit content isn’t permitted and may be removed. By contributing, you’re helping keep the platform brand-friendly for everyone.
+            마켓은 <strong>건전한(SFW)</strong> 콘텐츠만 유지해요 — 모든 사용자에게 적합한 사진을 올려주세요. 성인·선정적 콘텐츠는 허용되지 않으며 삭제될 수 있어요. 이런 참여가 모두를 위한 브랜드 친화적 플랫폼을 만듭니다.
           </p>
         </div>
       </div>
@@ -83,14 +83,14 @@
     <section class="revenue-section revenue-cta-section">
       <div class="revenue-container">
         <div class="cta-block">
-          <p class="cta-text">Ready to turn your likeness into an income stream?</p>
+          <p class="cta-text">내 얼굴을 수익원으로 만들 준비됐나요?</p>
           <RouterLink to="/my/avatars" class="cta-btn">
             <svg class="cta-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
             </svg>
-            Start uploading
+            사진 올리기 시작
           </RouterLink>
-          <RouterLink to="/" class="cta-link">Back to home</RouterLink>
+          <RouterLink to="/" class="cta-link">홈으로 돌아가기</RouterLink>
         </div>
       </div>
     </section>

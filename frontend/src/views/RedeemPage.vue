@@ -4,12 +4,12 @@
       <!-- Loading code info -->
       <div v-if="loading" class="state-box">
         <div class="spinner"></div>
-        <p>Loading…</p>
+        <p>불러오는 중…</p>
       </div>
 
       <!-- Invalid / expired code -->
       <div v-else-if="errorMessage && !info" class="state-box error">
-        <h2>Can't use this code</h2>
+        <h2>이 코드를 사용할 수 없어요</h2>
         <p>{{ errorMessage }}</p>
       </div>
 
@@ -23,32 +23,31 @@
             class="creator-avatar"
           />
           <div>
-            <p class="eyebrow">AI Photo Booth</p>
+            <p class="eyebrow">AI 포토부스</p>
             <h1 class="title">{{ info.creator_nickname }}</h1>
             <p class="subtitle">
-              Pick a look and create your own picture with
-              <strong>{{ info.avatar_title }}</strong>.
+              <strong>{{ info.avatar_title }}</strong>(으)로 원하는 룩의 나만의 사진을 만들어보세요.
             </p>
             <p v-if="info.uses_left !== null" class="uses">
-              {{ info.uses_left }} use{{ info.uses_left === 1 ? "" : "s" }} left
+              {{ info.uses_left }}회 남음
             </p>
           </div>
         </header>
 
         <!-- Result -->
         <div v-if="resultImage" class="result-box">
-          <img :src="resultImage" alt="Your generated image" class="result-img" />
+          <img :src="resultImage" alt="생성된 이미지" class="result-img" />
 
           <div class="result-actions">
-            <a :href="resultImage" download="my-photo.png" class="btn-primary">⬇ Download</a>
-            <button v-if="canNativeShare" class="btn-secondary" @click="nativeShare">↗ Share</button>
-            <a class="btn-secondary" :href="xShareUrl" target="_blank" rel="noopener">Share on X</a>
+            <a :href="resultImage" download="my-photo.png" class="btn-primary">⬇ 다운로드</a>
+            <button v-if="canNativeShare" class="btn-secondary" @click="nativeShare">↗ 공유</button>
+            <a class="btn-secondary" :href="xShareUrl" target="_blank" rel="noopener">X에 공유</a>
             <button class="btn-secondary" @click="copyPageLink">
-              {{ linkCopied ? "✓ Copied" : "🔗 Copy link" }}
+              {{ linkCopied ? "✓ 복사됨" : "🔗 링크 복사" }}
             </button>
           </div>
 
-          <button class="btn-ghost" @click="makeAnother">＋ Make another</button>
+          <button class="btn-ghost" @click="makeAnother">＋ 다른 사진 만들기</button>
 
           <!-- 이번 세션에 만든 것들 -->
           <div v-if="sessionResults.length > 1" class="session-strip">
@@ -68,7 +67,7 @@
         <div v-else-if="generating" class="generating-box">
           <div class="spinner"></div>
           <p class="gen-msg">{{ loadingMessage }}</p>
-          <p class="gen-sub">This usually takes a few seconds.</p>
+          <p class="gen-sub">보통 몇 초 정도 걸려요.</p>
         </div>
 
         <!-- Generate -->
@@ -80,14 +79,14 @@
               :class="{ active: mode === 'template' }"
               @click="mode = 'template'"
             >
-              Pick a look
+              룩 고르기
             </button>
             <button
               class="mode-tab"
               :class="{ active: mode === 'prompt' }"
               @click="mode = 'prompt'"
             >
-              Describe your own
+              직접 묘사하기
             </button>
           </div>
 
@@ -114,7 +113,7 @@
             <textarea
               v-model="freePrompt"
               rows="3"
-              placeholder="Describe the scene, outfit, or vibe you want… (keep it safe-for-work)"
+              placeholder="원하는 장면·의상·분위기를 묘사해 주세요… (건전한 내용만)"
               :disabled="generating"
             ></textarea>
           </div>
@@ -125,10 +124,10 @@
             @click="generate"
           >
             <span v-if="generating" class="spinner small"></span>
-            {{ generating ? "Creating your picture…" : "Create my picture" }}
+            {{ generating ? "사진 만드는 중…" : "내 사진 만들기" }}
           </button>
           <p v-if="errorMessage" class="inline-error">{{ errorMessage }}</p>
-          <p class="disclaimer">AI-generated image with {{ info.creator_nickname }}'s likeness. SFW only.</p>
+          <p class="disclaimer">{{ info.creator_nickname }}님의 얼굴로 만든 AI 이미지예요. 건전한 이미지만 생성됩니다.</p>
         </div>
       </template>
     </div>
@@ -163,15 +162,15 @@ const canGenerate = computed(() => {
 const canNativeShare = typeof navigator !== "undefined" && !!(navigator as any).share;
 const pageUrl = typeof window !== "undefined" ? window.location.href : "";
 const xShareUrl = computed(() => {
-  const text = `I just made an AI photo with ${info.value?.creator_nickname ?? "a creator"} ✨`;
+  const text = `${info.value?.creator_nickname ?? "크리에이터"}님과 AI 사진을 만들었어요 ✨`;
   return `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(pageUrl)}`;
 });
 
 const nativeShare = async () => {
   try {
     await (navigator as any).share({
-      title: "My AI photo",
-      text: `Made with ${info.value?.creator_nickname ?? "a creator"} ✨`,
+      title: "내 AI 사진",
+      text: `${info.value?.creator_nickname ?? "크리에이터"}님과 함께 만들었어요 ✨`,
       url: pageUrl,
     });
   } catch {
@@ -196,10 +195,10 @@ const makeAnother = () => {
 
 // 생성 대기 중 로딩 문구 로테이션
 const LOADING_MESSAGES = [
-  "Warming up the camera…",
-  "Styling the shot…",
-  "Adding the finishing touches…",
-  "Almost ready…",
+  "카메라를 준비하는 중…",
+  "장면을 연출하는 중…",
+  "마무리 손질 중…",
+  "거의 다 됐어요…",
 ];
 const loadingMessage = ref(LOADING_MESSAGES[0]);
 let loadingTimer: ReturnType<typeof setInterval> | null = null;
@@ -233,7 +232,7 @@ const loadInfo = async () => {
     // 템플릿이 없고 자유 프롬프트만 가능하면 프롬프트 모드로
     mode.value = data.templates.length === 0 && data.free_prompt_allowed ? "prompt" : "template";
   } catch (e: any) {
-    errorMessage.value = extractError(e, "This code is invalid or has expired.");
+    errorMessage.value = extractError(e, "유효하지 않거나 만료된 코드예요.");
     info.value = null;
   } finally {
     loading.value = false;
@@ -256,10 +255,10 @@ const generate = async () => {
       sessionResults.value.push(res.image_url);
       if (info.value) info.value.uses_left = res.uses_left;
     } else {
-      errorMessage.value = res.fail_reason || "Generation failed. Please try again.";
+      errorMessage.value = res.fail_reason || "생성에 실패했어요. 다시 시도해 주세요.";
     }
   } catch (e: any) {
-    errorMessage.value = extractError(e, "Generation failed. Please try again.");
+    errorMessage.value = extractError(e, "생성에 실패했어요. 다시 시도해 주세요.");
   } finally {
     generating.value = false;
     stopLoadingMessages();

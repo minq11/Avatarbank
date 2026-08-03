@@ -1,7 +1,7 @@
 <template>
   <section class="generation">
     <div class="generation-page-header">
-      <h2 class="generation-page-title">AI Image Generation</h2>
+      <h2 class="generation-page-title">AI 이미지 생성</h2>
     </div>
     <div class="layout" :class="{ 'layout-no-avatar': !avatarId }">
       <div v-if="avatarId != null" class="left">
@@ -28,45 +28,45 @@
             />
           </div>
           <div v-else class="preview-placeholder">
-            <span>No preview</span>
+            <span>미리보기 없음</span>
           </div>
           <p class="avatar-name">{{ avatar.title }}</p>
           <table class="avatar-info-table">
             <tbody>
               <tr v-if="avatar.description">
-                <th scope="row">Description</th>
+                <th scope="row">설명</th>
                 <td class="avatar-detail-value">{{ avatar.description }}</td>
               </tr>
               <tr v-if="avatar.nationality">
-                <th scope="row">Nationality</th>
+                <th scope="row">국가</th>
                 <td>{{ avatar.nationality }}</td>
               </tr>
               <tr v-if="avatar.gender">
-                <th scope="row">Gender</th>
+                <th scope="row">성별</th>
                 <td>{{ avatar.gender }}</td>
               </tr>
               <tr v-if="avatar.age != null">
-                <th scope="row">Age</th>
+                <th scope="row">나이</th>
                 <td>{{ avatar.age }}</td>
               </tr>
               <tr v-if="avatar.height != null">
-                <th scope="row">Height</th>
+                <th scope="row">키</th>
                 <td>{{ avatar.height }} cm</td>
               </tr>
               <tr v-if="avatar.weight != null">
-                <th scope="row">Weight</th>
+                <th scope="row">몸무게</th>
                 <td>{{ avatar.weight }} kg</td>
               </tr>
               <tr v-if="avatar.special_notes">
-                <th scope="row">Special notes</th>
+                <th scope="row">특이사항</th>
                 <td class="avatar-detail-value">{{ avatar.special_notes }}</td>
               </tr>
               <tr>
-                <th scope="row">Credit</th>
+                <th scope="row">크레딧</th>
                 <td>{{ avatar.credit_per_generation != null ? avatar.credit_per_generation : 1 }} C / gen</td>
               </tr>
               <tr>
-                <th scope="row">Identity</th>
+                <th scope="row">유형</th>
                 <td>{{ avatar.is_real_person ? 'Real person' : 'Fictional character' }}</td>
               </tr>
               <tr v-if="avatar.is_real_person && avatar.instagram_id">
@@ -83,11 +83,11 @@
                 </td>
               </tr>
               <tr>
-                <th scope="row">Creator</th>
+                <th scope="row">크리에이터</th>
                 <td>@{{ avatar.creator_nickname || '—' }}</td>
               </tr>
               <tr v-if="avatar.negative_prompt">
-                <th scope="row">Negative prompt</th>
+                <th scope="row">네거티브 프롬프트</th>
                 <td class="avatar-detail-value avatar-detail-mono">{{ avatar.negative_prompt }}</td>
               </tr>
             </tbody>
@@ -95,41 +95,41 @@
         </div>
         <div v-else-if="avatarError" class="error-state">
           <p>{{ avatarError }}</p>
-          <router-link to="/market" class="link">Browse avatars</router-link>
+          <router-link to="/my/avatars" class="link">내 아바타 보기</router-link>
         </div>
         <div v-else class="loading-state">
-          <p>Loading avatar...</p>
+          <p>아바타 불러오는 중…</p>
         </div>
       </div>
 
       <div class="right" :class="{ 'options-collapsed': !optionsExpanded }">
         <label class="field">
-          <span>Select Avatar (LoRA)</span>
+          <span>아바타 선택 (LoRA)</span>
           <SearchableSelect
             :model-value="avatarId ?? ''"
             :options="avatarSelectOptions"
-            placeholder="— Select an avatar —"
+            placeholder="— 아바타 선택 —"
             @update:model-value="onSelectAvatarValue"
           />
-          <p v-if="avatarsList.length === 0 && !avatarsListLoading" class="field-hint">No avatars available.</p>
+          <p v-if="avatarsList.length === 0 && !avatarsListLoading" class="field-hint">사용 가능한 아바타가 없어요.</p>
         </label>
 
         <label class="field field-prompt">
-          <span>Prompt</span>
+          <span>프롬프트</span>
           <textarea
             v-model="prompt"
             rows="8"
-            placeholder="Describe the image you want (English recommended)."
+            placeholder="원하는 이미지를 묘사하세요 (영어 권장)."
             class="prompt-textarea"
           />
         </label>
 
         <label class="field">
-          <span>Negative prompt <span class="field-optional">(optional)</span></span>
+          <span>네거티브 프롬프트 <span class="field-optional">(선택)</span></span>
           <textarea
             v-model="negativePrompt"
             rows="2"
-            placeholder="What to avoid in the image (defaults to avatar's negative prompt if empty)."
+            placeholder="이미지에서 피할 요소 (비우면 아바타 기본 네거티브 프롬프트 사용)."
             class="field-textarea-mono"
           />
         </label>
@@ -141,7 +141,7 @@
             @click="optionsExpanded = !optionsExpanded"
             :aria-expanded="optionsExpanded"
           >
-            <h4 class="options-card-title">Generation options</h4>
+            <h4 class="options-card-title">생성 옵션</h4>
             <svg
               class="options-card-chevron"
               :class="{ 'options-card-chevron-open': optionsExpanded }"
@@ -157,7 +157,7 @@
             <div v-if="openHelpOption" class="option-help-overlay" aria-hidden="true" @click="openHelpOption = null" />
             <div class="option-row option-row-toggle">
               <span class="option-label-wrap option-help-wrap">
-                <span class="option-label">Allow NSFW</span>
+                <span class="option-label">NSFW 허용</span>
                 <span class="option-help" aria-label="Help" @click.stop="toggleHelp('nsfw')">?</span>
                 <div v-if="openHelpOption === 'nsfw'" class="option-help-popover">{{ optionHelpText.nsfw }}</div>
               </span>
@@ -168,7 +168,7 @@
             </div>
             <div class="option-row">
               <span class="option-label-wrap option-help-wrap">
-                <label class="option-label" for="opt-image-size">Image size</label>
+                <label class="option-label" for="opt-image-size">이미지 크기</label>
                 <span class="option-help" aria-label="Help" @click.stop="toggleHelp('imageSize')">?</span>
                 <div v-if="openHelpOption === 'imageSize'" class="option-help-popover">{{ optionHelpText.imageSize }}</div>
               </span>
@@ -180,7 +180,7 @@
             </div>
             <div class="option-row">
               <span class="option-label-wrap option-help-wrap">
-                <label class="option-label" for="opt-steps">Inference steps</label>
+                <label class="option-label" for="opt-steps">추론 스텝</label>
                 <span class="option-help" aria-label="Help" @click.stop="toggleHelp('steps')">?</span>
                 <div v-if="openHelpOption === 'steps'" class="option-help-popover">{{ optionHelpText.steps }}</div>
               </span>
@@ -190,7 +190,7 @@
             </div>
             <div class="option-row">
               <span class="option-label-wrap option-help-wrap">
-                <label class="option-label" for="opt-seed">Seed</label>
+                <label class="option-label" for="opt-seed">시드</label>
                 <span class="option-help" aria-label="Help" @click.stop="toggleHelp('seed')">?</span>
                 <div v-if="openHelpOption === 'seed'" class="option-help-popover option-help-popover-above">{{ optionHelpText.seed }}</div>
               </span>
@@ -201,13 +201,13 @@
                 inputmode="numeric"
                 pattern="[0-9]*"
                 class="option-input"
-                placeholder="Random (clear for random)"
+                placeholder="랜덤 (비우면 랜덤)"
                 @input="onSeedInput"
               />
             </div>
             <div class="option-row">
               <span class="option-label-wrap option-help-wrap">
-                <span class="option-label">LoRA strength</span>
+                <span class="option-label">LoRA 강도</span>
                 <span class="option-help" aria-label="Help" @click.stop="toggleHelp('loraScale')">?</span>
                 <div v-if="openHelpOption === 'loraScale'" class="option-help-popover option-help-popover-above">{{ optionHelpText.loraScale }}</div>
               </span>
@@ -231,8 +231,8 @@
         </div>
 
         <div v-if="avatar" class="cost-info">
-          <span>Base {{ baseCredit }} C + Avatar Royalty {{ avatarCredit }} C</span>
-          <span>Total: {{ totalCredits }} C</span>
+          <span>기본 {{ baseCredit }} C + 아바타 로열티 {{ avatarCredit }} C</span>
+          <span>합계: {{ totalCredits }} C</span>
         </div>
 
         <div class="button-wrap">
@@ -241,16 +241,16 @@
           :disabled="!canSubmit"
           @click="requestGeneration"
         >
-          {{ loading ? "Generating..." : "Generate Image" }}
+          {{ loading ? "생성 중…" : "이미지 생성" }}
         </button>
         </div>
 
         <p v-if="!authStore.isLoggedIn && avatar && prompt.trim()" class="login-hint">
-          Please log in to generate images.
+          이미지를 생성하려면 로그인해 주세요.
         </p>
         <p v-if="error" class="error">{{ error }}</p>
         <p v-if="generationId && !resultImageUrl && !error" class="info">
-          Request submitted. ID: {{ generationId }}
+          요청이 접수됐어요. ID: {{ generationId }}
         </p>
       </div>
     </div>
@@ -258,16 +258,16 @@
     <!-- Share 확인 모달 -->
     <div v-if="showShareConfirm" class="confirm-overlay" @click.self="showShareConfirm = false">
       <div class="confirm-modal">
-        <h4 class="confirm-title">{{ shareConfirmIsUnshare ? 'Remove from Gallery?' : 'Share to Gallery?' }}</h4>
+        <h4 class="confirm-title">{{ shareConfirmIsUnshare ? '갤러리에서 내릴까요?' : '갤러리에 공유할까요?' }}</h4>
         <p class="confirm-message">
           {{ shareConfirmIsUnshare
-            ? 'This creation will be removed from the public Gallery.'
-            : 'This creation will be visible to everyone in the Gallery.' }}
+            ? '이 작품이 공개 갤러리에서 내려가요.'
+            : '이 작품이 갤러리에서 모두에게 공개돼요.' }}
         </p>
         <div class="confirm-actions">
-          <button type="button" class="btn-confirm-cancel" @click="showShareConfirm = false">Cancel</button>
+          <button type="button" class="btn-confirm-cancel" @click="showShareConfirm = false">취소</button>
           <button type="button" class="btn-confirm-ok" @click="confirmShareAction">
-            {{ shareConfirmIsUnshare ? 'Remove' : 'Share' }}
+            {{ shareConfirmIsUnshare ? '삭제' : '공유' }}
           </button>
         </div>
       </div>
@@ -277,31 +277,31 @@
     <div v-if="avatarId != null" class="result-area">
       <div v-if="loading" class="result-generating">
         <div class="result-generating-spinner"></div>
-        <p class="result-generating-text">Creating your image...</p>
-        <p class="result-generating-sub">This may take a moment</p>
+        <p class="result-generating-text">이미지 만드는 중…</p>
+        <p class="result-generating-sub">잠시 걸릴 수 있어요</p>
       </div>
       <div v-else-if="resultImageUrl" class="result-section">
         <div class="result-section-header">
-          <h4>Generated Image</h4>
+          <h4>생성된 이미지</h4>
           <div class="result-actions">
             <button
               type="button"
               class="btn-result-action"
               :class="{ 'is-shared': resultIsShared }"
-              :title="resultIsShared ? 'Shared to Gallery' : 'Share to Gallery'"
+              :title="resultIsShared ? '갤러리에 공유됨' : '갤러리에 공유'"
               @click="openShareConfirm"
             >
               <img src="@/assets/icons/shareBtn.svg" alt="" class="btn-result-icon" />
-              {{ resultIsShared ? 'Shared' : 'Share' }}
+              {{ resultIsShared ? '공유됨' : '공유' }}
             </button>
             <button
               type="button"
               class="btn-result-action btn-download"
-              title="Download"
+              title="다운로드"
               @click="downloadResultImage"
             >
               <img src="@/assets/icons/downloadBtn.svg" alt="" class="btn-result-icon" />
-              Download
+              다운로드
             </button>
           </div>
         </div>
@@ -309,19 +309,19 @@
           <img :src="getImageUrl(resultImageUrl)" alt="Generated" class="result-img" />
         </div>
       </div>
-      <p v-else class="note">Generated image will appear here after generation.</p>
+      <p v-else class="note">생성하면 여기에 이미지가 표시돼요.</p>
     </div>
 
     <!-- 선택된 아바타로 만들어진 공유 결과물 (shared만) -->
     <div v-if="avatarId != null" class="shared-by-avatar-area">
       <div class="shared-by-avatar-container">
-        <h3 class="shared-by-avatar-title">Shared creations with this avatar</h3>
+        <h3 class="shared-by-avatar-title">이 아바타로 만든 공유 작품</h3>
         <div v-if="sharedByAvatarLoading" class="shared-loading">
           <div class="loading-spinner" aria-hidden="true"></div>
-          <p class="loading-text">Loading…</p>
+          <p class="loading-text">불러오는 중…</p>
         </div>
         <div v-else-if="sharedByAvatar.length === 0" class="shared-empty">
-          <p>No shared creations yet with this avatar.</p>
+          <p>아직 이 아바타로 공유된 작품이 없어요.</p>
         </div>
         <div v-else class="shared-grid">
           <article
@@ -537,13 +537,13 @@ async function loadAvatar() {
     /* Negative prompt (optional)는 아바타별 값으로 덮지 않고, 공통 기본값만 유지 */
   } catch (e: unknown) {
     const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-    avatarError.value = msg || "Failed to load avatar.";
+    avatarError.value = msg || "아바타를 불러오지 못했어요.";
   }
 }
 
 async function requestGeneration() {
   if (!authStore.isLoggedIn) {
-    error.value = "Please log in.";
+    error.value = "로그인해 주세요.";
     return;
   }
   if (!canSubmit.value || avatarId.value == null) return;
@@ -575,8 +575,8 @@ async function requestGeneration() {
       error.value = "";
     } else if (res.status === "failed") {
       error.value = res.fail_reason
-        ? `Generation failed: ${res.fail_reason}`
-        : "Generation failed.";
+        ? `생성 실패: ${res.fail_reason}`
+        : "생성에 실패했어요.";
     } else {
       resultImageUrl.value = res.image_url || null;
     }
@@ -585,9 +585,9 @@ async function requestGeneration() {
     const status = (e as { response?: { status?: number } })?.response?.status;
     const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
     if (status === 401 || status === 403) {
-      error.value = "Please log in.";
+      error.value = "로그인해 주세요.";
     } else {
-      error.value = msg ?? "Failed to submit the generation request.";
+      error.value = msg ?? "생성 요청 제출에 실패했어요.";
     }
   } finally {
     loading.value = false;
@@ -616,7 +616,7 @@ function truncate(s: string, max: number): string {
 function formatDate(iso: string): string {
   try {
     const d = new Date(iso);
-    return d.toLocaleDateString("en-US", {
+    return d.toLocaleDateString("ko-KR", {
       month: "short",
       day: "numeric",
       year: "numeric",

@@ -2,50 +2,50 @@
   <div class="studio-page">
     <div class="studio-container">
       <header class="studio-head">
-        <h1>Creator Studio</h1>
+        <h1>크리에이터 스튜디오</h1>
         <p class="lead">
-          Generate content with your own AI likeness, and share redeem codes with your fans.
+          내 AI 얼굴로 콘텐츠를 만들고, 팬에게 리딤 코드를 나눠주세요.
         </p>
       </header>
 
       <div v-if="!authStore.isLoggedIn" class="notice">
-        Please log in to access your Creator Studio.
+        크리에이터 스튜디오를 이용하려면 로그인해 주세요.
       </div>
 
       <template v-else>
         <!-- Onboarding stepper -->
         <section v-if="!allStepsDone" class="stepper card">
-          <h2>Get started</h2>
+          <h2>시작하기</h2>
           <div class="steps">
             <div class="step" :class="{ done: hasSubscription }">
               <span class="step-dot">{{ hasSubscription ? "✓" : 1 }}</span>
               <div>
-                <strong>Choose a plan</strong>
-                <p class="muted small">Pick a subscription to get your monthly image quota.</p>
+                <strong>플랜 선택</strong>
+                <p class="muted small">구독을 선택하면 월 이미지 쿼터를 받아요.</p>
               </div>
             </div>
             <div class="step" :class="{ done: hasAvatar }">
               <span class="step-dot">{{ hasAvatar ? "✓" : 2 }}</span>
               <div>
-                <strong>Create your avatar</strong>
+                <strong>아바타 만들기</strong>
                 <p class="muted small">
-                  Train your AI likeness on
-                  <RouterLink to="/my/avatars" class="inline-link">My Avatars</RouterLink>.
+                  내 AI 얼굴을 학습시키세요 —
+                  <RouterLink to="/my/avatars" class="inline-link">내 아바타</RouterLink>.
                 </p>
               </div>
             </div>
             <div class="step" :class="{ done: hasLook }">
               <span class="step-dot">{{ hasLook ? "✓" : 3 }}</span>
               <div>
-                <strong>Add a look</strong>
-                <p class="muted small">Create preset looks fans can generate (optional).</p>
+                <strong>룩 추가</strong>
+                <p class="muted small">팬이 생성할 수 있는 프리셋 룩을 만들어요 (선택).</p>
               </div>
             </div>
             <div class="step" :class="{ done: hasCode }">
               <span class="step-dot">{{ hasCode ? "✓" : 4 }}</span>
               <div>
-                <strong>Share codes</strong>
-                <p class="muted small">Generate redeem codes and hand them to your fans.</p>
+                <strong>코드 공유</strong>
+                <p class="muted small">리딤 코드를 발급해 팬에게 나눠주세요.</p>
               </div>
             </div>
           </div>
@@ -53,17 +53,17 @@
 
         <!-- Subscription / Quota -->
         <section class="card">
-          <h2>Subscription</h2>
+          <h2>구독</h2>
           <div v-if="subscription" class="quota-row">
             <div class="quota-badge">
               <span class="plan-name">{{ subscription.plan_name }}</span>
               <span class="quota-num">
                 {{ subscription.quota_remaining }} / {{ subscription.monthly_quota }}
               </span>
-              <span class="quota-label">images left this period</span>
+              <span class="quota-label">이번 기간 남은 이미지</span>
             </div>
           </div>
-          <p v-else class="muted">You don't have an active plan yet. Choose one below.</p>
+          <p v-else class="muted">아직 활성 플랜이 없어요. 아래에서 선택하세요.</p>
 
           <div class="plan-grid">
             <div
@@ -73,64 +73,64 @@
               :class="{ current: subscription?.plan_code === p.code }"
             >
               <h3>{{ p.name }}</h3>
-              <p class="price">${{ p.price_usd }}<span>/mo</span></p>
+              <p class="price">${{ p.price_usd }}<span>/월</span></p>
               <ul>
-                <li>{{ p.monthly_quota.toLocaleString() }} images / month</li>
-                <li>{{ p.max_avatars }} avatar{{ p.max_avatars === 1 ? "" : "s" }}</li>
-                <li>{{ p.max_active_codes.toLocaleString() }} active codes</li>
+                <li>{{ p.monthly_quota.toLocaleString() }} 이미지 / 월</li>
+                <li>{{ p.max_avatars }}개 아바타</li>
+                <li>{{ p.max_active_codes.toLocaleString() }} 활성 코드</li>
               </ul>
               <button
                 class="btn-primary"
                 :disabled="subscribing || subscription?.plan_code === p.code"
                 @click="subscribe(p.code)"
               >
-                {{ subscription?.plan_code === p.code ? "Current plan" : "Choose" }}
+                {{ subscription?.plan_code === p.code ? "현재 플랜" : "선택" }}
               </button>
             </div>
           </div>
           <p class="muted small">
-            Payment is not yet connected — choosing a plan activates quota immediately (demo).
+            결제는 아직 연동 전이에요 — 플랜을 고르면 쿼터가 즉시 활성화됩니다 (데모).
           </p>
         </section>
 
         <!-- Templates -->
         <section class="card">
-          <h2>Looks (Templates)</h2>
+          <h2>룩 (템플릿)</h2>
           <p class="muted small">
-            Fans can only generate from these pre-approved looks — they can't type their own
-            prompts. This keeps your likeness fully under your control.
+            팬은 여기 등록된 승인된 룩으로만 생성할 수 있고, 직접 프롬프트를 입력할 수 없어요.
+            그래서 내 얼굴을 온전히 내가 통제할 수 있습니다.
           </p>
 
           <form class="template-form" @submit.prevent="createTemplate">
             <div class="form-row">
-              <label>Avatar</label>
+              <label>아바타</label>
               <select v-model.number="newTemplate.avatar_id" required>
-                <option :value="0" disabled>Select an avatar…</option>
+                <option :value="0" disabled>아바타 선택…</option>
                 <option v-for="a in avatars" :key="a.id" :value="a.id">{{ a.title }}</option>
               </select>
             </div>
             <div class="form-row">
-              <label>Look name</label>
-              <input v-model="newTemplate.name" placeholder="e.g. Christmas, Summer beach" required />
+              <label>룩 이름</label>
+              <input v-model="newTemplate.name" placeholder="예) 크리스마스, 여름 바닷가" required />
             </div>
             <div class="form-row">
-              <label>Prompt</label>
+              <label>프롬프트</label>
               <textarea
                 v-model="newTemplate.prompt"
-                placeholder="Describe the scene/outfit (fans see this look but can't edit it)"
+                placeholder="장면·의상을 묘사하세요 (팬에게는 이 룩이 보이지만 수정은 불가)"
                 rows="2"
                 required
               ></textarea>
             </div>
             <button class="btn-primary" :disabled="creatingTemplate || !newTemplate.avatar_id">
-              {{ creatingTemplate ? "Adding…" : "Add look" }}
+              {{ creatingTemplate ? "추가 중…" : "룩 추가" }}
             </button>
           </form>
 
           <div v-if="templates.length" class="list">
             <div v-for="t in templates" :key="t.id" class="list-item">
               <div class="tpl-row">
-                <button class="tpl-thumb" @click="triggerThumb(t.id)" :title="'Set thumbnail'">
+                <button class="tpl-thumb" @click="triggerThumb(t.id)" :title="'썸네일 설정'">
                   <img v-if="t.preview_image_url" :src="t.preview_image_url" alt="" />
                   <span v-else class="tpl-thumb-add">＋</span>
                 </button>
@@ -139,14 +139,14 @@
                   <span class="muted small"> · {{ avatarTitle(t.avatar_id) }}</span>
                   <p class="muted small prompt-preview">{{ t.prompt }}</p>
                   <button class="btn-text" @click="triggerThumb(t.id)">
-                    {{ t.preview_image_url ? "Change thumbnail" : "Add thumbnail" }}
+                    {{ t.preview_image_url ? "썸네일 변경" : "썸네일 추가" }}
                   </button>
                 </div>
               </div>
-              <button class="btn-text danger" @click="deleteTemplate(t.id)">Delete</button>
+              <button class="btn-text danger" @click="deleteTemplate(t.id)">삭제</button>
             </div>
           </div>
-          <p v-else class="muted">No looks yet.</p>
+          <p v-else class="muted">아직 룩이 없어요.</p>
           <input
             ref="thumbInput"
             type="file"
@@ -158,24 +158,24 @@
 
         <!-- Redeem codes -->
         <section class="card">
-          <h2>Redeem codes</h2>
+          <h2>리딤 코드</h2>
           <p class="muted small">
-            Hand these out to fans (giveaway, membership perk…). Each successful generation uses one
-            image from your quota.
+            팬에게 나눠주세요 (이벤트 경품, 멤버십 혜택 등). 생성이 성공할 때마다 내 쿼터에서
+            이미지 1장이 차감돼요.
           </p>
 
           <form class="code-form" @submit.prevent="createCodes">
             <div class="form-row">
-              <label>Avatar</label>
+              <label>아바타</label>
               <select v-model.number="newCode.avatar_id" required>
-                <option :value="0" disabled>Select an avatar…</option>
+                <option :value="0" disabled>아바타 선택…</option>
                 <option v-for="a in avatars" :key="a.id" :value="a.id">{{ a.title }}</option>
               </select>
             </div>
             <div class="form-row">
-              <label>Look (optional)</label>
+              <label>룩 (선택)</label>
               <select v-model.number="newCode.template_id">
-                <option :value="0">All looks for this avatar</option>
+                <option :value="0">이 아바타의 모든 룩</option>
                 <option v-for="t in templatesForAvatar(newCode.avatar_id)" :key="t.id" :value="t.id">
                   {{ t.name }}
                 </option>
@@ -183,16 +183,16 @@
             </div>
             <div class="form-row inline">
               <div>
-                <label>Uses per code</label>
+                <label>코드당 사용 횟수</label>
                 <input v-model.number="newCode.max_uses" type="number" min="1" />
               </div>
               <div>
-                <label>How many codes</label>
+                <label>코드 개수</label>
                 <input v-model.number="newCode.count" type="number" min="1" max="500" />
               </div>
             </div>
             <button class="btn-primary" :disabled="creatingCodes || !newCode.avatar_id">
-              {{ creatingCodes ? "Generating…" : "Generate codes" }}
+              {{ creatingCodes ? "생성 중…" : "코드 생성" }}
             </button>
           </form>
 
@@ -201,21 +201,21 @@
               <div>
                 <code class="code-chip">{{ c.code }}</code>
                 <span class="muted small">
-                  · {{ c.used_count }}/{{ c.max_uses ?? "∞" }} used
-                  <template v-if="!c.is_active"> · inactive</template>
+                  · {{ c.used_count }}/{{ c.max_uses ?? "∞" }} 사용됨
+                  <template v-if="!c.is_active"> · 비활성</template>
                 </span>
                 <p class="muted small">{{ redeemUrl(c.code) }}</p>
               </div>
               <div class="item-actions">
                 <button class="btn-text" @click="openQr(c.code)">QR</button>
-                <button class="btn-text" @click="copyLink(c.code)">Copy link</button>
+                <button class="btn-text" @click="copyLink(c.code)">링크 복사</button>
                 <button v-if="c.is_active" class="btn-text danger" @click="deactivateCode(c.id)">
-                  Disable
+                  비활성화
                 </button>
               </div>
             </div>
           </div>
-          <p v-else class="muted">No codes yet.</p>
+          <p v-else class="muted">아직 코드가 없어요.</p>
         </section>
       </template>
     </div>
@@ -223,14 +223,14 @@
     <!-- QR modal -->
     <div v-if="qrCodeStr" class="qr-overlay" @click.self="qrCodeStr = null">
       <div class="qr-modal">
-        <h3>Scan to redeem</h3>
-        <p class="muted small">Fans can scan this to open the redeem page.</p>
+        <h3>스캔해서 사용하기</h3>
+        <p class="muted small">팬이 스캔하면 리딤 페이지가 열려요.</p>
         <img :src="qrImgUrl" alt="QR code" class="qr-img" />
         <code class="code-chip">{{ qrCodeStr }}</code>
         <div class="qr-actions">
-          <button class="btn-primary" @click="copyLink(qrCodeStr)">Copy link</button>
+          <button class="btn-primary" @click="copyLink(qrCodeStr)">링크 복사</button>
           <a class="btn-text" :href="qrImgUrl" download="redeem-qr.svg">Download QR</a>
-          <button class="btn-text" @click="qrCodeStr = null">Close</button>
+          <button class="btn-text" @click="qrCodeStr = null">닫기</button>
         </div>
       </div>
     </div>
@@ -309,9 +309,9 @@ const onThumbSelected = async (e: Event) => {
   try {
     await studioApi.uploadTemplatePreview(pendingThumbId.value, file);
     templates.value = await studioApi.getTemplates();
-    showToast("Thumbnail updated");
+    showToast("썸네일이 업데이트됐어요");
   } catch (err: any) {
-    showToast(errMsg(err, "Failed to upload thumbnail."), "err");
+    showToast(errMsg(err, "썸네일 업로드에 실패했어요."), "err");
   } finally {
     pendingThumbId.value = null;
   }
@@ -343,9 +343,9 @@ const subscribe = async (planCode: string) => {
   subscribing.value = true;
   try {
     subscription.value = await studioApi.subscribe(planCode);
-    showToast("Plan activated 🎉");
+    showToast("플랜이 활성화됐어요 🎉");
   } catch (e: any) {
-    showToast(errMsg(e, "Failed to subscribe."), "err");
+    showToast(errMsg(e, "구독에 실패했어요."), "err");
   } finally {
     subscribing.value = false;
   }
@@ -357,22 +357,22 @@ const createTemplate = async () => {
     await studioApi.createTemplate({ ...newTemplate.value });
     newTemplate.value = { avatar_id: 0, name: "", prompt: "" };
     templates.value = await studioApi.getTemplates();
-    showToast("Look added");
+    showToast("룩이 추가됐어요");
   } catch (e: any) {
-    showToast(errMsg(e, "Failed to add look."), "err");
+    showToast(errMsg(e, "룩 추가에 실패했어요."), "err");
   } finally {
     creatingTemplate.value = false;
   }
 };
 
 const deleteTemplate = async (id: number) => {
-  if (!confirm("Delete this look?")) return;
+  if (!confirm("이 룩을 삭제할까요?")) return;
   try {
     await studioApi.deleteTemplate(id);
     templates.value = await studioApi.getTemplates();
-    showToast("Look deleted");
+    showToast("룩이 삭제됐어요");
   } catch (e: any) {
-    showToast(errMsg(e, "Failed to delete."), "err");
+    showToast(errMsg(e, "삭제에 실패했어요."), "err");
   }
 };
 
@@ -388,7 +388,7 @@ const createCodes = async () => {
     codes.value = await studioApi.getCodes();
     showToast(`${created.length} code${created.length === 1 ? "" : "s"} generated`);
   } catch (e: any) {
-    showToast(errMsg(e, "Failed to generate codes."), "err");
+    showToast(errMsg(e, "코드 생성에 실패했어요."), "err");
   } finally {
     creatingCodes.value = false;
   }
@@ -398,18 +398,18 @@ const deactivateCode = async (id: number) => {
   try {
     await studioApi.deactivateCode(id);
     codes.value = await studioApi.getCodes();
-    showToast("Code disabled");
+    showToast("코드가 비활성화됐어요");
   } catch (e: any) {
-    showToast(errMsg(e, "Failed to disable code."), "err");
+    showToast(errMsg(e, "코드 비활성화에 실패했어요."), "err");
   }
 };
 
 const copyLink = async (code: string) => {
   try {
     await navigator.clipboard.writeText(redeemUrl(code));
-    showToast("Redeem link copied 🔗");
+    showToast("리딤 링크를 복사했어요 🔗");
   } catch {
-    showToast("Couldn't copy link", "err");
+    showToast("링크 복사에 실패했어요", "err");
   }
 };
 

@@ -2,7 +2,7 @@
   <section class="creations-section">
     <div class="container">
       <div class="section-header">
-        <h2 class="section-title">My creations</h2>
+        <h2 class="section-title">내 생성물</h2>
         <p class="section-description">
           Images you've generated with AI avatars
         </p>
@@ -11,7 +11,7 @@
       <!-- Loading -->
       <div v-if="loading" class="creations-loading">
         <div class="loading-spinner" aria-hidden="true"></div>
-        <p class="loading-text">Loading your creations…</p>
+        <p class="loading-text">생성물 불러오는 중…</p>
       </div>
 
       <!-- Auth required -->
@@ -22,9 +22,9 @@
             <circle cx="12" cy="7" r="4"/>
           </svg>
         </div>
-        <h3 class="empty-title">Log in to view your creations</h3>
-        <p class="empty-desc">Sign in to see all images you’ve generated.</p>
-        <RouterLink to="/" class="btn-primary-empty">Go to home</RouterLink>
+        <h3 class="empty-title">로그인하고 내 생성물 보기</h3>
+        <p class="empty-desc">로그인하면 생성한 모든 이미지를 볼 수 있어요.</p>
+        <RouterLink to="/" class="btn-primary-empty">홈으로</RouterLink>
       </div>
 
       <!-- Empty -->
@@ -36,9 +36,9 @@
             <path d="m21 15-5-5L5 21"/>
           </svg>
         </div>
-        <h3 class="empty-title">No creations yet</h3>
-        <p class="empty-desc">Generate your first image with an AI avatar.</p>
-        <RouterLink to="/avatars" class="btn-primary-empty">Create image</RouterLink>
+        <h3 class="empty-title">아직 생성물이 없어요</h3>
+        <p class="empty-desc">AI 아바타로 첫 이미지를 만들어보세요.</p>
+        <RouterLink to="/avatars" class="btn-primary-empty">이미지 만들기</RouterLink>
       </div>
 
       <!-- Grid -->
@@ -62,8 +62,8 @@
               class="card-thumb card-thumb-placeholder"
               :class="{ 'card-thumb-failed': g.status === 'failed' }"
             >
-              <span v-if="g.status === 'failed'" class="placeholder-label">Failed</span>
-              <span v-else class="placeholder-label">Processing…</span>
+              <span v-if="g.status === 'failed'" class="placeholder-label">실패</span>
+              <span v-else class="placeholder-label">처리 중…</span>
             </div>
           </div>
           <div class="card-meta">
@@ -76,11 +76,11 @@
                 type="button"
                 class="card-share-btn"
                 :class="{ 'is-shared': g.is_shared === true }"
-                :title="g.is_shared ? 'Shared to Gallery' : 'Share to Gallery'"
+                :title="g.is_shared ? '갤러리에 공유됨' : '갤러리에 공유'"
                 @click.stop="openShareConfirm(g)"
               >
                 <img src="@/assets/icons/shareBtn.svg" alt="" class="card-share-icon" />
-                {{ g.is_shared === true ? 'Shared' : 'Share' }}
+                {{ g.is_shared === true ? '공유됨' : '공유' }}
               </button>
             </div>
           </div>
@@ -92,7 +92,7 @@
     <div v-if="selectedGeneration" class="modal-overlay" @click.self="closeDetailModal">
       <div class="modal-card detail-modal">
         <div class="modal-header">
-          <h3>Generation Details</h3>
+          <h3>생성 상세</h3>
           <button class="modal-close" type="button" @click="closeDetailModal">×</button>
         </div>
         <div class="modal-body detail-modal-body">
@@ -109,33 +109,33 @@
               class="detail-image-placeholder"
               :class="{ 'detail-image-failed': selectedGeneration.status === 'failed' }"
             >
-              <span v-if="selectedGeneration.status === 'failed'" class="placeholder-label-large">Failed</span>
-              <span v-else class="placeholder-label-large">Processing…</span>
+              <span v-if="selectedGeneration.status === 'failed'" class="placeholder-label-large">실패</span>
+              <span v-else class="placeholder-label-large">처리 중…</span>
             </div>
           </div>
 
           <!-- Details -->
           <div class="detail-info">
             <div class="detail-section">
-              <h4 class="detail-label">Prompt</h4>
+              <h4 class="detail-label">프롬프트</h4>
               <p class="detail-value detail-prompt">{{ selectedGeneration.prompt }}</p>
             </div>
 
             <div class="detail-grid">
               <div class="detail-item">
-                <span class="detail-item-label">Credits Used</span>
+                <span class="detail-item-label">사용 크레딧</span>
                 <span class="detail-item-value">{{ selectedGeneration.status === 'failed' ? 0 : selectedGeneration.credits_used }}C</span>
               </div>
               <div class="detail-item">
-                <span class="detail-item-label">Base Credits</span>
+                <span class="detail-item-label">기본 크레딧</span>
                 <span class="detail-item-value">{{ selectedGeneration.status === 'failed' ? 0 : 1 }}C</span>
               </div>
               <div class="detail-item">
-                <span class="detail-item-label">Option Credits</span>
+                <span class="detail-item-label">옵션 크레딧</span>
                 <span class="detail-item-value">{{ selectedGeneration.status === 'failed' ? 0 : selectedGeneration.credits_used - 1 }}C</span>
               </div>
               <div class="detail-item">
-                <span class="detail-item-label">Status</span>
+                <span class="detail-item-label">상태</span>
                 <span
                   class="detail-item-value detail-status"
                   :class="{
@@ -150,22 +150,22 @@
             </div>
 
             <div v-if="selectedGeneration.seed" class="detail-section">
-              <h4 class="detail-label">Seed</h4>
+              <h4 class="detail-label">시드</h4>
               <p class="detail-value detail-seed">{{ selectedGeneration.seed }}</p>
             </div>
 
             <div v-if="selectedGeneration.avatar_id" class="detail-section">
-              <h4 class="detail-label">Avatar ID</h4>
+              <h4 class="detail-label">아바타 ID</h4>
               <p class="detail-value">{{ selectedGeneration.avatar_id }}</p>
             </div>
 
             <div class="detail-section">
-              <h4 class="detail-label">Created At</h4>
+              <h4 class="detail-label">생성 시각</h4>
               <p class="detail-value">{{ formatDateTime(selectedGeneration.created_at) }}</p>
             </div>
 
             <div v-if="selectedGeneration.fail_reason" class="detail-section detail-error">
-              <h4 class="detail-label">Error</h4>
+              <h4 class="detail-label">오류</h4>
               <p class="detail-value detail-error-text">{{ selectedGeneration.fail_reason }}</p>
             </div>
           </div>
@@ -176,21 +176,21 @@
             type="button"
             class="modal-secondary"
             :class="{ 'is-shared': selectedGeneration.is_shared === true }"
-            :title="selectedGeneration.is_shared === true ? 'Shared to Gallery' : 'Share to Gallery'"
+            :title="selectedGeneration.is_shared === true ? '갤러리에 공유됨' : '갤러리에 공유'"
             @click="openShareConfirm(selectedGeneration)"
           >
             <img src="@/assets/icons/shareBtn.svg" alt="" class="modal-btn-icon" />
-            {{ selectedGeneration.is_shared === true ? 'Shared' : 'Share' }}
+            {{ selectedGeneration.is_shared === true ? '공유됨' : '공유' }}
           </button>
           <button
             v-if="selectedGeneration.image_url && selectedGeneration.status === 'success'"
             class="modal-secondary modal-btn-download"
             type="button"
-            title="Download"
+            title="다운로드"
             @click="downloadImage"
           >
             <img src="@/assets/icons/downloadBtn.svg" alt="" class="modal-btn-icon" />
-            Download
+            다운로드
           </button>
           <button
             v-if="selectedGeneration.image_url && selectedGeneration.status === 'success'"
@@ -198,7 +198,7 @@
             type="button"
             @click="openImageInNewTab"
           >
-            Open in new tab
+            새 탭에서 열기
           </button>
         </div>
       </div>
@@ -208,17 +208,17 @@
     <div v-if="showShareConfirm && shareConfirmTarget" class="confirm-overlay" @click.self="closeShareConfirm">
       <div class="confirm-modal">
         <h4 class="confirm-title">
-          {{ shareConfirmTarget.is_shared === true ? 'Remove from Gallery?' : 'Share to Gallery?' }}
+          {{ shareConfirmTarget.is_shared === true ? '갤러리에서 내릴까요?' : '갤러리에 공유할까요?' }}
         </h4>
         <p class="confirm-message">
           {{ shareConfirmTarget.is_shared === true
-            ? 'This creation will be removed from the public Gallery.'
-            : 'This creation will be visible to everyone in the Gallery.' }}
+            ? '이 생성물이 공개 갤러리에서 내려가요.'
+            : '이 생성물이 갤러리에서 모두에게 공개돼요.' }}
         </p>
         <div class="confirm-actions">
-          <button type="button" class="btn-confirm-cancel" @click="closeShareConfirm">Cancel</button>
+          <button type="button" class="btn-confirm-cancel" @click="closeShareConfirm">취소</button>
           <button type="button" class="btn-confirm-ok" @click="confirmShareAction">
-            {{ shareConfirmTarget.is_shared === true ? 'Remove' : 'Share' }}
+            {{ shareConfirmTarget.is_shared === true ? '삭제' : '공유' }}
           </button>
         </div>
       </div>
@@ -265,7 +265,7 @@ function truncate(s: string, max: number): string {
 function formatDate(iso: string): string {
   try {
     const d = new Date(iso);
-    return d.toLocaleDateString("en-US", {
+    return d.toLocaleDateString("ko-KR", {
       month: "short",
       day: "numeric",
       year: "numeric",
@@ -286,7 +286,7 @@ function closeDetailModal(): void {
 function formatDateTime(iso: string): string {
   try {
     const d = new Date(iso);
-    return d.toLocaleString("en-US", {
+    return d.toLocaleString("ko-KR", {
       month: "short",
       day: "numeric",
       year: "numeric",
