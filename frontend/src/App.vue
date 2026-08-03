@@ -13,9 +13,7 @@
 
           <!-- Center Navigation -->
           <nav class="center-nav">
-            <RouterLink to="/market" class="nav-link">Market</RouterLink>
-            <RouterLink to="/gallery" class="nav-link">Gallery</RouterLink>
-            <RouterLink to="/studio" class="nav-link">Creator Studio</RouterLink>
+            <RouterLink to="/studio" class="nav-link">크리에이터 스튜디오</RouterLink>
           </nav>
 
           <!-- Right Side - Language + Auth -->
@@ -47,8 +45,8 @@
 
             <!-- Auth Buttons -->
             <div v-if="authStore.isInitialized && !authStore.isLoggedIn" class="auth-buttons">
-              <button @click="openLoginModal" class="btn-login">Login</button>
-              <button @click="openRegisterModal" class="btn-signup">Sign up</button>
+              <button @click="openLoginModal" class="btn-login">로그인</button>
+              <button @click="openRegisterModal" class="btn-signup">회원가입</button>
             </div>
 
             <!-- User Info (when logged in) -->
@@ -71,25 +69,25 @@
                 </button>
                 <div v-if="showProfileMenu" class="profile-dropdown">
                   <RouterLink
-                    to="/my/generations"
+                    to="/studio"
                     class="dropdown-item"
                     @click="showProfileMenu = false"
                   >
-                    My creations
+                    크리에이터 스튜디오
                   </RouterLink>
                   <RouterLink
                     to="/my/avatars"
                     class="dropdown-item"
                     @click="showProfileMenu = false"
                   >
-                    My Avatars
+                    내 아바타
                   </RouterLink>
                   <RouterLink
-                    to="/studio"
+                    to="/my/generations"
                     class="dropdown-item"
                     @click="showProfileMenu = false"
                   >
-                    Creator Studio
+                    내 생성물
                   </RouterLink>
                   <RouterLink
                     v-if="authStore.isAdmin"
@@ -97,17 +95,17 @@
                     class="dropdown-item"
                     @click="showProfileMenu = false"
                   >
-                    Admin Training Requests
+                    관리자 · 학습 요청
                   </RouterLink>
                   <RouterLink
                     to="/my/page"
                     class="dropdown-item"
                     @click="showProfileMenu = false"
                   >
-                    My Page
+                    계정 관리
                   </RouterLink>
                   <div class="dropdown-divider"></div>
-                  <a href="#" @click.prevent="handleLogout" class="dropdown-item">Log out</a>
+                  <a href="#" @click.prevent="handleLogout" class="dropdown-item">로그아웃</a>
                 </div>
               </div>
             </div>

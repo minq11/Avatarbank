@@ -2,14 +2,14 @@
   <section class="avatars-section">
     <div class="container">
       <div class="page-header">
-        <h2 class="page-title">My Avatars</h2>
+        <h2 class="page-title">내 아바타</h2>
       </div>
 
       <div class="main-layout">
         <!-- Training Request Section (1/3) -->
         <div class="training-request-section">
           <div class="section-header">
-            <h3 class="section-title">Training Request</h3>
+            <h3 class="section-title">학습 요청</h3>
             <button class="btn-new-request" type="button" @click="openTrainingRequestModal">
               New Request
             </button>
@@ -18,20 +18,20 @@
           <!-- Loading -->
           <div v-if="loadingRequests" class="loading-state">
             <div class="loading-spinner"></div>
-            <p>Loading requests...</p>
+            <p>요청 불러오는 중…</p>
           </div>
 
           <!-- Empty -->
           <div v-else-if="trainingRequests.length === 0" class="empty-state">
-            <p>No training requests yet</p>
+            <p>아직 학습 요청이 없어요</p>
           </div>
 
           <!-- Requests Grid -->
           <div v-else class="requests-grid">
             <div class="grid-header">
-              <div class="grid-cell">Request ID</div>
-              <div class="grid-cell">Request Date</div>
-              <div class="grid-cell">Status</div>
+              <div class="grid-cell">요청 번호</div>
+              <div class="grid-cell">요청일</div>
+              <div class="grid-cell">상태</div>
             </div>
             <div
               v-for="request in trainingRequests"
@@ -54,7 +54,7 @@
         <!-- My Avatars Section (2/3) -->
         <div class="avatars-section-content">
           <div class="section-header">
-            <h3 class="section-title">My Avatars</h3>
+            <h3 class="section-title">내 아바타</h3>
             <button class="btn-new-request" type="button" @click="openUploadLoraModal">
               Upload LoRA
             </button>
@@ -63,12 +63,12 @@
           <!-- Loading -->
           <div v-if="loadingAvatars" class="loading-state">
             <div class="loading-spinner"></div>
-            <p>Loading avatars...</p>
+            <p>아바타 불러오는 중…</p>
           </div>
 
           <!-- Empty -->
           <div v-else-if="avatars.length === 0" class="empty-state">
-            <p>No avatars yet</p>
+            <p>아직 아바타가 없어요</p>
             <button class="btn-new-request" type="button" @click="openUploadLoraModal">
               Upload LoRA
             </button>
@@ -111,27 +111,27 @@
     <div v-if="showTrainingRequestModal" class="modal-overlay">
       <div class="modal-card training-modal">
         <div class="modal-header">
-          <h3>Avatar Training Request</h3>
+          <h3>아바타 학습 요청</h3>
           <button class="modal-close" type="button" @click="closeTrainingRequestModal">×</button>
         </div>
 
         <div class="modal-body">
           <!-- Basic Information Input -->
           <div class="form-section">
-            <h4 class="form-section-title">Basic Information</h4>
+            <h4 class="form-section-title">기본 정보</h4>
             
             <div class="form-group">
-              <label class="form-label">Avatar name <span class="required">*</span></label>
+              <label class="form-label">아바타 이름 <span class="required">*</span></label>
               <input
                 v-model="trainingForm.avatarName"
                 type="text"
                 class="form-input"
-                placeholder="Enter avatar name"
+                placeholder="아바타 이름을 입력하세요"
               />
             </div>
 
             <div class="form-group">
-              <label class="form-label">Is this avatar based on a real person? <span class="required">*</span></label>
+              <label class="form-label">실존 인물 기반 아바타인가요? <span class="required">*</span></label>
               <div class="radio-group">
                 <label class="radio-label">
                   <input
@@ -140,7 +140,7 @@
                     :value="true"
                     class="radio-input"
                   />
-                  <span>Yes</span>
+                  <span>예</span>
                 </label>
                 <label class="radio-label">
                   <input
@@ -149,58 +149,58 @@
                     :value="false"
                     class="radio-input"
                   />
-                  <span>No</span>
+                  <span>아니오</span>
                 </label>
               </div>
             </div>
 
             <template v-if="trainingForm.isRealPerson === true">
               <div class="form-group">
-                <label class="form-label">Instagram ID <span class="required">*</span></label>
+                <label class="form-label">인스타그램 ID <span class="required">*</span></label>
                 <input
                   v-model="trainingForm.instagramId"
                   type="text"
                   class="form-input"
-                  placeholder="Enter Instagram ID"
+                  placeholder="인스타그램 ID를 입력하세요"
                 />
               </div>
               <div class="info-box">
                 <p>
-                  Please confirm this is your request via DM (<a
+                  본인 요청임을 DM으로 확인해 주세요 (<a
                     href="https://www.instagram.com/avatarbank_official/"
                     target="_blank"
                     rel="noopener noreferrer"
                   >@avatarbank_official</a>).
                 </p>
-                <p>We will not train if this is not your request.</p>
+                <p>본인 요청이 아니면 학습을 진행하지 않아요.</p>
               </div>
             </template>
 
             <div class="form-group">
-              <label class="form-label">Negative prompt <span class="required">*</span></label>
+              <label class="form-label">네거티브 프롬프트 <span class="required">*</span></label>
               <input
                 v-model="trainingForm.negativePrompt"
                 type="text"
                 class="form-input"
-                placeholder="Enter negative prompt"
+                placeholder="네거티브 프롬프트를 입력하세요"
               />
             </div>
 
             <div class="form-group">
-              <label class="form-label">Credit per generation <span class="required">*</span></label>
+              <label class="form-label">생성당 크레딧 <span class="required">*</span></label>
               <input
                 v-model.number="trainingForm.creditPerGeneration"
                 type="number"
                 min="1"
                 class="form-input"
-                placeholder="Credits per generation"
+                placeholder="생성당 크레딧"
               />
             </div>
 
             <div class="form-group">
-              <label class="form-label">National <span class="required">*</span></label>
+              <label class="form-label">국가 <span class="required">*</span></label>
               <select v-model="trainingForm.national" class="form-input">
-                <option value="">Select nationality</option>
+                <option value="">국가 선택</option>
                 <option value="KR">Korea</option>
                 <option value="US">United States</option>
                 <option value="JP">Japan</option>
@@ -221,7 +221,7 @@
             </div>
 
             <div class="form-group">
-              <label class="form-label">Gender <span class="required">*</span></label>
+              <label class="form-label">성별 <span class="required">*</span></label>
               <div class="radio-group">
                 <label class="radio-label">
                   <input
@@ -230,7 +230,7 @@
                     value="M"
                     class="radio-input"
                   />
-                  <span>M</span>
+                  <span>남성</span>
                 </label>
                 <label class="radio-label">
                   <input
@@ -239,7 +239,7 @@
                     value="W"
                     class="radio-input"
                   />
-                  <span>W</span>
+                  <span>여성</span>
                 </label>
                 <label class="radio-label">
                   <input
@@ -248,35 +248,35 @@
                     value="Etc"
                     class="radio-input"
                   />
-                  <span>Etc</span>
+                  <span>기타</span>
                 </label>
               </div>
             </div>
 
             <div class="form-group">
-              <label class="form-label">Age <span class="field-optional">(optional)</span></label>
+              <label class="form-label">나이 <span class="field-optional">(선택)</span></label>
               <input
                 v-model.number="trainingForm.age"
                 type="number"
                 min="1"
                 max="120"
                 class="form-input"
-                placeholder="Age"
+                placeholder="나이"
               />
             </div>
 
             <div class="form-group">
-              <label class="form-label">Description <span class="required">*</span></label>
+              <label class="form-label">설명 <span class="required">*</span></label>
               <textarea
                 v-model="trainingForm.description"
                 class="form-textarea"
                 rows="4"
-                placeholder="Enter avatar description"
+                placeholder="아바타 설명을 입력하세요"
               ></textarea>
             </div>
 
             <div class="form-group">
-              <label class="form-label">Preview Image <span class="required">*</span></label>
+              <label class="form-label">대표 이미지 <span class="required">*</span></label>
               <div class="file-upload-wrapper">
                 <input
                   ref="previewImageInput"
@@ -301,7 +301,7 @@
                   class="file-upload-btn"
                   @click="previewImageInput?.click()"
                 >
-                  Select Image
+                  이미지 선택
                 </button>
               </div>
             </div>
@@ -309,11 +309,11 @@
 
           <!-- Training Photos Upload -->
           <div class="form-section">
-            <h4 class="form-section-title">Training Photos Upload</h4>
+            <h4 class="form-section-title">학습 사진 업로드</h4>
 
             <!-- Front -->
             <div class="photo-category">
-              <label class="category-label">Front <span class="required">Min. 4 photos</span></label>
+              <label class="category-label">정면 <span class="required">최소 4장</span></label>
               <div class="photo-slots">
                 <label
                   v-for="(slot, index) in trainingForm.frontPhotos"
@@ -361,14 +361,14 @@
                   class="add-photo-btn"
                   @click="frontPhotosInput?.click()"
                 >
-                  + Add Photo
+                  + 사진 추가
                 </button>
               </div>
             </div>
 
             <!-- Side -->
             <div class="photo-category">
-              <label class="category-label">Side <span class="required">Min. 4 photos</span></label>
+              <label class="category-label">측면 <span class="required">최소 4장</span></label>
               <div class="photo-slots">
                 <label
                   v-for="(slot, index) in trainingForm.sidePhotos"
@@ -416,14 +416,14 @@
                   class="add-photo-btn"
                   @click="sidePhotosInput?.click()"
                 >
-                  + Add Photo
+                  + 사진 추가
                 </button>
               </div>
             </div>
 
             <!-- Full Body -->
             <div class="photo-category">
-              <label class="category-label">Full Body <span class="required">Min. 1 photo</span></label>
+              <label class="category-label">전신 <span class="required">최소 1장</span></label>
               <div class="photo-slots">
                 <label
                   v-for="(slot, index) in trainingForm.fullBodyPhotos"
@@ -471,14 +471,14 @@
                   class="add-photo-btn"
                   @click="fullBodyPhotosInput?.click()"
                 >
-                  + Add Photo
+                  + 사진 추가
                 </button>
               </div>
             </div>
 
             <!-- Other -->
             <div class="photo-category">
-              <label class="category-label">Other <span class="required">Min. 1 photo</span></label>
+              <label class="category-label">기타 <span class="required">최소 1장</span></label>
               <div class="photo-slots">
                 <label
                   v-for="(slot, index) in trainingForm.otherPhotos"
@@ -526,7 +526,7 @@
                   class="add-photo-btn"
                   @click="otherPhotosInput?.click()"
                 >
-                  + Add Photo
+                  + 사진 추가
                 </button>
               </div>
             </div>
@@ -539,7 +539,7 @@
             type="button"
             @click="closeTrainingRequestModal"
           >
-            Close
+            닫기
           </button>
           <button
             class="btn-primary"
@@ -547,7 +547,7 @@
             :disabled="!isTrainingFormValid || submitting"
             @click="submitTrainingRequest"
           >
-            {{ submitting ? "Submitting..." : "Submit Request" }}
+            {{ submitting ? "제출 중…" : "요청 제출" }}
           </button>
         </div>
       </div>
@@ -557,17 +557,17 @@
     <div v-if="selectedRequest" class="modal-overlay" @click.self="closeRequestDetailModal">
       <div class="modal-card training-detail-modal">
         <div class="modal-header">
-          <h3>Training Request Details</h3>
+          <h3>학습 요청 상세</h3>
           <button class="modal-close" type="button" @click="closeRequestDetailModal">×</button>
         </div>
 
         <div class="modal-body">
           <!-- Basic Information -->
           <div class="form-section">
-            <h4 class="form-section-title">Basic Information</h4>
+            <h4 class="form-section-title">기본 정보</h4>
             
             <div class="form-group">
-              <label class="form-label">Avatar name</label>
+              <label class="form-label">아바타 이름</label>
               <input
                 :value="selectedRequest.avatar_name"
                 type="text"
@@ -577,9 +577,9 @@
             </div>
 
             <div class="form-group">
-              <label class="form-label">Is this avatar based on a real person?</label>
+              <label class="form-label">실존 인물 기반 아바타인가요?</label>
               <input
-                :value="selectedRequest.is_real_person ? 'Yes' : 'No'"
+                :value="selectedRequest.is_real_person ? '예' : '아니오'"
                 type="text"
                 class="form-input"
                 readonly
@@ -587,7 +587,7 @@
             </div>
 
             <div v-if="selectedRequest.is_real_person" class="form-group">
-              <label class="form-label">Instagram ID</label>
+              <label class="form-label">인스타그램 ID</label>
               <input
                 :value="selectedRequest.instagram_id || ''"
                 type="text"
@@ -597,7 +597,7 @@
             </div>
 
             <div class="form-group">
-              <label class="form-label">Negative prompt</label>
+              <label class="form-label">네거티브 프롬프트</label>
               <input
                 :value="selectedRequest.negative_prompt || ''"
                 type="text"
@@ -607,7 +607,7 @@
             </div>
 
             <div class="form-group">
-              <label class="form-label">Credit per generation</label>
+              <label class="form-label">생성당 크레딧</label>
               <input
                 :value="selectedRequest.credit_per_generation"
                 type="number"
@@ -617,7 +617,7 @@
             </div>
 
             <div class="form-group">
-              <label class="form-label">National</label>
+              <label class="form-label">국가</label>
               <input
                 :value="selectedRequest.national || ''"
                 type="text"
@@ -627,7 +627,7 @@
             </div>
 
             <div class="form-group">
-              <label class="form-label">Gender</label>
+              <label class="form-label">성별</label>
               <input
                 :value="selectedRequest.gender || ''"
                 type="text"
@@ -637,7 +637,7 @@
             </div>
 
             <div class="form-group">
-              <label class="form-label">Age</label>
+              <label class="form-label">나이</label>
               <input
                 :value="selectedRequest.age != null ? selectedRequest.age : ''"
                 type="text"
@@ -647,7 +647,7 @@
             </div>
 
             <div class="form-group">
-              <label class="form-label">Description</label>
+              <label class="form-label">설명</label>
               <textarea
                 :value="selectedRequest.description || ''"
                 class="form-textarea"
@@ -657,21 +657,21 @@
             </div>
 
             <div class="form-group">
-              <label class="form-label">Preview Image</label>
+              <label class="form-label">대표 이미지</label>
               <div v-if="selectedRequest.preview_image_url" class="preview-image">
                 <img :src="getImageUrl(selectedRequest.preview_image_url)" alt="Preview" />
               </div>
-              <div v-else class="preview-placeholder">No image</div>
+              <div v-else class="preview-placeholder">이미지 없음</div>
             </div>
           </div>
 
           <!-- Training Photos -->
           <div class="form-section">
-            <h4 class="form-section-title">Training Photos</h4>
+            <h4 class="form-section-title">학습 사진</h4>
 
             <!-- Front -->
             <div v-if="selectedRequest.front_photos_urls && selectedRequest.front_photos_urls.length > 0" class="photo-category">
-              <label class="category-label">Front</label>
+              <label class="category-label">정면</label>
               <div class="photo-slots">
                 <div
                   v-for="(url, index) in selectedRequest.front_photos_urls"
@@ -685,7 +685,7 @@
 
             <!-- Side -->
             <div v-if="selectedRequest.side_photos_urls && selectedRequest.side_photos_urls.length > 0" class="photo-category">
-              <label class="category-label">Side</label>
+              <label class="category-label">측면</label>
               <div class="photo-slots">
                 <div
                   v-for="(url, index) in selectedRequest.side_photos_urls"
@@ -699,7 +699,7 @@
 
             <!-- Full Body -->
             <div v-if="selectedRequest.fullbody_photos_urls && selectedRequest.fullbody_photos_urls.length > 0" class="photo-category">
-              <label class="category-label">Full Body</label>
+              <label class="category-label">전신</label>
               <div class="photo-slots">
                 <div
                   v-for="(url, index) in selectedRequest.fullbody_photos_urls"
@@ -713,7 +713,7 @@
 
             <!-- Other -->
             <div v-if="selectedRequest.other_photos_urls && selectedRequest.other_photos_urls.length > 0" class="photo-category">
-              <label class="category-label">Other</label>
+              <label class="category-label">기타</label>
               <div class="photo-slots">
                 <div
                   v-for="(url, index) in selectedRequest.other_photos_urls"
@@ -743,14 +743,14 @@
             :disabled="cancelling"
             @click="cancelRequest"
           >
-            {{ cancelling ? "Cancelling..." : "Cancel Request" }}
+            {{ cancelling ? "취소 중…" : "요청 취소" }}
           </button>
           <button
             class="btn-secondary"
             type="button"
             @click="closeRequestDetailModal"
           >
-            Close
+            닫기
           </button>
         </div>
       </div>
@@ -760,26 +760,26 @@
     <div v-if="showUploadLoraModal" class="modal-overlay">
       <div class="modal-card training-detail-modal">
         <div class="modal-header">
-          <h3>Upload LoRA Avatar</h3>
+          <h3>LoRA 아바타 업로드</h3>
           <button class="modal-close" type="button" @click="closeUploadLoraModal">×</button>
         </div>
 
         <div class="modal-body">
           <div class="form-section">
-            <h4 class="form-section-title">Basic Information</h4>
+            <h4 class="form-section-title">기본 정보</h4>
 
             <div class="form-group">
-              <label class="form-label">Avatar name <span class="required">*</span></label>
+              <label class="form-label">아바타 이름 <span class="required">*</span></label>
               <input
                 v-model="uploadLoraForm.avatarName"
                 type="text"
                 class="form-input"
-                placeholder="Enter avatar name"
+                placeholder="아바타 이름을 입력하세요"
               />
             </div>
 
             <div class="form-group">
-              <label class="form-label">Is this avatar based on a real person? <span class="required">*</span></label>
+              <label class="form-label">실존 인물 기반 아바타인가요? <span class="required">*</span></label>
               <div class="radio-group">
                 <label class="radio-label">
                   <input
@@ -788,7 +788,7 @@
                     :value="true"
                     class="radio-input"
                   />
-                  <span>Yes</span>
+                  <span>예</span>
                 </label>
                 <label class="radio-label">
                   <input
@@ -797,46 +797,46 @@
                     :value="false"
                     class="radio-input"
                   />
-                  <span>No</span>
+                  <span>아니오</span>
                 </label>
               </div>
             </div>
 
             <div v-if="uploadLoraForm.isRealPerson === true" class="form-group">
-              <label class="form-label">Instagram ID <span class="required">*</span></label>
+              <label class="form-label">인스타그램 ID <span class="required">*</span></label>
               <input
                 v-model="uploadLoraForm.instagramId"
                 type="text"
                 class="form-input"
-                placeholder="Enter Instagram ID"
+                placeholder="인스타그램 ID를 입력하세요"
               />
             </div>
 
             <div class="form-group">
-              <label class="form-label">Negative prompt <span class="required">*</span></label>
+              <label class="form-label">네거티브 프롬프트 <span class="required">*</span></label>
               <input
                 v-model="uploadLoraForm.negativePrompt"
                 type="text"
                 class="form-input"
-                placeholder="Enter negative prompt"
+                placeholder="네거티브 프롬프트를 입력하세요"
               />
             </div>
 
             <div class="form-group">
-              <label class="form-label">Credit per generation <span class="required">*</span></label>
+              <label class="form-label">생성당 크레딧 <span class="required">*</span></label>
               <input
                 v-model.number="uploadLoraForm.creditPerGeneration"
                 type="number"
                 min="0"
                 class="form-input"
-                placeholder="Credits per generation (0 allowed)"
+                placeholder="생성당 크레딧 (0 가능)"
               />
             </div>
 
             <div class="form-group">
-              <label class="form-label">National <span class="required">*</span></label>
+              <label class="form-label">국가 <span class="required">*</span></label>
               <select v-model="uploadLoraForm.national" class="form-input">
-                <option value="">Select nationality</option>
+                <option value="">국가 선택</option>
                 <option value="KR">Korea</option>
                 <option value="US">United States</option>
                 <option value="JP">Japan</option>
@@ -857,47 +857,47 @@
             </div>
 
             <div class="form-group">
-              <label class="form-label">Gender <span class="required">*</span></label>
+              <label class="form-label">성별 <span class="required">*</span></label>
               <div class="radio-group">
                 <label class="radio-label">
                   <input v-model="uploadLoraForm.gender" type="radio" value="M" class="radio-input" />
-                  <span>M</span>
+                  <span>남성</span>
                 </label>
                 <label class="radio-label">
                   <input v-model="uploadLoraForm.gender" type="radio" value="W" class="radio-input" />
-                  <span>W</span>
+                  <span>여성</span>
                 </label>
                 <label class="radio-label">
                   <input v-model="uploadLoraForm.gender" type="radio" value="Etc" class="radio-input" />
-                  <span>Etc</span>
+                  <span>기타</span>
                 </label>
               </div>
             </div>
 
             <div class="form-group">
-              <label class="form-label">Age <span class="field-optional">(optional)</span></label>
+              <label class="form-label">나이 <span class="field-optional">(선택)</span></label>
               <input
                 v-model.number="uploadLoraForm.age"
                 type="number"
                 min="1"
                 max="120"
                 class="form-input"
-                placeholder="Age"
+                placeholder="나이"
               />
             </div>
 
             <div class="form-group">
-              <label class="form-label">Description <span class="required">*</span></label>
+              <label class="form-label">설명 <span class="required">*</span></label>
               <textarea
                 v-model="uploadLoraForm.description"
                 class="form-textarea"
                 rows="4"
-                placeholder="Enter description"
+                placeholder="설명을 입력하세요"
               ></textarea>
             </div>
 
             <div class="form-group">
-              <label class="form-label">Preview Image (optional)</label>
+              <label class="form-label">대표 이미지 (선택)</label>
               <div class="file-upload-wrapper">
                 <input
                   ref="uploadLoraPreviewInput"
@@ -916,13 +916,13 @@
                   class="file-upload-btn"
                   @click="() => uploadLoraPreviewInput?.click()"
                 >
-                  Select Image
+                  이미지 선택
                 </button>
               </div>
             </div>
 
             <div class="form-group">
-              <label class="form-label">LoRA file (.safetensors) <span class="required">*</span></label>
+              <label class="form-label">LoRA 파일 (.safetensors) <span class="required">*</span></label>
               <div class="file-upload-wrapper">
                 <input
                   ref="uploadLoraFileInput"
@@ -936,7 +936,7 @@
                   class="file-upload-btn"
                   @click="() => uploadLoraFileInput?.click()"
                 >
-                  {{ uploadLoraForm.loraFile ? uploadLoraForm.loraFile.name : "Select .safetensors file" }}
+                  {{ uploadLoraForm.loraFile ? uploadLoraForm.loraFile.name : ".safetensors 파일 선택" }}
                 </button>
               </div>
             </div>
@@ -945,7 +945,7 @@
 
         <div class="modal-footer">
           <button class="btn-secondary" type="button" @click="closeUploadLoraModal">
-            Close
+            닫기
           </button>
           <button
             class="btn-primary"
@@ -953,7 +953,7 @@
             :disabled="!isUploadLoraFormValid || uploadingLora"
             @click="submitUploadLora"
           >
-            {{ uploadingLora ? "Uploading..." : "Upload" }}
+            {{ uploadingLora ? "업로드 중…" : "업로드" }}
           </button>
         </div>
       </div>
@@ -963,24 +963,24 @@
     <div v-if="selectedAvatar" class="modal-overlay" @click.self="closeAvatarDetailModal">
       <div class="modal-card avatar-detail-modal">
         <div class="modal-header">
-          <h3>Avatar Details</h3>
+          <h3>아바타 상세</h3>
           <button class="modal-close" type="button" @click="closeAvatarDetailModal">×</button>
         </div>
 
         <div class="modal-body">
           <!-- Market visibility: 모달 맨 위 -->
           <div class="form-group form-group-block visibility-block visibility-block-top">
-            <label class="form-label">Market visibility</label>
+            <label class="form-label">마켓 노출</label>
             <div class="visibility-options">
               <label :class="['visibility-option', editForm.status === 'active' ? 'visibility-option-selected' : '']">
                 <input v-model="editForm.status" type="radio" value="active" class="visibility-radio" />
-                <span class="visibility-label">Active</span>
-                <span class="visibility-desc">Show on Market</span>
+                <span class="visibility-label">활성</span>
+                <span class="visibility-desc">마켓에 표시</span>
               </label>
               <label :class="['visibility-option', editForm.status === 'hidden' ? 'visibility-option-selected' : '']">
                 <input v-model="editForm.status" type="radio" value="hidden" class="visibility-radio" />
-                <span class="visibility-label">Deactive</span>
-                <span class="visibility-desc">Hide from Market</span>
+                <span class="visibility-label">비활성</span>
+                <span class="visibility-desc">마켓에서 숨김</span>
               </label>
             </div>
           </div>
@@ -988,7 +988,7 @@
           <!-- Preview Image: 제목 라인 오른쪽에 Change -->
           <div class="detail-section preview-image-section">
             <div class="preview-image-section-header">
-              <h4 class="detail-section-title">Preview Image</h4>
+              <h4 class="detail-section-title">대표 이미지</h4>
               <input
                 ref="editPreviewImageInput"
                 type="file"
@@ -1020,43 +1020,43 @@
                 alt="Preview"
                 @error="(e: Event) => { const t = (e.target as HTMLImageElement); if (previewImageFallbackUrl) t.src = previewImageFallbackUrl; }"
               />
-              <div v-else class="preview-placeholder">No image</div>
+              <div v-else class="preview-placeholder">이미지 없음</div>
             </div>
           </div>
 
           <div class="detail-section">
-            <h4 class="detail-section-title">Information</h4>
+            <h4 class="detail-section-title">정보</h4>
             <div class="detail-grid">
               <div class="detail-item">
-                <label class="detail-label">Avatar name</label>
+                <label class="detail-label">아바타 이름</label>
                 <p class="detail-value">{{ selectedAvatar.title }}</p>
               </div>
               <div class="detail-item">
-                <label class="detail-label">Negative prompt</label>
-                <p class="detail-value">{{ selectedAvatar.negative_prompt || "N/A" }}</p>
+                <label class="detail-label">네거티브 프롬프트</label>
+                <p class="detail-value">{{ selectedAvatar.negative_prompt || "없음" }}</p>
               </div>
               <div class="detail-item">
-                <label class="detail-label">Credit per generation</label>
-                <p class="detail-value">{{ selectedAvatar.credit_per_generation || "N/A" }}</p>
+                <label class="detail-label">생성당 크레딧</label>
+                <p class="detail-value">{{ selectedAvatar.credit_per_generation || "없음" }}</p>
               </div>
               <div class="detail-item">
-                <label class="detail-label">National</label>
-                <p class="detail-value">{{ selectedAvatar.nationality || "N/A" }}</p>
+                <label class="detail-label">국가</label>
+                <p class="detail-value">{{ selectedAvatar.nationality || "없음" }}</p>
               </div>
               <div class="detail-item">
-                <label class="detail-label">Gender</label>
-                <p class="detail-value">{{ selectedAvatar.gender || "N/A" }}</p>
+                <label class="detail-label">성별</label>
+                <p class="detail-value">{{ selectedAvatar.gender || "없음" }}</p>
               </div>
               <div class="detail-item">
-                <label class="detail-label">Age</label>
-                <p class="detail-value">{{ selectedAvatar.age != null ? selectedAvatar.age : "N/A" }}</p>
+                <label class="detail-label">나이</label>
+                <p class="detail-value">{{ selectedAvatar.age != null ? selectedAvatar.age : "없음" }}</p>
               </div>
               <div class="detail-item">
-                <label class="detail-label">Identity</label>
-                <p class="detail-value">{{ selectedAvatar.is_real_person ? "Real person" : "Fictional character" }}</p>
+                <label class="detail-label">유형</label>
+                <p class="detail-value">{{ selectedAvatar.is_real_person ? "실존 인물" : "가상 캐릭터" }}</p>
               </div>
               <div v-if="selectedAvatar.is_real_person && selectedAvatar.instagram_id" class="detail-item">
-                <label class="detail-label">Instagram</label>
+                <label class="detail-label">인스타그램</label>
                 <p class="detail-value">
                   <a
                     :href="instagramUrl(selectedAvatar.instagram_id!)"
@@ -1069,18 +1069,18 @@
                 </p>
               </div>
               <div class="detail-item">
-                <label class="detail-label">Description</label>
-                <p class="detail-value">{{ selectedAvatar.description || "N/A" }}</p>
+                <label class="detail-label">설명</label>
+                <p class="detail-value">{{ selectedAvatar.description || "없음" }}</p>
               </div>
             </div>
           </div>
 
           <!-- Editable Items -->
           <div class="edit-section">
-            <h4 class="detail-section-title">Edit</h4>
+            <h4 class="detail-section-title">수정</h4>
 
             <div class="form-group">
-              <label class="form-label">Credit per generation</label>
+              <label class="form-label">생성당 크레딧</label>
               <input
                 v-model.number="editForm.creditPerGeneration"
                 type="number"
@@ -1090,7 +1090,7 @@
             </div>
 
             <div class="form-group">
-              <label class="form-label">Avatar name</label>
+              <label class="form-label">아바타 이름</label>
               <input
                 v-model="editForm.avatarName"
                 type="text"
@@ -1099,7 +1099,7 @@
             </div>
 
             <div class="form-group">
-              <label class="form-label">Description</label>
+              <label class="form-label">설명</label>
               <textarea
                 v-model="editForm.description"
                 class="form-textarea"
@@ -1122,14 +1122,14 @@
             :disabled="deletingAvatar"
             @click="deleteAvatar"
           >
-            {{ deletingAvatar ? "Deleting..." : "Delete" }}
+            {{ deletingAvatar ? "삭제 중…" : "삭제" }}
           </button>
           <button
             class="btn-secondary"
             type="button"
             @click="closeAvatarDetailModal"
           >
-            Close
+            닫기
           </button>
           <button
             class="btn-primary"
@@ -1137,7 +1137,7 @@
             :disabled="saving"
             @click="saveAvatarChanges"
           >
-            {{ saving ? "Saving..." : "Save" }}
+            {{ saving ? "저장 중…" : "저장" }}
           </button>
         </div>
       </div>
@@ -1348,10 +1348,10 @@ function formatDate(iso: string): string {
 // Status related
 function getStatusLabel(status: string): string {
   const statusMap: Record<string, string> = {
-    requested: "Requested",
-    approved_training: "Approved - Training",
-    rejected: "Rejected",
-    cancelled: "Cancelled",
+    requested: "요청됨",
+    approved_training: "승인·학습중",
+    rejected: "반려됨",
+    cancelled: "취소됨",
   };
   return statusMap[status] || status;
 }
@@ -1541,7 +1541,7 @@ async function openRequestDetailModal(request: TrainingRequestItem) {
     selectedRequest.value = await trainingRequestsApi.getRequestDetail(request.id);
   } catch (error) {
     console.error("Failed to load request detail:", error);
-    alert("Failed to load request details.");
+    alert("요청 상세를 불러오지 못했어요.");
   } finally {
     loadingRequestDetail.value = false;
   }
@@ -1554,7 +1554,7 @@ function closeRequestDetailModal() {
 async function cancelRequest() {
   if (!selectedRequest.value) return;
   
-  if (!confirm("Are you sure you want to cancel this request?")) {
+  if (!confirm("이 요청을 취소할까요?")) {
     return;
   }
 
@@ -1567,7 +1567,7 @@ async function cancelRequest() {
     }
     // Update the list
     await loadTrainingRequests();
-    alert("Request has been cancelled.");
+    alert("요청이 취소되었어요.");
   } catch (error: any) {
     console.error("Failed to cancel request:", error);
     const errorMessage = error?.response?.data?.detail || error?.message || "Failed to cancel request.";
@@ -1579,7 +1579,7 @@ async function cancelRequest() {
 
 async function deleteTrainingRequest() {
   if (!selectedRequest.value) return;
-  if (!confirm("Delete this training request? All uploaded images will be permanently removed. This cannot be undone.")) {
+  if (!confirm("이 학습 요청을 삭제할까요? 업로드한 이미지가 영구 삭제되며 되돌릴 수 없어요.")) {
     return;
   }
   deletingRequest.value = true;
@@ -1587,7 +1587,7 @@ async function deleteTrainingRequest() {
     await trainingRequestsApi.deleteRequest(selectedRequest.value.id);
     closeRequestDetailModal();
     await loadTrainingRequests();
-    alert("Training request has been deleted.");
+    alert("학습 요청이 삭제되었어요.");
   } catch (error: any) {
     console.error("Failed to delete training request:", error);
     const msg = error?.response?.data?.detail || error?.message || "Failed to delete.";
@@ -1771,7 +1771,7 @@ async function saveAvatarChanges() {
     await loadAvatars();
   } catch (error) {
     console.error("Failed to save avatar changes:", error);
-    alert("Failed to save. Please try again.");
+    alert("저장에 실패했어요. 다시 시도해 주세요.");
   } finally {
     saving.value = false;
     uploadProgress.value = 0;
@@ -1780,7 +1780,7 @@ async function saveAvatarChanges() {
 
 async function deleteAvatar() {
   if (!selectedAvatar.value) return;
-  if (!confirm("Delete this avatar? The LoRA file will be permanently removed. This cannot be undone.")) {
+  if (!confirm("이 아바타를 삭제할까요? LoRA 파일이 영구 삭제되며 되돌릴 수 없어요.")) {
     return;
   }
   deletingAvatar.value = true;
@@ -1788,7 +1788,7 @@ async function deleteAvatar() {
     await avatarsApi.deleteAvatar(selectedAvatar.value.id);
     closeAvatarDetailModal();
     await loadAvatars();
-    alert("Avatar has been deleted.");
+    alert("아바타가 삭제되었어요.");
   } catch (error: any) {
     console.error("Failed to delete avatar:", error);
     const msg = error?.response?.data?.detail || error?.message || "Failed to delete.";

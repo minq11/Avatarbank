@@ -1,19 +1,19 @@
 <template>
   <section class="mypage-section">
     <div v-if="!authStore.isLoggedIn" class="auth-required">
-      <p>Please log in to access My Page.</p>
-      <RouterLink to="/" class="btn-primary">Go to Home</RouterLink>
+      <p>내 페이지를 이용하려면 로그인해 주세요.</p>
+      <RouterLink to="/" class="btn-primary">홈으로</RouterLink>
     </div>
     <div v-else class="container">
-      <h2 class="page-title">My Page</h2>
-      <p class="page-desc">Manage your account settings.</p>
+      <h2 class="page-title">계정 관리</h2>
+      <p class="page-desc">계정 정보를 관리하세요.</p>
 
       <!-- Nickname Change -->
       <div class="card">
-        <h3 class="card-title">Change Nickname</h3>
+        <h3 class="card-title">닉네임 변경</h3>
         <form class="form" @submit.prevent="handleNicknameSubmit">
           <div class="form-group">
-            <label class="form-label">Current nickname</label>
+            <label class="form-label">현재 닉네임</label>
             <input
               :value="authStore.user?.nickname"
               type="text"
@@ -23,12 +23,12 @@
             />
           </div>
           <div class="form-group">
-            <label class="form-label">New nickname</label>
+            <label class="form-label">새 닉네임</label>
             <input
               v-model="nicknameForm.newNickname"
               type="text"
               class="form-input"
-              placeholder="Enter new nickname"
+              placeholder="새 닉네임을 입력하세요"
               maxlength="50"
               required
             />
@@ -38,7 +38,7 @@
             class="btn primary"
             :disabled="nicknameForm.loading || !nicknameForm.newNickname.trim()"
           >
-            {{ nicknameForm.loading ? "Updating..." : "Update Nickname" }}
+            {{ nicknameForm.loading ? "변경 중…" : "닉네임 변경" }}
           </button>
           <p v-if="nicknameForm.message" class="form-message" :class="nicknameForm.error ? 'error' : 'success'">
             {{ nicknameForm.message }}
@@ -48,36 +48,36 @@
 
       <!-- Password Change -->
       <div class="card">
-        <h3 class="card-title">Change Password</h3>
+        <h3 class="card-title">비밀번호 변경</h3>
         <form class="form" @submit.prevent="handlePasswordSubmit">
           <div class="form-group">
-            <label class="form-label">Current password</label>
+            <label class="form-label">현재 비밀번호</label>
             <input
               v-model="passwordForm.currentPassword"
               type="password"
               class="form-input"
-              placeholder="Enter current password"
+              placeholder="현재 비밀번호를 입력하세요"
               required
             />
           </div>
           <div class="form-group">
-            <label class="form-label">New password</label>
+            <label class="form-label">새 비밀번호</label>
             <input
               v-model="passwordForm.newPassword"
               type="password"
               class="form-input"
-              placeholder="Enter new password (min 6 characters)"
+              placeholder="새 비밀번호 (6자 이상)"
               minlength="6"
               required
             />
           </div>
           <div class="form-group">
-            <label class="form-label">Confirm new password</label>
+            <label class="form-label">새 비밀번호 확인</label>
             <input
               v-model="passwordForm.confirmPassword"
               type="password"
               class="form-input"
-              placeholder="Confirm new password"
+              placeholder="새 비밀번호를 다시 입력하세요"
               required
             />
           </div>
@@ -86,7 +86,7 @@
             class="btn primary"
             :disabled="passwordForm.loading || !canSubmitPassword"
           >
-            {{ passwordForm.loading ? "Updating..." : "Update Password" }}
+            {{ passwordForm.loading ? "변경 중…" : "비밀번호 변경" }}
           </button>
           <p v-if="passwordForm.message" class="form-message" :class="passwordForm.error ? 'error' : 'success'">
             {{ passwordForm.message }}
@@ -137,11 +137,11 @@ async function handleNicknameSubmit() {
   try {
     const user = await authApi.changeNickname({ nickname });
     authStore.setUser(user);
-    nicknameForm.message = "Nickname updated successfully.";
+    nicknameForm.message = "닉네임이 변경되었어요.";
     nicknameForm.newNickname = "";
   } catch (e: unknown) {
     const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-    nicknameForm.message = msg ?? "Failed to update nickname.";
+    nicknameForm.message = msg ?? "닉네임 변경에 실패했어요.";
     nicknameForm.error = true;
   } finally {
     nicknameForm.loading = false;
@@ -158,13 +158,13 @@ async function handlePasswordSubmit() {
       current_password: passwordForm.currentPassword,
       new_password: passwordForm.newPassword,
     });
-    passwordForm.message = "Password updated successfully.";
+    passwordForm.message = "비밀번호가 변경되었어요.";
     passwordForm.currentPassword = "";
     passwordForm.newPassword = "";
     passwordForm.confirmPassword = "";
   } catch (e: unknown) {
     const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-    passwordForm.message = msg ?? "Failed to update password.";
+    passwordForm.message = msg ?? "비밀번호 변경에 실패했어요.";
     passwordForm.error = true;
   } finally {
     passwordForm.loading = false;

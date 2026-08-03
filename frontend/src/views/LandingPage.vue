@@ -9,155 +9,69 @@
             <svg class="badge-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .962 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.582a.5.5 0 0 1 0 .962L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.962 0L9.937 15.5Z"/>
             </svg>
-            <span>AI-Powered Avatar Marketplace</span>
+            <span>크리에이터를 위한 AI 아바타 스튜디오</span>
           </div>
 
           <!-- Headline -->
           <h1 class="hero-title">
-            Create your own images with influencer avatars
+            내 아바타로,<br />
+            팬들을 위한 사진을 만드세요
           </h1>
 
           <!-- Subheadline -->
           <p class="hero-subtitle">
-            An AI avatar marketplace where revenue is shared with avatar owners
+            사진 몇 장으로 나만의 AI 아바타를 등록하고,
+            팬에게 나눠줄 일회용 생성 링크를 발급하세요.
+            사용 현황은 실시간으로 확인할 수 있어요.
           </p>
-
-          <!-- Generate with Dove (avatar id 9): preview + prompt -->
-          <div class="hero-generate">
-            <div class="hero-generate-preview">
-              <div v-if="defaultAvatar" class="hero-avatar-card">
-                <div class="hero-avatar-img-wrap">
-                  <img :src="dovePreview" :alt="defaultAvatar.title" class="hero-avatar-img" />
-                </div>
-                <p class="hero-avatar-name">{{ defaultAvatar.title }}</p>
-                <p class="hero-avatar-badge">Generate with this avatar</p>
-              </div>
-              <div v-else-if="defaultAvatarLoading" class="hero-avatar-loading">
-                <span>Loading...</span>
-              </div>
-              <div v-else class="hero-avatar-fallback">
-                <span>Dove</span>
-              </div>
-            </div>
-            <div class="hero-generate-input">
-              <div class="prompt-input-container">
-                <textarea
-                  v-model="prompt"
-                  placeholder="Describe the image you want to create..."
-                  class="prompt-input prompt-textarea"
-                  rows="4"
-                />
-              </div>
-              <div class="hero-generate-actions">
-                <button class="generate-btn" type="button" @click="goToGenerate">
-                  <svg class="generate-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .962 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.582a.5.5 0 0 1 0 .962L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.962 0L9.937 15.5Z"/>
-                  </svg>
-                  Generate
-                </button>
-              </div>
-            </div>
-          </div>
 
           <!-- CTAs -->
           <div class="hero-actions">
+            <RouterLink to="/my/avatars" class="btn-primary-hero">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+              </svg>
+              내 아바타 등록하기
+            </RouterLink>
+            <a href="#how" class="btn-secondary-hero">
+              작동 방식 보기
+              <svg class="arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+            </a>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- Gallery Section -->
-    <section class="gallery-section">
+    <!-- How It Works Section -->
+    <section id="how" class="how-section">
       <div class="container">
         <div class="section-header">
-          <h2 class="section-title">Explore AI-Generated Avatars</h2>
+          <h2 class="section-title">이렇게 작동해요</h2>
           <p class="section-description">
-            Browse thousands of unique images created with our influencer avatars
+            아바타 등록부터 팬에게 링크를 나눠주기까지, 네 단계면 충분해요
           </p>
         </div>
 
-        <div class="gallery-grid">
-          <div
-            v-for="(avatar, index) in galleryAvatars"
-            :key="index"
-            class="gallery-card"
-            @click="() => $router.push(`/market`)"
-          >
-            <div class="gallery-image-wrapper">
-              <div class="gallery-image-placeholder">
-                <span>Avatar {{ index + 1 }}</span>
-              </div>
-              <div class="gallery-overlay"></div>
-              
-              <!-- Instagram Badge -->
-              <div class="instagram-badge">
-                <img :src="instagramLogo" alt="Instagram" class="instagram-icon" />
-                <span>{{ avatar.instagram }}</span>
-              </div>
-            </div>
+        <div class="steps-grid">
+          <div v-for="(step, index) in steps" :key="index" class="step-card">
+            <div class="step-number">{{ index + 1 }}</div>
+            <h3 class="step-title">{{ step.title }}</h3>
+            <p class="step-description">{{ step.description }}</p>
           </div>
         </div>
 
-        <!-- View More -->
-        <div class="view-more">
-          <RouterLink to="/market" class="btn-view-all">
-            View all avatars
-          </RouterLink>
-        </div>
-      </div>
-    </section>
-
-    <!-- Influencer Section -->
-    <section class="influencer-section">
-      <div class="container">
-        <div class="influencer-grid">
-          <!-- Left Content -->
-          <div class="influencer-content">
-            <h2 class="influencer-title">
-              Upload photos, earn with your AI avatar
-            </h2>
-            
-            <p class="influencer-description">
-              Share your photos to create an AI avatar and earn revenue every time someone generates an image with it. Turn your influence into a sustainable income stream.
-            </p>
-
-            <div class="influencer-actions">
-              <RouterLink to="/my/avatars" class="btn-primary-influencer">
-                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
-                </svg>
-                Start uploading
-              </RouterLink>
-              <RouterLink to="/revenue-model" class="btn-link-influencer">
-                View revenue model
-                <svg class="arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M5 12h14M12 5l7 7-7 7"/>
-                </svg>
-              </RouterLink>
-            </div>
-          </div>
-
-          <!-- Right Visual -->
-          <div class="influencer-visual">
-            <div class="visual-grid">
-              <div class="visual-column">
-                <div class="visual-item aspect-portrait">
-                  <div class="visual-placeholder">Photo 1</div>
-                </div>
-                <div class="visual-item aspect-square">
-                  <div class="visual-placeholder">Photo 2</div>
-                </div>
-              </div>
-              <div class="visual-column offset-top">
-                <div class="visual-item aspect-square">
-                  <div class="visual-placeholder">Photo 3</div>
-                </div>
-                <div class="visual-item aspect-portrait">
-                  <div class="visual-placeholder">Photo 4</div>
-                </div>
-              </div>
-            </div>
-          </div>
+        <!-- 등록 심사 안내 -->
+        <div class="review-notice">
+          <svg class="review-notice-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 12l2 2 4-4" />
+            <circle cx="12" cy="12" r="10" />
+          </svg>
+          <p class="review-notice-text">
+            아바타 등록은 관리자가 <strong>도용 여부를 확인</strong>한 뒤 진행되며,
+            승인까지 <strong>영업일 기준 1~7일</strong>이 소요됩니다.
+          </p>
         </div>
       </div>
     </section>
@@ -165,57 +79,39 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { onMounted, watch } from "vue";
 import { RouterLink, useRouter } from "vue-router";
-import instagramLogo from "@/assets/icons/Instagram_logo_2016.svg?url";
-import dovePreview from "@/assets/dove_preview.png";
-import { avatarsApi } from "@/services/api";
-import type { AvatarDetailItem } from "@/services/api";
+import { useAuthStore } from "@/stores/auth";
 
-const DEFAULT_AVATAR_ID = 9;
-
-const defaultPromptText =
-  "A hyper-detailed photographic portrait of Woman, seated gracefully in a white lace-trim top and patterned headscarf, wearing a minimalist necklace. " +
-  "She rests one hand on her head, looking at the camera. Shot on a Canon EOS R5 with an 85mm f/1.4 lens in 8K RAW, featuring cinematic lighting, natural skin tone, flawless anatomy, and razor-sharp detail.";
-
-const prompt = ref(defaultPromptText);
+const authStore = useAuthStore();
 const router = useRouter();
-const defaultAvatar = ref<AvatarDetailItem | null>(null);
-const defaultAvatarLoading = ref(true);
 
-function getImageUrl(url: string | null | undefined): string {
-  if (!url) return "";
-  if (url.startsWith("http://") || url.startsWith("https://")) return url;
-  const apiBase = import.meta.env.VITE_API_BASE_URL;
-  if (apiBase) return apiBase + url;
-  return `/api${url}`;
-}
-
-onMounted(async () => {
-  try {
-    const a = await avatarsApi.getById(DEFAULT_AVATAR_ID);
-    defaultAvatar.value = a;
-  } catch {
-    defaultAvatar.value = null;
-  } finally {
-    defaultAvatarLoading.value = false;
+// 로그인 상태면 마케팅 랜딩 대신 바로 크리에이터 스튜디오로 보낸다.
+function redirectIfLoggedIn() {
+  if (authStore.isInitialized && authStore.isLoggedIn) {
+    router.replace("/studio");
   }
-});
-
-function goToGenerate() {
-  const query = prompt.value.trim() ? { prompt: prompt.value.trim() } : {};
-  router.push({ path: `/avatars/${DEFAULT_AVATAR_ID}`, query });
 }
+onMounted(redirectIfLoggedIn);
+watch(() => authStore.isInitialized, redirectIfLoggedIn);
 
-const galleryAvatars = [
-  { instagram: "@model_anna" },
-  { instagram: "@fashion_kim" },
-  { instagram: "@pro_david" },
-  { instagram: "@creative_sofia" },
-  { instagram: "@lifestyle_james" },
-  { instagram: "@urban_alex" },
-  { instagram: "@elegant_maria" },
-  { instagram: "@minimal_chris" },
+const steps = [
+  {
+    title: "아바타 등록",
+    description: "정면·측면·전신 사진을 올리면 나만의 아바타를 만들어요. 관리자가 도용 여부를 확인한 뒤 승인돼요.",
+  },
+  {
+    title: "일회용 링크 발급",
+    description: "아바타로 사진을 생성할 수 있는 일회용 링크를 원하는 만큼 만들어요.",
+  },
+  {
+    title: "팬에게 공유",
+    description: "링크를 팬에게 보내면, 팬은 그 링크로 바로 사진을 생성할 수 있어요.",
+  },
+  {
+    title: "실시간 현황 확인",
+    description: "사용된 링크와 아직 남은 링크를 내 페이지에서 한눈에 확인해요.",
+  },
 ];
 </script>
 
@@ -279,7 +175,7 @@ const galleryAvatars = [
 
 .hero-title {
   font-size: 3rem;
-  line-height: 1.1;
+  line-height: 1.15;
   font-weight: 600;
   letter-spacing: -0.025em;
   color: #111827;
@@ -290,192 +186,10 @@ const galleryAvatars = [
   font-size: 1.25rem;
   color: #4b5563;
   margin-bottom: 3rem;
-  max-width: 32rem;
+  max-width: 36rem;
   margin-left: auto;
   margin-right: auto;
   line-height: 1.625;
-}
-
-/* Hero Generate: Dove (avatar 9) preview + prompt row */
-.hero-generate {
-  max-width: 56rem;
-  margin: 0 auto 2rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2rem;
-}
-@media (min-width: 768px) {
-  .hero-generate {
-    flex-direction: row;
-    justify-content: center;
-    align-items: stretch;
-    gap: 2.5rem;
-  }
-}
-.hero-generate-preview {
-  flex-shrink: 0;
-}
-@media (min-width: 768px) {
-  .hero-generate-preview {
-    height: 260px;
-  }
-}
-.hero-avatar-card {
-  text-align: center;
-  width: 200px;
-}
-@media (min-width: 768px) {
-  .hero-avatar-card {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-  }
-  .hero-avatar-card .hero-avatar-img-wrap,
-  .hero-avatar-card .hero-avatar-placeholder {
-    flex: 1;
-    min-height: 0;
-    margin: 0 auto 0.75rem;
-  }
-}
-.hero-avatar-img-wrap {
-  width: 200px;
-  height: 200px;
-  border-radius: 1rem;
-  overflow: hidden;
-  border: 2px solid #e5e7eb;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  margin: 0 auto 0.75rem;
-}
-.hero-avatar-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-.hero-avatar-placeholder {
-  width: 200px;
-  height: 200px;
-  border-radius: 1rem;
-  background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #6366f1;
-  font-weight: 600;
-  margin: 0 auto 0.75rem;
-}
-.hero-avatar-name {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: #111827;
-  margin-bottom: 0.25rem;
-}
-.hero-avatar-badge {
-  font-size: 0.8125rem;
-  color: #6b7280;
-}
-.hero-avatar-loading,
-.hero-avatar-fallback {
-  width: 200px;
-  height: 200px;
-  border-radius: 1rem;
-  background: #f3f4f6;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #9ca3af;
-  font-weight: 500;
-}
-.hero-generate-input {
-  flex: 1;
-  width: 100%;
-  max-width: 32rem;
-}
-@media (min-width: 768px) {
-  .hero-generate-input {
-    height: 260px;
-    display: flex;
-    flex-direction: column;
-  }
-  .hero-generate-input .prompt-input-container {
-    flex: 1;
-    min-height: 0;
-    height: 100%;
-  }
-  .hero-generate-input .prompt-input {
-    height: 100%;
-    min-height: 0;
-    padding-top: 1.25rem;
-    padding-bottom: 1.25rem;
-    box-sizing: border-box;
-  }
-  .hero-generate-actions {
-    flex-shrink: 0;
-    margin-top: 0.75rem;
-  }
-}
-.hero-generate-actions {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 0.75rem;
-}
-
-.prompt-input-wrapper {
-  max-width: 48rem;
-  margin: 0 auto 2rem;
-}
-
-.prompt-input-container {
-  position: relative;
-}
-
-.prompt-input {
-  width: 100%;
-  padding: 1.25rem 1.5rem;
-  font-size: 1rem;
-  border-radius: 1rem;
-  border: 1px solid #e5e7eb;
-  background: white;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-  transition: all 0.2s;
-}
-
-.prompt-textarea {
-  resize: vertical;
-  min-height: 6rem;
-  line-height: 1.5;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-}
-
-.prompt-input:focus {
-  outline: none;
-  border-color: #4f46e5;
-  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
-}
-
-.generate-btn {
-  padding: 0.75rem 1.5rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: white;
-  background: linear-gradient(to right, #4f46e5, #6366f1);
-  border-radius: 0.75rem;
-  border: none;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  transition: all 0.2s;
-}
-
-.generate-btn:hover {
-  box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3);
-}
-
-.generate-icon {
-  width: 1rem;
-  height: 1rem;
 }
 
 .hero-actions {
@@ -485,7 +199,28 @@ const galleryAvatars = [
   gap: 1rem;
 }
 
-.btn-secondary {
+.btn-primary-hero {
+  padding: 1rem 2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(to right, #9333ea, #4f46e5);
+  border-radius: 0.75rem;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-primary-hero:hover {
+  box-shadow: 0 20px 25px -5px rgba(147, 51, 234, 0.3);
+}
+
+.btn-secondary-hero {
   padding: 1rem 2rem;
   font-size: 1rem;
   font-weight: 500;
@@ -500,7 +235,7 @@ const galleryAvatars = [
   transition: all 0.2s;
 }
 
-.btn-secondary:hover {
+.btn-secondary-hero:hover {
   border-color: #d1d5db;
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
 }
@@ -510,17 +245,17 @@ const galleryAvatars = [
   height: 1.25rem;
 }
 
-.btn-icon {
+.arrow-icon {
   width: 1.25rem;
   height: 1.25rem;
+  transition: transform 0.2s;
 }
 
-/* Gallery Section */
-.gallery-section {
-  padding: 6rem 0;
-  background: #f9fafb;
+.btn-secondary-hero:hover .arrow-icon {
+  transform: translateX(0.25rem);
 }
 
+/* Section shared */
 .container {
   max-width: 1440px;
   margin: 0 auto;
@@ -550,8 +285,214 @@ const galleryAvatars = [
 .section-description {
   font-size: 1.125rem;
   color: #4b5563;
-  max-width: 32rem;
+  max-width: 36rem;
   margin: 0 auto;
+}
+
+/* How It Works Section */
+.how-section {
+  padding: 6rem 0;
+  background: #f9fafb;
+}
+
+.steps-grid {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: 1.5rem;
+}
+
+.step-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 1rem;
+  padding: 2rem;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.step-card:hover {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.step-number {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.75rem;
+  background: linear-gradient(to bottom right, #6366f1, #9333ea);
+  color: white;
+  font-weight: 700;
+  font-size: 1.125rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.25rem;
+}
+
+.step-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 0.5rem;
+}
+
+.step-description {
+  font-size: 0.9375rem;
+  color: #4b5563;
+  line-height: 1.6;
+}
+
+.review-notice {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 2rem;
+  padding: 1rem 1.25rem;
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  border-radius: 0.75rem;
+}
+
+.review-notice-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  color: #4f46e5;
+  flex-shrink: 0;
+}
+
+.review-notice-text {
+  font-size: 0.9375rem;
+  color: #3730a3;
+  line-height: 1.6;
+}
+
+.review-notice-text strong {
+  font-weight: 600;
+}
+
+/* Link Dashboard Preview Section */
+.links-section {
+  padding: 6rem 0;
+  background: white;
+}
+
+.links-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 4rem;
+  align-items: center;
+}
+
+@media (min-width: 1024px) {
+  .links-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.links-title {
+  font-size: 2.25rem;
+  line-height: 1.15;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  color: #111827;
+  margin-bottom: 1.5rem;
+}
+
+.links-description {
+  font-size: 1.125rem;
+  color: #4b5563;
+  line-height: 1.625;
+  margin-bottom: 2rem;
+}
+
+.links-visual {
+  position: relative;
+}
+
+.link-panel {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 1rem;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.link-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #f3f4f6;
+  background: #f9fafb;
+}
+
+.link-panel-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.link-panel-count {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.link-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.link-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.link-item:last-child {
+  border-bottom: none;
+}
+
+.link-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.link-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.link-meta {
+  font-size: 0.8125rem;
+  color: #9ca3af;
+}
+
+.link-status {
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.status-used {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.status-unused {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+/* Gallery Section */
+.gallery-section {
+  padding: 6rem 0;
+  background: #f9fafb;
 }
 
 .gallery-grid {
@@ -667,161 +608,42 @@ const galleryAvatars = [
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
 }
 
-.btn-primary-influencer {
-  padding: 0.75rem 1.5rem;
-  font-size: 1rem;
-  font-weight: 500;
-  color: white;
-  background: linear-gradient(to right, #9333ea, #4f46e5);
-  border-radius: 0.75rem;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  transition: all 0.2s;
-  border: none;
-  cursor: pointer;
-}
-
-.btn-primary-influencer:hover {
-  box-shadow: 0 20px 25px -5px rgba(147, 51, 234, 0.3);
-}
-
-/* Influencer Section */
-.influencer-section {
+/* Final CTA Section */
+.cta-section {
   padding: 6rem 0;
   background: white;
 }
 
-.influencer-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 4rem;
-  align-items: center;
+.cta-card {
+  background: linear-gradient(135deg, #4f46e5 0%, #9333ea 100%);
+  border-radius: 1.5rem;
+  padding: 4rem 2rem;
+  text-align: center;
 }
 
-@media (min-width: 1024px) {
-  .influencer-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-
-.influencer-content {
-  max-width: 100%;
-}
-
-.influencer-title {
-  font-size: 2.25rem;
-  line-height: 1.1;
+.cta-title {
+  font-size: 2rem;
   font-weight: 600;
   letter-spacing: -0.025em;
-  color: #111827;
-  margin-bottom: 1.5rem;
-}
-
-.influencer-description {
-  font-size: 1.125rem;
-  color: #4b5563;
-  line-height: 1.625;
-  margin-bottom: 2rem;
-}
-
-.influencer-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.btn-primary-influencer {
-  padding: 0.75rem 1.5rem;
-  font-size: 1rem;
-  font-weight: 500;
   color: white;
-  background: linear-gradient(to right, #9333ea, #4f46e5);
-  border-radius: 0.75rem;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  transition: all 0.2s;
+  margin-bottom: 1rem;
 }
 
-.btn-primary-influencer:hover {
-  box-shadow: 0 20px 25px -5px rgba(147, 51, 234, 0.3);
+.cta-description {
+  font-size: 1.125rem;
+  color: rgba(255, 255, 255, 0.85);
+  max-width: 32rem;
+  margin: 0 auto 2rem;
+  line-height: 1.625;
 }
 
-.btn-link-influencer {
-  padding: 0.75rem 1.5rem;
-  font-size: 1rem;
-  font-weight: 500;
-  color: #374151;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  transition: color 0.2s;
+.btn-cta {
+  background: white;
+  color: #4f46e5;
 }
 
-.btn-link-influencer:hover {
-  color: #111827;
-}
-
-.arrow-icon {
-  width: 1.25rem;
-  height: 1.25rem;
-  transition: transform 0.2s;
-}
-
-.btn-link-influencer:hover .arrow-icon {
-  transform: translateX(0.25rem);
-}
-
-.influencer-visual {
-  position: relative;
-}
-
-.visual-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
-}
-
-.visual-column {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.visual-column.offset-top {
-  padding-top: 2rem;
-}
-
-.visual-item {
-  border-radius: 1rem;
-  overflow: hidden;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
-}
-
-.aspect-portrait {
-  aspect-ratio: 3 / 4;
-}
-
-.aspect-square {
-  aspect-ratio: 1;
-}
-
-.visual-placeholder {
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #6366f1;
-  font-weight: 600;
+.btn-cta:hover {
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.25);
 }
 
 /* Responsive */
@@ -830,13 +652,13 @@ const galleryAvatars = [
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .steps-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .hero-actions {
     flex-direction: row;
     justify-content: center;
-  }
-
-  .influencer-actions {
-    flex-direction: row;
   }
 }
 
@@ -853,23 +675,16 @@ const galleryAvatars = [
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
-  .influencer-grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 4rem;
+  .steps-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
-  .influencer-title {
+  .links-title {
     font-size: 3rem;
   }
-}
 
-@media (min-width: 768px) {
-  .gallery-section {
-    padding: 6rem 0;
-  }
-
-  .influencer-section {
-    padding: 6rem 0;
+  .cta-title {
+    font-size: 2.5rem;
   }
 }
 </style>
