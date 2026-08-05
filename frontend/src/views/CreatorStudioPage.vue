@@ -256,8 +256,33 @@
             </button>
           </form>
 
-          <div v-if="codes.length" class="list">
-            <div v-for="c in codes" :key="c.id" class="list-item">
+          <!-- 필터 + 내려받기 -->
+          <div v-if="codes.length" class="codes-toolbar">
+            <div class="code-filters">
+              <button
+                v-for="f in codeFilters"
+                :key="f.value"
+                type="button"
+                class="code-filter"
+                :class="{ active: codeFilter === f.value }"
+                @click="codeFilter = f.value"
+              >
+                {{ f.label }}
+                <span class="filter-count">{{ codeCounts[f.value] }}</span>
+              </button>
+            </div>
+            <button
+              type="button"
+              class="btn-outline"
+              :disabled="!filteredCodes.length"
+              @click="downloadCodesCsv"
+            >
+              ⬇ CSV 다운로드 ({{ filteredCodes.length }})
+            </button>
+          </div>
+
+          <div v-if="filteredCodes.length" class="list">
+            <div v-for="c in filteredCodes" :key="c.id" class="list-item">
               <div>
                 <code class="code-chip">{{ c.code }}</code>
                 <span class="muted small">
@@ -275,6 +300,7 @@
               </div>
             </div>
           </div>
+          <p v-else-if="codes.length" class="muted">이 조건에 해당하는 코드가 없어요.</p>
           <p v-else class="muted">아직 코드가 없어요.</p>
         </section>
       </template>
@@ -384,6 +410,68 @@ const errMsg = (e: any, fallback: string): string => e?.response?.data?.detail |
 
 const avatarTitle = (id: number) => avatars.value.find((a) => a.id === id)?.title || "—";
 const redeemUrl = (code: string) => `${window.location.origin}/r/${code}`;
+
+// --- 리딤 코드 필터 + 내보내기 ---------------------------------------------
+type CodeFilter = "all" | "unused" | "used";
+
+const codeFilters: { value: CodeFilter; label: string }[] = [
+  { value: "all", label: "전체" },
+  { value: "unused", label: "미사용" },
+  { value: "used", label: "사용됨" },
+];
+
+const codeFilter = ref<CodeFilter>("all");
+
+const matchesFilter = (c: CodeItem, f: CodeFilter) =>
+  f === "all" ? true : f === "used" ? c.used_count > 0 : c.used_count === 0;
+
+const filteredCodes = computed(() =>
+  codes.value.filter((c) => matchesFilter(c, codeFilter.value))
+);
+
+const codeCounts = computed(() => ({
+  all: codes.value.length,
+  unused: codes.value.filter((c) => c.used_count === 0).length,
+  used: codes.value.filter((c) => c.used_count > 0).length,
+}));
+
+/** 쉼표·따옴표·줄바꿈이 있어도 안전하게 CSV 필드로 감싼다. */
+const csvCell = (v: unknown): string => {
+  const s = v === null || v === undefined ? "" : String(v);
+  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+};
+
+const downloadCodesCsv = () => {
+  const rows = filteredCodes.value;
+  if (!rows.length) return;
+
+  const header = ["링크", "코드", "사용횟수", "최대사용", "상태", "발급일"];
+  const body = rows.map((c) => [
+    redeemUrl(c.code),
+    c.code,
+    c.used_count,
+    c.max_uses ?? "무제한",
+    c.is_active ? "활성" : "비활성",
+    new Date(c.created_at).toLocaleString("ko-KR"),
+  ]);
+
+  // 한 줄에 코드 하나 — 엑셀에서 열면 링크가 줄바꿈으로 나열된다.
+  const csv = [header, ...body].map((r) => r.map(csvCell).join(",")).join("\r\n");
+
+  // BOM 없이 저장하면 엑셀이 한글을 깨뜨린다.
+  const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const label = codeFilters.find((f) => f.value === codeFilter.value)?.label ?? "전체";
+  const stamp = new Date().toISOString().slice(0, 10);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `리딤코드_${label}_${stamp}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+
+  showToast(`${rows.length}개 코드를 내려받았어요`);
+};
 
 // Onboarding
 const hasSubscription = computed(() => !!subscription.value);
@@ -920,6 +1008,54 @@ textarea {
 
 .btn-outline:hover {
   background: #f5f3ff;
+}
+
+.btn-outline:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 리딤 코드 필터 + 내보내기 */
+.codes-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding-bottom: 0.85rem;
+}
+
+.code-filters {
+  display: flex;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+}
+
+.code-filter {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 9999px;
+  padding: 0.35rem 0.85rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #6b7280;
+  cursor: pointer;
+}
+
+.code-filter:hover {
+  background: #f9fafb;
+}
+
+.code-filter.active {
+  background: #f5f3ff;
+  border-color: #ddd6fe;
+  color: #6d28d9;
+}
+
+.filter-count {
+  margin-left: 0.3rem;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.75;
 }
 
 .source-row {

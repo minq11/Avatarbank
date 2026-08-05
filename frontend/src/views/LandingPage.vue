@@ -40,155 +40,120 @@
               </svg>
             </a>
           </div>
+        </div>
+      </div>
+    </section>
 
-          <!--
-            서비스 흐름 일러스트: 사진 → 내 AI 아바타 → (위) 직접 생성 / (아래) 팬에게 코드 공유.
-            텍스트 없이 그림만으로 표현 — 모바일에서 축소돼도 글자가 뭉개지지 않게 하기 위함.
-          -->
-          <div class="hero-illustration">
-            <svg viewBox="0 0 740 250" fill="none" xmlns="http://www.w3.org/2000/svg" role="img">
-              <title>
-                사진 몇 장으로 내 AI 아바타를 만들고, 직접 생성하거나 팬에게 리딤 코드를 나눠주는 흐름
-              </title>
+    <!-- Showcase: 실제 학습 사진 → AI 결과 -->
+    <section class="showcase-section">
+      <div class="container">
+        <div class="section-header">
+          <h2 class="section-title">평소 찍은 사진이 이렇게 바뀝니다</h2>
+          <p class="section-description">
+            일상 사진 몇 장으로 아바타를 학습시키면, 직접 찍지 않은 장면도 내 얼굴로 만들어져요
+          </p>
+        </div>
+
+        <div class="showcase-grid">
+          <figure class="showcase-item">
+            <div class="showcase-frame">
+              <img
+                :src="sourcePicturesImg"
+                alt="아바타 학습에 사용한 일상 사진 아홉 장"
+                loading="lazy"
+                width="784"
+                height="1168"
+              />
+            </div>
+            <figcaption>
+              <span class="showcase-tag">1 · 올린 사진</span>
+              <p>셀카·전신·야외 등 각도와 조명이 다양할수록 학습이 잘 돼요.</p>
+            </figcaption>
+          </figure>
+
+          <!-- 학습 중인 AI 모델을 홀로그램 오브로 표현 (장식) -->
+          <div class="showcase-forge" aria-hidden="true">
+            <svg class="forge-svg" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
               <defs>
-                <linearGradient id="ab-grad" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stop-color="#9333ea" />
-                  <stop offset="100%" stop-color="#4f46e5" />
+                <radialGradient id="fg-halo" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stop-color="#a78bfa" stop-opacity="0.38" />
+                  <stop offset="55%" stop-color="#818cf8" stop-opacity="0.14" />
+                  <stop offset="100%" stop-color="#818cf8" stop-opacity="0" />
+                </radialGradient>
+                <radialGradient id="fg-core" cx="38%" cy="32%" r="72%">
+                  <stop offset="0%" stop-color="#ffffff" />
+                  <stop offset="45%" stop-color="#c4b5fd" />
+                  <stop offset="100%" stop-color="#6d28d9" />
+                </radialGradient>
+                <linearGradient id="fg-ring" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stop-color="#9333ea" stop-opacity="0.15" />
+                  <stop offset="50%" stop-color="#818cf8" stop-opacity="0.95" />
+                  <stop offset="100%" stop-color="#9333ea" stop-opacity="0.15" />
                 </linearGradient>
-                <linearGradient id="ab-soft" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stop-color="#faf5ff" />
-                  <stop offset="100%" stop-color="#eef2ff" />
-                </linearGradient>
-                <marker
-                  id="ab-arrow"
-                  viewBox="0 0 10 10"
-                  refX="8"
-                  refY="5"
-                  markerWidth="6"
-                  markerHeight="6"
-                  orient="auto-start-reverse"
-                >
-                  <path d="M0 1L9 5L0 9z" fill="#c4b5fd" />
-                </marker>
-                <clipPath id="ab-frame">
-                  <rect x="496" y="26" width="68" height="80" rx="10" />
-                </clipPath>
               </defs>
 
-              <!-- 1. 올린 사진 몇 장 -->
-              <g>
-                <rect
-                  x="46" y="70" width="90" height="110" rx="12"
-                  fill="#ede9fe" transform="rotate(-10 91 125)"
-                />
-                <rect
-                  x="50" y="70" width="90" height="110" rx="12"
-                  fill="#faf5ff" stroke="#ddd6fe" stroke-width="1.5"
-                  transform="rotate(-5 95 125)"
-                />
-                <rect
-                  x="54" y="70" width="90" height="110" rx="12"
-                  fill="#ffffff" stroke="#e5e7eb" stroke-width="1.5"
-                />
-                <circle cx="99" cy="112" r="16" fill="#c7d2fe" />
-                <path d="M75 160c0-13 11-24 24-24s24 11 24 24z" fill="#c7d2fe" />
-              </g>
-
+              <!-- 왼쪽 사진에서 흘러들어와 오른쪽 결과로 빠져나가는 흐름 -->
               <path
-                d="M164 125h40" stroke="#c4b5fd" stroke-width="2.5"
-                stroke-linecap="round" marker-end="url(#ab-arrow)"
+                class="forge-flow"
+                d="M0 80h160"
+                stroke="#c4b5fd"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-dasharray="5 11"
               />
 
-              <!-- 2. 학습된 내 AI 아바타 -->
-              <g>
-                <rect
-                  x="228" y="60" width="104" height="130" rx="18"
-                  fill="url(#ab-soft)" stroke="url(#ab-grad)" stroke-width="2.5"
-                />
-                <circle cx="280" cy="116" r="21" fill="url(#ab-grad)" />
-                <path d="M248 172c0-17.7 14.3-32 32-32s32 14.3 32 32z" fill="url(#ab-grad)" />
-                <circle cx="330" cy="66" r="16" fill="#ffffff" />
-                <circle cx="330" cy="66" r="13" fill="url(#ab-grad)" />
-                <path
-                  d="M330 58c1 5 2 6 7 7-5 1-6 2-7 7-1-5-2-6-7-7 5-1 6-2 7-7z"
-                  fill="#ffffff"
-                />
+              <circle cx="80" cy="80" r="72" fill="url(#fg-halo)" />
+
+              <!-- 궤도 링 3개, 각기 다른 속도·방향 -->
+              <ellipse class="forge-ring ring-a" cx="80" cy="80" rx="56" ry="21"
+                       stroke="url(#fg-ring)" stroke-width="1.6" />
+              <ellipse class="forge-ring ring-b" cx="80" cy="80" rx="56" ry="21"
+                       stroke="url(#fg-ring)" stroke-width="1.6" />
+              <ellipse class="forge-ring ring-c" cx="80" cy="80" rx="56" ry="21"
+                       stroke="url(#fg-ring)" stroke-width="1.6" />
+
+              <!-- 코어로 모여드는 입자들 -->
+              <g class="forge-motes" fill="#a5b4fc">
+                <circle class="mote m1" cx="30" cy="58" r="2.4" />
+                <circle class="mote m2" cx="128" cy="62" r="2" />
+                <circle class="mote m3" cx="42" cy="112" r="1.8" />
+                <circle class="mote m4" cx="120" cy="108" r="2.6" />
+                <circle class="mote m5" cx="80" cy="24" r="2" />
+                <circle class="mote m6" cx="80" cy="136" r="2.2" />
               </g>
 
-              <!-- 갈래: 위 = 직접 생성, 아래 = 팬에게 코드 -->
-              <path
-                d="M344 104c30-10 52-22 84-26" stroke="#c4b5fd" stroke-width="2.5"
-                stroke-linecap="round" marker-end="url(#ab-arrow)"
-              />
-              <path
-                d="M344 150c30 12 52 24 84 28" stroke="#c4b5fd" stroke-width="2.5"
-                stroke-linecap="round" marker-end="url(#ab-arrow)"
-              />
+              <!-- 코어 -->
+              <circle class="forge-core" cx="80" cy="80" r="17" fill="url(#fg-core)" />
+              <circle class="forge-pulse" cx="80" cy="80" r="17" stroke="#a78bfa" stroke-width="1.5" />
 
-              <!-- 3a. 내가 자유롭게 만든 사진들 -->
-              <g>
-                <rect
-                  x="452" y="30" width="68" height="80" rx="10"
-                  fill="#faf5ff" stroke="#ddd6fe" stroke-width="1.5"
-                  transform="rotate(-6 486 70)"
-                />
-                <g clip-path="url(#ab-frame)">
-                  <rect x="496" y="26" width="68" height="80" fill="#ffffff" />
-                  <circle cx="545" cy="50" r="8" fill="#fde68a" />
-                  <path d="M494 106l18-26 13 17 11-13 30 22z" fill="#c7d2fe" />
-                </g>
-                <rect
-                  x="496" y="26" width="68" height="80" rx="10"
-                  fill="none" stroke="#e5e7eb" stroke-width="1.5"
-                />
-                <path
-                  d="M588 44c1 5 2 6 7 7-5 1-6 2-7 7-1-5-2-6-7-7 5-1 6-2 7-7z"
-                  fill="#ddd6fe"
-                />
-                <path
-                  d="M602 68c.7 3.4 1.4 4.1 4.8 4.8-3.4.7-4.1 1.4-4.8 4.8-.7-3.4-1.4-4.1-4.8-4.8 3.4-.7 4.1-1.4 4.8-4.8z"
-                  fill="#ede9fe"
-                />
-              </g>
-
-              <!-- 3b. 팬에게 나눠주는 리딤 코드 -->
-              <g>
-                <rect
-                  x="452" y="150" width="116" height="72" rx="12"
-                  fill="#ffffff" stroke="#e5e7eb" stroke-width="1.5"
-                />
-                <rect x="464" y="162" width="14" height="14" rx="3" fill="#4f46e5" />
-                <rect x="482" y="162" width="14" height="14" rx="3" fill="#c7d2fe" />
-                <rect x="464" y="180" width="14" height="14" rx="3" fill="#c7d2fe" />
-                <rect x="482" y="180" width="14" height="14" rx="3" fill="#4f46e5" />
-                <rect x="464" y="198" width="32" height="10" rx="5" fill="#ede9fe" />
-                <path d="M508 158v56" stroke="#e5e7eb" stroke-width="1.5" stroke-dasharray="4 5" />
-                <rect x="518" y="166" width="38" height="8" rx="4" fill="#ddd6fe" />
-                <rect x="518" y="182" width="30" height="8" rx="4" fill="#ede9fe" />
-                <rect x="518" y="198" width="34" height="8" rx="4" fill="#ede9fe" />
-              </g>
-
-              <path
-                d="M580 186h20" stroke="#c4b5fd" stroke-width="2.5"
-                stroke-linecap="round" marker-end="url(#ab-arrow)"
-              />
-
-              <!-- 팬들 -->
-              <g>
-                <circle cx="626" cy="186" r="17" fill="#eef2ff" stroke="#c7d2fe" stroke-width="1.5" />
-                <circle cx="626" cy="181" r="5.5" fill="#818cf8" />
-                <path d="M617 197c0-5 4-9 9-9s9 4 9 9z" fill="#818cf8" />
-
-                <circle cx="666" cy="164" r="14" fill="#f5f3ff" stroke="#ddd6fe" stroke-width="1.5" />
-                <circle cx="666" cy="160" r="4.5" fill="#a5b4fc" />
-                <path d="M659 173c0-4 3-7 7-7s7 3 7 7z" fill="#a5b4fc" />
-
-                <circle cx="672" cy="206" r="12" fill="#f5f3ff" stroke="#ddd6fe" stroke-width="1.5" />
-                <circle cx="672" cy="203" r="4" fill="#a5b4fc" />
-                <path d="M666 214c0-3.3 2.7-6 6-6s6 2.7 6 6z" fill="#a5b4fc" />
+              <!-- 홀로그램 스캔 라인 -->
+              <g class="forge-scan" stroke="#ffffff" stroke-opacity="0.5" stroke-width="1">
+                <path d="M66 74h28" />
+                <path d="M64 80h32" />
+                <path d="M67 86h26" />
               </g>
             </svg>
+            <span class="forge-label">AI 아바타 학습</span>
           </div>
+
+          <figure class="showcase-item">
+            <div class="showcase-frame">
+              <img
+                :src="aiResultImg"
+                alt="학습한 아바타로 생성한 결과 이미지"
+                loading="lazy"
+                width="784"
+                height="1168"
+              />
+            </div>
+            <figcaption>
+              <span class="showcase-tag accent">2 · AI가 만든 결과</span>
+              <p>
+                촬영장, 의상, 조명까지 프롬프트로 지정한 장면.
+                <strong>모든 생성물은 안전 필터를 거쳐요.</strong>
+              </p>
+            </figcaption>
+          </figure>
         </div>
       </div>
     </section>
@@ -218,8 +183,8 @@
             <circle cx="12" cy="12" r="10" />
           </svg>
           <p class="review-notice-text">
-            아바타 등록은 관리자가 <strong>도용 여부를 확인</strong>한 뒤 진행되며,
-            승인까지 <strong>영업일 기준 1~7일</strong>이 소요됩니다.
+            아바타 등록 및 학습은 관리자가 <strong>도용 여부를 확인</strong>한 뒤 진행되며,
+            승인 및 학습까지 <strong>2~7일</strong>이 소요됩니다.
           </p>
         </div>
       </div>
@@ -231,6 +196,9 @@
 import { onMounted, watch } from "vue";
 import { RouterLink, useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
+// 쇼케이스 이미지 — Vite 가 해시를 붙여 번들·캐싱한다.
+import sourcePicturesImg from "@/assets/showcase/source_pictures.jpg";
+import aiResultImg from "@/assets/showcase/ai_result.jpg";
 
 const authStore = useAuthStore();
 const router = useRouter();
@@ -394,24 +362,6 @@ const steps = [
   height: 1.25rem;
 }
 
-/* 서비스 흐름 일러스트 */
-.hero-illustration {
-  max-width: 46rem;
-  margin: 4rem auto 0;
-}
-
-.hero-illustration svg {
-  display: block;
-  width: 100%;
-  height: auto;
-}
-
-@media (max-width: 640px) {
-  .hero-illustration {
-    margin-top: 2.5rem;
-  }
-}
-
 .arrow-icon {
   width: 1.25rem;
   height: 1.25rem;
@@ -454,6 +404,219 @@ const steps = [
   color: #4b5563;
   max-width: 36rem;
   margin: 0 auto;
+}
+
+/* Showcase: 학습 사진 → AI 결과 */
+.showcase-section {
+  padding: 6rem 0;
+  background: white;
+}
+
+.showcase-grid {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 1.5rem;
+  align-items: center;
+  max-width: 62rem;
+  margin: 0 auto;
+}
+
+.showcase-item {
+  margin: 0;
+  min-width: 0;
+}
+
+.showcase-frame {
+  border-radius: 1rem;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  box-shadow: 0 18px 40px -24px rgba(17, 24, 39, 0.45);
+}
+
+.showcase-frame img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.showcase-item figcaption {
+  margin-top: 1rem;
+}
+
+.showcase-tag {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #6b7280;
+  background: #f3f4f6;
+  border-radius: 9999px;
+  padding: 0.25rem 0.7rem;
+  margin-bottom: 0.5rem;
+}
+
+.showcase-tag.accent {
+  color: #6d28d9;
+  background: #f5f3ff;
+}
+
+.showcase-item figcaption p {
+  font-size: 0.9rem;
+  color: #4b5563;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* 학습 중인 AI 모델 (홀로그램 오브) */
+.showcase-forge {
+  align-self: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.forge-svg {
+  width: 9.5rem;
+  height: 9.5rem;
+  overflow: visible;
+}
+
+.forge-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #6d28d9;
+  white-space: nowrap;
+}
+
+/* SVG 요소는 기본 transform-origin 이 뷰포트 기준이라 fill-box 로 바꿔야
+   자기 중심을 축으로 회전한다. */
+.forge-ring,
+.forge-core,
+.forge-pulse,
+.mote {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.ring-a {
+  animation: forge-orbit-a 13s linear infinite;
+}
+.ring-b {
+  animation: forge-orbit-b 9s linear infinite reverse;
+}
+.ring-c {
+  animation: forge-orbit-c 17s linear infinite;
+}
+
+@keyframes forge-orbit-a {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@keyframes forge-orbit-b {
+  from { transform: rotate(60deg); }
+  to   { transform: rotate(420deg); }
+}
+@keyframes forge-orbit-c {
+  from { transform: rotate(120deg); }
+  to   { transform: rotate(480deg); }
+}
+
+.forge-core {
+  animation: forge-breathe 3.4s ease-in-out infinite;
+}
+
+@keyframes forge-breathe {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.08); }
+}
+
+/* 코어에서 퍼져나가는 파동 */
+.forge-pulse {
+  animation: forge-ripple 3.4s ease-out infinite;
+}
+
+@keyframes forge-ripple {
+  0%   { transform: scale(1); opacity: 0.7; }
+  70%  { transform: scale(2.1); opacity: 0; }
+  100% { transform: scale(2.1); opacity: 0; }
+}
+
+/* 흐름선: 왼쪽 → 오른쪽으로 흘러간다 */
+.forge-flow {
+  animation: forge-stream 1.1s linear infinite;
+}
+
+@keyframes forge-stream {
+  to { stroke-dashoffset: -16; }
+}
+
+.mote {
+  animation: forge-mote 4.2s ease-in-out infinite;
+}
+.m2 { animation-delay: 0.7s; }
+.m3 { animation-delay: 1.4s; }
+.m4 { animation-delay: 2.1s; }
+.m5 { animation-delay: 2.8s; }
+.m6 { animation-delay: 3.5s; }
+
+/* 입자가 코어 쪽으로 빨려들어가며 옅어진다 */
+@keyframes forge-mote {
+  0%      { transform: scale(1); opacity: 0; }
+  25%     { opacity: 0.9; }
+  100%    { transform: scale(0.2) translate(0, 0); opacity: 0; }
+}
+
+.forge-scan {
+  animation: forge-scan-fade 2.6s ease-in-out infinite;
+}
+
+@keyframes forge-scan-fade {
+  0%, 100% { opacity: 0.25; }
+  50%      { opacity: 0.75; }
+}
+
+/* 모션 최소화 설정을 켠 사용자에게는 정지된 상태로 보여준다 */
+@media (prefers-reduced-motion: reduce) {
+  .forge-ring,
+  .forge-core,
+  .forge-pulse,
+  .forge-flow,
+  .mote,
+  .forge-scan {
+    animation: none;
+  }
+  .forge-pulse {
+    opacity: 0.35;
+  }
+}
+
+@media (max-width: 768px) {
+  .showcase-section {
+    padding: 4rem 0;
+  }
+
+  /* 좁은 화면에서는 위아래로 쌓고, 흐름도 아래 방향으로 돌린다 */
+  .showcase-grid {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+
+  .showcase-forge {
+    justify-self: center;
+  }
+
+  /* 오브 자체는 세우고 흐름선만 회전시켜 라벨이 뒤집히지 않게 한다 */
+  .forge-flow {
+    transform-box: fill-box;
+    transform-origin: center;
+    transform: rotate(90deg);
+  }
+
+  .forge-svg {
+    width: 7.5rem;
+    height: 7.5rem;
+  }
 }
 
 /* How It Works Section */

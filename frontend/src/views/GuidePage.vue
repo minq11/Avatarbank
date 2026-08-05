@@ -65,8 +65,8 @@
           <li>모두 같은 각도·같은 표정으로만 찍힌 사진 묶음</li>
         </ul>
         <p class="doc-note">
-          <strong>등록은 관리자 심사를 거칩니다.</strong> 도용 여부를 확인한 뒤 승인되며
-          <strong>영업일 기준 1~7일</strong>이 걸려요. 반드시
+          <strong>등록과 학습은 관리자 심사를 거칩니다.</strong> 도용 여부를 확인한 뒤 진행되며
+          승인 및 학습까지 <strong>2~7일</strong>이 걸려요. 반드시
           <strong>본인 사진만</strong> 올려 주세요 — 타인 사진 등록이 확인되면 계정이 정지됩니다.
           (<RouterLink to="/content-policy" class="doc-link">콘텐츠·초상권 정책</RouterLink>)
         </p>
