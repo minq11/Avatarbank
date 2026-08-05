@@ -1,11 +1,10 @@
 """
 Creator Studio 피벗 라우터.
 
-- 크리에이터: 구독(쿼터) / 생성 템플릿 / 팬 배포용 리딤 코드 / 본인 생성
-- 팬(비회원): 코드로 진입 → 템플릿 선택 → 생성
+- 크리에이터: 구독(쿼터) / 팬 배포용 리딤 코드 / 본인 생성
+- 팬(비회원): 코드로 진입 → 프롬프트 입력 → 생성
 
-정책: SFW 전용. 모든 생성은 enable_safety_checker 강제 ON (fal_client 에서도 강제).
-팬은 자유 프롬프트 불가 — 크리에이터가 만든 템플릿 프롬프트만 사용.
+모든 생성은 fal 호출 전 moderation.assert_sfw_prompt 를 거친다.
 """
 
 from datetime import datetime, timedelta
@@ -14,7 +13,7 @@ import secrets
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
-from fastapi.responses import Response
+from fastapi.responses import FileResponse, Response
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
@@ -29,7 +28,6 @@ from .models import (
     AvatarStatus,
     Generation,
     GenerationStatus,
-    GenerationTemplate,
     Plan,
     RedeemCode,
     Subscription,
@@ -44,14 +42,30 @@ from .schemas import (
     RedeemGenerateRequest,
     RedeemGenerateResponse,
     RedeemInfoResponse,
+    SourceImageResponse,
     StudioGenerateRequest,
     SubscribeRequest,
     SubscriptionResponse,
-    TemplateCreateRequest,
-    TemplateResponse,
 )
 
 router = APIRouter(tags=["studio"])
+
+# 소스 이미지 업로드 제한 (fal 로 data URI 로 실어 보내므로 과도하게 크면 안 됨)
+MAX_SOURCE_IMAGE_BYTES = 10 * 1024 * 1024
+ALLOWED_SOURCE_IMAGE_TYPES = {"image/png", "image/jpeg", "image/jpg", "image/webp"}
+
+
+def _assert_image_upload(content: bytes, content_type: Optional[str]) -> None:
+    """업로드된 소스 이미지의 크기·형식 검증."""
+    if not content:
+        raise HTTPException(status_code=400, detail="빈 파일이에요.")
+    if len(content) > MAX_SOURCE_IMAGE_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=f"이미지는 {MAX_SOURCE_IMAGE_BYTES // (1024 * 1024)}MB 이하여야 해요.",
+        )
+    if content_type and content_type.lower() not in ALLOWED_SOURCE_IMAGE_TYPES:
+        raise HTTPException(status_code=400, detail="PNG·JPEG·WebP 이미지만 올릴 수 있어요.")
 
 # DB 코드 → fal 프롬프트 풀네임 변환 (main.py 와 동일 정책)
 NATIONALITY_FOR_PROMPT = {
@@ -140,22 +154,12 @@ def _build_prompt_for_fal(avatar: Avatar, prompt: str) -> str:
     return prompt
 
 
-def _template_response(t: GenerationTemplate) -> TemplateResponse:
-    """템플릿 응답 + preview_image_url 을 S3 presigned URL 로 변환."""
-    from .s3_utils import to_presigned_url_if_s3
-
-    data = TemplateResponse.model_validate(t).model_dump()
-    data["preview_image_url"] = to_presigned_url_if_s3(t.preview_image_url) or t.preview_image_url
-    return TemplateResponse(**data)
-
-
 def _run_generation(
     db: Session,
     *,
     creator: User,
     avatar: Avatar,
     prompt: str,
-    negative_prompt: Optional[str],
     image_size: str,
     num_inference_steps: int,
     lora_scale: float,
@@ -163,34 +167,37 @@ def _run_generation(
     seed: Optional[int],
     source: str,
     buyer_id: Optional[int],
+    source_image_url: Optional[str] = None,
+    strength: float = 0.6,
     redeem_code: Optional[RedeemCode] = None,
-    template: Optional[GenerationTemplate] = None,
 ) -> Generation:
     """
-    쿼터 1 차감 → fal 호출(SFW 강제) → 성공/실패 기록.
+    쿼터 1 차감 → fal 호출 → 성공/실패 기록.
     호출 전 avatar.lora_path 는 검증되어 있어야 함.
     쿼터 차감은 여기서 원자적으로 수행 (동시 요청 race 방지) — 부족하면 409.
     실패 시 쿼터 환불.
     """
     sub = _get_subscription(db, creator)
 
-    parts = [avatar.negative_prompt, negative_prompt]
-    combined_negative = ", ".join(p.strip() for p in parts if p and p.strip()) or None
+    # 안전 검사 여부는 .env 의 FAL_ENABLE_SAFETY_CHECKER 하나로만 결정한다.
+    safety_on = settings.FAL_ENABLE_SAFETY_CHECKER
 
+    # 네거티브 프롬프트는 아바타 등록 시 정해진 값을 그대로 쓴다 (생성별 입력 없음).
     generation = Generation(
         avatar_id=avatar.id,
         buyer_id=buyer_id,
         creator_id=creator.id,
         redeem_code_id=redeem_code.id if redeem_code else None,
-        template_id=template.id if template else None,
         source=source,
         credits_used=1,
         prompt=prompt,
-        negative_prompt=combined_negative,
+        negative_prompt=avatar.negative_prompt,
         image_size=image_size,
         num_inference_steps=num_inference_steps,
-        enable_safety_checker=True,  # SFW 강제
+        enable_safety_checker=safety_on,
         lora_scale=lora_scale,
+        source_image_url=source_image_url,
+        strength=strength,
         status=GenerationStatus.PENDING.value,
     )
     db.add(generation)
@@ -225,19 +232,22 @@ def _run_generation(
         lora_url = avatar.lora_path
         if lora_url and "s3" in lora_url.lower() and "amazonaws" in lora_url.lower():
             lora_url = generate_presigned_download_url(lora_url, expires_in=3600)
+        # negative_prompt 는 i2i 엔드포인트에 없어 fal 로 보내지 않는다 (DB 기록만).
         response_payload = run_generation_sync(
             prompt_for_fal,
+            source_image_url=source_image_url,
+            strength=strength,
             lora_url=lora_url,
             lora_scale=lora_scale,
-            negative_prompt=combined_negative,
-            enable_safety_checker=True,  # SFW 강제
+            enable_safety_checker=safety_on,
             image_size=image_size,
             num_inference_steps=num_inference_steps,
             output_format=output_format,
             seed=seed,
         )
         images = response_payload.get("images") or []
-        is_nsfw = any(response_payload.get("has_nsfw_concepts") or [])
+        # checker 를 끈 경우 fal 이 플래그를 주더라도 결과를 폐기하지 않는다.
+        is_nsfw = safety_on and any(response_payload.get("has_nsfw_concepts") or [])
         generation.nsfw_flag = is_nsfw
         generation.seed = (
             str(response_payload.get("seed"))
@@ -380,104 +390,75 @@ def _owned_active_avatar(db: Session, avatar_id: int, user: User) -> Avatar:
     return avatar
 
 
-@router.get("/my/templates", response_model=List[TemplateResponse])
-def list_my_templates(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-) -> List[TemplateResponse]:
-    rows = (
-        db.query(GenerationTemplate)
-        .filter(
-            GenerationTemplate.creator_id == current_user.id,
-            GenerationTemplate.deleted_at.is_(None),
-        )
-        .order_by(GenerationTemplate.created_at.desc())
-        .all()
+@router.get("/default-source-image", tags=["static"])
+def get_default_source_image() -> FileResponse:
+    """
+    image-to-image 기본 소스 이미지 (itoi_example). 업로드하지 않았을 때 실제로 쓰이는
+    이미지라, UI 에서 "이미 탑재된 원본"으로 그대로 보여준다. 공개 — 인증 불필요.
+    """
+    from .fal_client import DEFAULT_SOURCE_IMAGE
+
+    if not DEFAULT_SOURCE_IMAGE.is_file():
+        raise HTTPException(status_code=404, detail="기본 이미지를 찾을 수 없어요.")
+    return FileResponse(
+        DEFAULT_SOURCE_IMAGE,
+        media_type="image/png",
+        # 배포 전까지 바뀌지 않는 정적 자산이라 길게 캐시
+        headers={"Cache-Control": "public, max-age=86400"},
     )
-    return [_template_response(t) for t in rows]
 
 
-@router.post("/my/templates", response_model=TemplateResponse, status_code=status.HTTP_201_CREATED)
-def create_template(
-    payload: TemplateCreateRequest,
-    db: Session = Depends(get_db),
+@router.post("/my/source-images", response_model=SourceImageResponse)
+async def upload_source_image(
     current_user: User = Depends(get_current_user),
-) -> TemplateResponse:
-    assert_sfw_prompt(payload.prompt)
-    assert_sfw_prompt(payload.negative_prompt)
-    _owned_active_avatar(db, payload.avatar_id, current_user)
-    template = GenerationTemplate(
-        creator_id=current_user.id,
-        avatar_id=payload.avatar_id,
-        name=payload.name.strip(),
-        prompt=payload.prompt.strip(),
-        negative_prompt=payload.negative_prompt,
-        image_size=payload.image_size,
-        num_inference_steps=payload.num_inference_steps,
-        lora_scale=payload.lora_scale,
-        is_active=True,
-    )
-    db.add(template)
-    db.commit()
-    db.refresh(template)
-    return _template_response(template)
-
-
-@router.post("/my/templates/{template_id}/preview", response_model=TemplateResponse)
-async def upload_template_preview(
-    template_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-    preview_image: UploadFile = File(...),
+    image: UploadFile = File(...),
 ):
-    """룩(템플릿) 썸네일 이미지 업로드 → S3 저장. 팬이 룩을 시각적으로 고를 수 있게."""
+    """
+    image-to-image 소스 이미지 업로드 (크리에이터). S3 에 저장하고 URL 을 돌려준다.
+    이 URL 을 /my/generate 의 source_image_url 로 넘기면 그 이미지를 원본으로 생성한다.
+    """
+    from .s3_utils import to_presigned_url_if_s3
     from .storage import upload_file_for_app
 
-    template = (
-        db.query(GenerationTemplate)
-        .filter(
-            GenerationTemplate.id == template_id,
-            GenerationTemplate.creator_id == current_user.id,
-            GenerationTemplate.deleted_at.is_(None),
-        )
-        .first()
-    )
-    if not template:
-        raise HTTPException(status_code=404, detail="Template not found.")
-
-    content = await preview_image.read()
+    content = await image.read()
+    _assert_image_upload(content, image.content_type)
     url = upload_file_for_app(
         BytesIO(content),
-        preview_image.filename or "preview.jpg",
-        folder=f"templates/{template_id}",
-        content_type=preview_image.content_type or "image/jpeg",
+        image.filename or "source.png",
+        folder=f"source-images/{current_user.id}",
+        content_type=image.content_type or "image/png",
     )
-    template.preview_image_url = url
-    db.commit()
-    db.refresh(template)
-    return _template_response(template)
+    return SourceImageResponse(url=url, preview_url=to_presigned_url_if_s3(url) or url)
 
 
-@router.delete("/my/templates/{template_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_template(
-    template_id: int,
+@router.post(
+    "/r/{code_str}/source-images",
+    response_model=SourceImageResponse,
+    dependencies=[Depends(rate_limit_redeem_generate)],
+)
+async def upload_redeem_source_image(
+    code_str: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-) -> None:
-    template = (
-        db.query(GenerationTemplate)
-        .filter(
-            GenerationTemplate.id == template_id,
-            GenerationTemplate.creator_id == current_user.id,
-            GenerationTemplate.deleted_at.is_(None),
-        )
-        .first()
+    image: UploadFile = File(...),
+):
+    """
+    팬이 리딤 코드로 소스 이미지를 올린다 (비로그인). 유효한 코드일 때만 허용하고,
+    생성과 동일한 레이트리밋을 건다 (업로드만 반복하는 남용 방지).
+    """
+    from .s3_utils import to_presigned_url_if_s3
+    from .storage import upload_file_for_app
+
+    code = _get_redeemable_code(db, code_str)
+
+    content = await image.read()
+    _assert_image_upload(content, image.content_type)
+    url = upload_file_for_app(
+        BytesIO(content),
+        image.filename or "source.png",
+        folder=f"source-images/redeem/{code.id}",
+        content_type=image.content_type or "image/png",
     )
-    if not template:
-        raise HTTPException(status_code=404, detail="Template not found.")
-    template.deleted_at = datetime.utcnow()
-    template.is_active = False
-    db.commit()
+    return SourceImageResponse(url=url, preview_url=to_presigned_url_if_s3(url) or url)
 
 
 # ---------------------------------------------------------------------------
@@ -505,7 +486,7 @@ def create_codes(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> List[CodeResponse]:
-    """코드 1개 이상 발급. template_id 지정 시 팬은 그 템플릿만 사용 가능."""
+    """코드 1개 이상 발급. 팬은 이 코드로 자유롭게 프롬프트를 입력해 생성한다."""
     _owned_active_avatar(db, payload.avatar_id, current_user)
 
     # 플랜의 동시 활성 코드 한도 적용 (구독 필수 — 코드는 크리에이터 쿼터를 소모하므로)
@@ -527,27 +508,12 @@ def create_codes(
                     f"active codes (currently {active_count})."
                 ),
             )
-    if payload.template_id is not None:
-        tpl = (
-            db.query(GenerationTemplate)
-            .filter(
-                GenerationTemplate.id == payload.template_id,
-                GenerationTemplate.creator_id == current_user.id,
-                GenerationTemplate.avatar_id == payload.avatar_id,
-                GenerationTemplate.deleted_at.is_(None),
-            )
-            .first()
-        )
-        if not tpl:
-            raise HTTPException(status_code=404, detail="Template not found for this avatar.")
-
     created: list[RedeemCode] = []
     for _ in range(payload.count):
         code = RedeemCode(
             code=_generate_unique_code(db),
             creator_id=current_user.id,
             avatar_id=payload.avatar_id,
-            template_id=payload.template_id,
             max_uses=payload.max_uses,
             used_count=0,
             is_active=True,
@@ -591,7 +557,6 @@ def studio_generate(
 ):
     """크리에이터 본인이 쿼터를 써서 직접 생성 (SFW, 프롬프트 모더레이션)."""
     assert_sfw_prompt(payload.prompt)
-    assert_sfw_prompt(payload.negative_prompt)
     avatar = _owned_active_avatar(db, payload.avatar_id, current_user)
     if not avatar.lora_path:
         raise HTTPException(status_code=400, detail="This avatar has no LoRA file yet.")
@@ -606,7 +571,6 @@ def studio_generate(
         creator=current_user,
         avatar=avatar,
         prompt=payload.prompt,
-        negative_prompt=payload.negative_prompt,
         image_size=payload.image_size,
         num_inference_steps=payload.num_inference_steps,
         lora_scale=payload.lora_scale,
@@ -614,6 +578,8 @@ def studio_generate(
         seed=payload.seed,
         source="self",
         buyer_id=current_user.id,
+        source_image_url=payload.source_image_url,
+        strength=payload.strength,
     )
     return {
         "id": generation.id,
@@ -655,23 +621,12 @@ def redeem_info(
     db: Session = Depends(get_db),
     _rl: None = Depends(rate_limit_redeem_info),
 ) -> RedeemInfoResponse:
-    """팬이 코드로 진입 시 보는 정보 + 사용 가능한 템플릿."""
+    """팬이 코드로 진입 시 보는 정보."""
     code = _get_redeemable_code(db, code_str)
     avatar = db.query(Avatar).filter(Avatar.id == code.avatar_id).first()
     if not avatar or avatar.deleted_at is not None:
         raise HTTPException(status_code=404, detail="Avatar not found.")
     creator = db.query(User).filter(User.id == code.creator_id).first()
-
-    # 사용 가능한 템플릿: 코드에 묶인 게 있으면 그것만, 없으면 해당 아바타의 활성 템플릿 전부
-    tq = db.query(GenerationTemplate).filter(
-        GenerationTemplate.creator_id == code.creator_id,
-        GenerationTemplate.avatar_id == code.avatar_id,
-        GenerationTemplate.deleted_at.is_(None),
-        GenerationTemplate.is_active == True,  # noqa: E712
-    )
-    if code.template_id is not None:
-        tq = tq.filter(GenerationTemplate.id == code.template_id)
-    templates = tq.order_by(GenerationTemplate.created_at.desc()).all()
 
     from .s3_utils import to_presigned_url_if_s3
 
@@ -685,8 +640,6 @@ def redeem_info(
         avatar_title=avatar.title,
         avatar_preview_url=preview,
         uses_left=uses_left,
-        free_prompt_allowed=(code.template_id is None),
-        templates=[_template_response(t) for t in templates],
     )
 
 
@@ -716,9 +669,8 @@ def redeem_generate(
     _rl: None = Depends(rate_limit_redeem_generate),
 ) -> RedeemGenerateResponse:
     """
-    팬 생성. 템플릿을 고르거나(template_id) 자유 프롬프트(prompt)를 직접 입력.
-    자유 프롬프트는 fal 호출 전 모더레이션. 코드가 특정 템플릿에 묶여 있으면 자유 프롬프트 불가.
-    크리에이터 쿼터 + 코드 사용 차감.
+    팬 생성. 프롬프트를 직접 입력한다. fal 호출 전 모더레이션을 거치며,
+    크리에이터 쿼터와 코드 사용 횟수를 각각 1 차감한다.
     """
     code = _get_redeemable_code(db, code_str)
 
@@ -733,41 +685,11 @@ def redeem_generate(
     if not sub or sub.status != SubscriptionStatus.ACTIVE.value or sub.quota_remaining <= 0:
         raise HTTPException(status_code=409, detail="Creator has no quota left. Please try later.")
 
-    template: Optional[GenerationTemplate] = None
-    if payload.template_id is not None:
-        template = (
-            db.query(GenerationTemplate)
-            .filter(
-                GenerationTemplate.id == payload.template_id,
-                GenerationTemplate.creator_id == code.creator_id,
-                GenerationTemplate.avatar_id == code.avatar_id,
-                GenerationTemplate.deleted_at.is_(None),
-                GenerationTemplate.is_active == True,  # noqa: E712
-            )
-            .first()
-        )
-        if not template:
-            raise HTTPException(status_code=404, detail="Template not available for this code.")
-        if code.template_id is not None and code.template_id != template.id:
-            raise HTTPException(status_code=403, detail="This code is restricted to a specific template.")
-        gen_prompt = template.prompt
-        gen_negative = template.negative_prompt
-        gen_image_size = template.image_size or "portrait_4_3"
-        gen_steps = template.num_inference_steps or 8
-        gen_lora = template.lora_scale if template.lora_scale is not None else 1.6
-    else:
-        # 자유 프롬프트 경로
-        if code.template_id is not None:
-            raise HTTPException(
-                status_code=403,
-                detail="This code only allows a specific look — free prompts are disabled.",
-            )
-        assert_sfw_prompt(payload.prompt)  # 차단 시 쿼터/코드 소모 없음
-        gen_prompt = payload.prompt or ""
-        gen_negative = None
-        gen_image_size = payload.image_size
-        gen_steps = 8
-        gen_lora = 1.6
+    assert_sfw_prompt(payload.prompt)  # 차단 시 쿼터/코드 소모 없음
+    gen_prompt = payload.prompt
+    gen_image_size = payload.image_size
+    gen_steps = 8
+    gen_lora = payload.lora_scale
 
     # 코드 사용 원자적 선점: 동시 요청이 max_uses 를 초과하지 못하도록
     # used_count < max_uses 조건부 UPDATE 로 먼저 1 확보. 생성 실패 시 아래에서 반납.
@@ -794,7 +716,6 @@ def redeem_generate(
             creator=creator,
             avatar=avatar,
             prompt=gen_prompt,
-            negative_prompt=gen_negative,
             image_size=gen_image_size,
             num_inference_steps=gen_steps,
             lora_scale=gen_lora,
@@ -802,8 +723,9 @@ def redeem_generate(
             seed=payload.seed,
             source="fan",
             buyer_id=None,
+            source_image_url=payload.source_image_url,
+            strength=payload.strength,
             redeem_code=code,
-            template=template,
         )
     except HTTPException:
         # 쿼터 소진(409) 등으로 생성 자체가 시작 안 됨 → 코드 사용 반납

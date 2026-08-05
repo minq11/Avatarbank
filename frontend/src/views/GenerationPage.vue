@@ -124,16 +124,6 @@
           />
         </label>
 
-        <label class="field">
-          <span>네거티브 프롬프트 <span class="field-optional">(선택)</span></span>
-          <textarea
-            v-model="negativePrompt"
-            rows="2"
-            placeholder="이미지에서 피할 요소 (비우면 아바타 기본 네거티브 프롬프트 사용)."
-            class="field-textarea-mono"
-          />
-        </label>
-
         <div class="options-card">
           <button
             type="button"
@@ -155,17 +145,6 @@
           </button>
           <div v-show="optionsExpanded" class="options-grid" @click.self="openHelpOption = null">
             <div v-if="openHelpOption" class="option-help-overlay" aria-hidden="true" @click="openHelpOption = null" />
-            <div class="option-row option-row-toggle">
-              <span class="option-label-wrap option-help-wrap">
-                <span class="option-label">NSFW 허용</span>
-                <span class="option-help" aria-label="Help" @click.stop="toggleHelp('nsfw')">?</span>
-                <div v-if="openHelpOption === 'nsfw'" class="option-help-popover">{{ optionHelpText.nsfw }}</div>
-              </span>
-              <label class="option-toggle">
-                <input type="checkbox" v-model="allowNsfw" class="option-checkbox" />
-                <span class="option-toggle-text">{{ allowNsfw ? "On" : "Off" }}</span>
-              </label>
-            </div>
             <div class="option-row">
               <span class="option-label-wrap option-help-wrap">
                 <label class="option-label" for="opt-image-size">이미지 크기</label>
@@ -464,9 +443,6 @@ const avatarsListLoading = ref(true);
 const avatar = ref<AvatarDetailItem | null>(null);
 const avatarError = ref("");
 const prompt = ref("");
-const DEFAULT_NEGATIVE_PROMPT = "ugly, low quality, distorted face";
-const negativePrompt = ref(DEFAULT_NEGATIVE_PROMPT);
-const allowNsfw = ref(false);
 const optionsExpanded = ref(true);
 const imageSize = ref<ImageSizeOption>("landscape_4_3");
 const numInferenceSteps = ref(8);
@@ -477,7 +453,6 @@ const loading = ref(false);
 type HelpOptionKey = "nsfw" | "imageSize" | "steps" | "seed" | "loraScale";
 const openHelpOption = ref<HelpOptionKey | null>(null);
 const optionHelpText: Record<HelpOptionKey, string> = {
-  nsfw: "When on, the safety filter is relaxed so more varied or adult content may be generated.",
   imageSize: "Aspect ratio and resolution of the generated image.",
   steps: "More steps usually improve quality but take longer. 8 is a good default.",
   seed: "Same seed + same prompt gives the same image. Leave empty for random.",
@@ -526,7 +501,6 @@ async function loadAvatar() {
   if (id == null) {
     avatar.value = null;
     avatarError.value = "";
-    negativePrompt.value = DEFAULT_NEGATIVE_PROMPT;
     return;
   }
   avatar.value = null;
@@ -558,10 +532,8 @@ async function requestGeneration() {
     const res = await generationsApi.create({
       avatar_id: avatarId.value,
       prompt: prompt.value.trim(),
-      negative_prompt: negativePrompt.value.trim() || undefined,
       option_credits: 0,
       idempotency_key: crypto.randomUUID(),
-      enable_safety_checker: !allowNsfw.value,
       image_size: imageSize.value,
       num_inference_steps: numInferenceSteps.value,
       output_format: "png",

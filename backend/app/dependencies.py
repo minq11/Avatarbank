@@ -109,3 +109,23 @@ def require_role(required_role: str):
         return current_user
 
     return role_checker
+
+
+def is_admin_email(email: str) -> bool:
+    """ADMIN_EMAIL_WHITELIST(콤마 구분) 기반 관리자 판별."""
+    whitelist = {
+        value.strip().lower()
+        for value in settings.ADMIN_EMAIL_WHITELIST.split(",")
+        if value.strip()
+    }
+    return (email or "").lower() in whitelist
+
+
+def require_admin(current_user: User = Depends(get_current_user)) -> User:
+    """관리자 전용 엔드포인트용 의존성."""
+    if not is_admin_email(current_user.email):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required.",
+        )
+    return current_user

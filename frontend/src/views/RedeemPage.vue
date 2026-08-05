@@ -26,7 +26,7 @@
             <p class="eyebrow">AI 포토부스</p>
             <h1 class="title">{{ info.creator_nickname }}</h1>
             <p class="subtitle">
-              <strong>{{ info.avatar_title }}</strong>(으)로 원하는 룩의 나만의 사진을 만들어보세요.
+              <strong>{{ info.avatar_title }}</strong>(으)로 원하는 장면의 나만의 사진을 만들어보세요.
             </p>
             <p v-if="info.uses_left !== null" class="uses">
               {{ info.uses_left }}회 남음
@@ -72,44 +72,8 @@
 
         <!-- Generate -->
         <div v-else>
-          <!-- Mode switch (only when both options exist) -->
-          <div v-if="info.free_prompt_allowed && info.templates.length" class="mode-tabs">
-            <button
-              class="mode-tab"
-              :class="{ active: mode === 'template' }"
-              @click="mode = 'template'"
-            >
-              룩 고르기
-            </button>
-            <button
-              class="mode-tab"
-              :class="{ active: mode === 'prompt' }"
-              @click="mode = 'prompt'"
-            >
-              직접 묘사하기
-            </button>
-          </div>
-
-          <!-- Template grid -->
-          <div v-if="mode === 'template' && info.templates.length" class="template-grid">
-            <button
-              v-for="t in info.templates"
-              :key="t.id"
-              class="template-card"
-              :class="{ selected: selectedTemplateId === t.id }"
-              :disabled="generating"
-              @click="selectedTemplateId = t.id"
-            >
-              <div class="template-thumb">
-                <img v-if="t.preview_image_url" :src="t.preview_image_url" :alt="t.name" />
-                <span v-else class="thumb-placeholder">{{ t.name.charAt(0) }}</span>
-              </div>
-              <span class="template-name">{{ t.name }}</span>
-            </button>
-          </div>
-
-          <!-- Free prompt -->
-          <div v-if="mode === 'prompt'" class="prompt-box">
+          <!-- 프롬프트 -->
+          <div class="prompt-box">
             <textarea
               v-model="freePrompt"
               rows="3"
@@ -118,9 +82,47 @@
             ></textarea>
           </div>
 
+          <!-- image-to-image 옵션 -->
+          <div class="source-box">
+            <button type="button" class="fan-source-thumb" @click="sourceInput?.click()">
+              <img :src="sourcePreview" alt="원본 사진" />
+              <span v-if="usingDefaultSource" class="fan-source-badge">기본</span>
+              <span v-if="uploadingSource" class="fan-source-uploading">올리는 중…</span>
+            </button>
+            <div class="fan-source-text">
+              <strong>내 사진으로 만들기 (선택)</strong>
+              <p>
+                {{
+                  usingDefaultSource
+                    ? "기본 이미지가 원본으로 적용돼 있어요. 내 사진을 올리면 그걸 원본으로 써요."
+                    : "올린 사진을 원본으로 변형해요."
+                }}
+              </p>
+              <button v-if="!usingDefaultSource" class="link-btn" @click="clearSourceImage">
+                기본 이미지로 되돌리기
+              </button>
+            </div>
+          </div>
+          <input
+            ref="sourceInput"
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            style="display: none"
+            @change="onSourceSelected"
+          />
+
+          <div class="slider-box">
+            <label>
+              변형 강도
+              <span class="slider-value">{{ strength.toFixed(2) }}</span>
+            </label>
+            <input v-model.number="strength" type="range" min="0.05" max="1" step="0.05" />
+            <p class="slider-hint">낮을수록 원본에 가깝고, 높을수록 프롬프트를 강하게 반영해요.</p>
+          </div>
+
           <button
             class="btn-primary generate-btn"
-            :disabled="!canGenerate || generating"
+            :disabled="!canGenerate || generating || uploadingSource"
             @click="generate"
           >
             <span v-if="generating" class="spinner small"></span>
@@ -137,7 +139,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRoute } from "vue-router";
-import { redeemApi, type RedeemInfo } from "../services/api";
+import { redeemApi, studioApi, type RedeemInfo, type SourceImage } from "../services/api";
 
 const route = useRoute();
 const code = String(route.params.code || "");
@@ -145,18 +147,47 @@ const code = String(route.params.code || "");
 const loading = ref(true);
 const generating = ref(false);
 const info = ref<RedeemInfo | null>(null);
-const mode = ref<"template" | "prompt">("template");
-const selectedTemplateId = ref<number | null>(null);
 const freePrompt = ref("");
 const resultImage = ref<string | null>(null);
 const sessionResults = ref<string[]>([]);
 const errorMessage = ref<string>("");
 const linkCopied = ref(false);
 
-const canGenerate = computed(() => {
-  if (mode.value === "template") return selectedTemplateId.value != null;
-  return freePrompt.value.trim().length > 0;
-});
+// image-to-image: 원본 사진 + 변형 강도.
+// 업로드 전에는 서버가 실제로 쓰는 기본 이미지를 그대로 보여준다 (이미 탑재된 상태).
+const sourceInput = ref<HTMLInputElement | null>(null);
+const sourceImage = ref<SourceImage | null>(null);
+const uploadedPreview = ref<string | null>(null);
+const uploadingSource = ref(false);
+const strength = ref(0.6);
+const defaultSourceUrl = studioApi.defaultSourceImageUrl();
+const sourcePreview = computed(() => uploadedPreview.value || defaultSourceUrl);
+const usingDefaultSource = computed(() => !sourceImage.value);
+
+const onSourceSelected = async (e: Event) => {
+  const target = e.target as HTMLInputElement;
+  const file = target.files?.[0];
+  target.value = "";
+  if (!file) return;
+  uploadingSource.value = true;
+  errorMessage.value = "";
+  try {
+    const uploaded = await redeemApi.uploadSourceImage(code, file);
+    sourceImage.value = uploaded;
+    uploadedPreview.value = uploaded.preview_url;
+  } catch (e: any) {
+    errorMessage.value = extractError(e, "이미지 업로드에 실패했어요.");
+  } finally {
+    uploadingSource.value = false;
+  }
+};
+
+const clearSourceImage = () => {
+  sourceImage.value = null;
+  uploadedPreview.value = null;
+};
+
+const canGenerate = computed(() => freePrompt.value.trim().length > 0);
 
 // 공유 관련
 const canNativeShare = typeof navigator !== "undefined" && !!(navigator as any).share;
@@ -226,11 +257,6 @@ const loadInfo = async () => {
   try {
     const data = await redeemApi.getInfo(code);
     info.value = data;
-    if (data.templates.length === 1) {
-      selectedTemplateId.value = data.templates[0].id;
-    }
-    // 템플릿이 없고 자유 프롬프트만 가능하면 프롬프트 모드로
-    mode.value = data.templates.length === 0 && data.free_prompt_allowed ? "prompt" : "template";
   } catch (e: any) {
     errorMessage.value = extractError(e, "유효하지 않거나 만료된 코드예요.");
     info.value = null;
@@ -245,11 +271,11 @@ const generate = async () => {
   errorMessage.value = "";
   startLoadingMessages();
   try {
-    const opts =
-      mode.value === "template"
-        ? { templateId: selectedTemplateId.value }
-        : { prompt: freePrompt.value.trim() };
-    const res = await redeemApi.generate(code, opts);
+    const res = await redeemApi.generate(code, {
+      prompt: freePrompt.value.trim(),
+      sourceImageUrl: sourceImage.value?.url ?? null,
+      strength: strength.value,
+    });
     if (res.status === "success" && res.image_url) {
       resultImage.value = res.image_url;
       sessionResults.value.push(res.image_url);
@@ -338,34 +364,126 @@ onMounted(loadInfo);
   font-weight: 600;
 }
 
-.mode-tabs {
-  display: inline-flex;
-  gap: 0.25rem;
-  background: #f3f4f6;
-  border-radius: 0.75rem;
-  padding: 0.25rem;
-  margin-bottom: 1.25rem;
+.prompt-box {
+  margin-bottom: 1.5rem;
 }
 
-.mode-tab {
-  border: none;
-  background: transparent;
-  border-radius: 0.55rem;
-  padding: 0.5rem 1rem;
-  font-size: 0.85rem;
+/* image-to-image: 원본 사진 + 강도 */
+.source-box {
+  display: flex;
+  gap: 0.9rem;
+  align-items: center;
+  padding: 0.9rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.85rem;
+  background: #f9fafb;
+  margin-bottom: 1rem;
+}
+
+.fan-source-thumb {
+  position: relative;
+  flex-shrink: 0;
+  width: 64px;
+  height: 80px;
+  border-radius: 0.6rem;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  overflow: hidden;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fan-source-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* 기본 이미지가 적용 중임을 알리는 뱃지 */
+.fan-source-badge {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(17, 24, 39, 0.72);
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 0.12rem 0;
+  text-align: center;
+}
+
+.fan-source-uploading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.85);
+  font-size: 0.7rem;
   font-weight: 600;
+  color: #6d28d9;
+}
+
+.fan-source-text {
+  min-width: 0;
+}
+
+.fan-source-text strong {
+  display: block;
+  font-size: 0.9rem;
+  color: #111827;
+}
+
+.fan-source-text p {
+  margin: 0.2rem 0 0;
+  font-size: 0.8rem;
   color: #6b7280;
+  line-height: 1.5;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  margin-top: 0.35rem;
+  color: #6d28d9;
+  font-size: 0.78rem;
+  font-weight: 600;
   cursor: pointer;
 }
 
-.mode-tab.active {
-  background: #fff;
-  color: #111827;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+.slider-box {
+  margin-bottom: 1.25rem;
 }
 
-.prompt-box {
-  margin-bottom: 1.5rem;
+.slider-box label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.35rem;
+}
+
+.slider-box input[type="range"] {
+  width: 100%;
+  accent-color: #7c3aed;
+}
+
+.slider-value {
+  float: right;
+  color: #6d28d9;
+  font-variant-numeric: tabular-nums;
+}
+
+.slider-hint {
+  margin: 0.25rem 0 0;
+  font-size: 0.78rem;
+  color: #9ca3af;
 }
 
 .prompt-box textarea {
@@ -377,71 +495,6 @@ onMounted(loadInfo);
   font-size: 0.95rem;
   font-family: inherit;
   resize: vertical;
-}
-
-.template-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1.75rem;
-}
-
-.template-card {
-  border: 2px solid #e5e7eb;
-  border-radius: 1rem;
-  background: #fff;
-  padding: 0.75rem;
-  cursor: pointer;
-  transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  align-items: center;
-}
-
-.template-card:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 20px -12px rgba(124, 58, 237, 0.4);
-}
-
-.template-card.selected {
-  border-color: #7c3aed;
-  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
-}
-
-.template-card:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.template-thumb {
-  width: 100%;
-  aspect-ratio: 3 / 4;
-  border-radius: 0.75rem;
-  overflow: hidden;
-  background: linear-gradient(135deg, #ede9fe, #fae8ff);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.template-thumb img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.thumb-placeholder {
-  font-size: 2rem;
-  font-weight: 700;
-  color: #a78bfa;
-}
-
-.template-name {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #374151;
-  text-align: center;
 }
 
 .btn-primary {
@@ -616,11 +669,6 @@ onMounted(loadInfo);
 
   .title {
     font-size: 1.5rem;
-  }
-
-  .template-grid {
-    grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
-    gap: 0.75rem;
   }
 
   .result-actions {

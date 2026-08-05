@@ -83,3 +83,15 @@ def rate_limit_redeem_generate(request: Request) -> None:
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail="Too many generation requests. Please try again in a minute.",
         )
+
+
+_inquiry_limiter = SlidingWindowLimiter(settings.INQUIRY_RATE_LIMIT_PER_MINUTE)
+
+
+def rate_limit_inquiry(request: Request) -> None:
+    """POST /inquiries — 비로그인도 접수 가능하므로 스팸 방지용으로 낮게 잡는다."""
+    if not _inquiry_limiter.allow(_client_ip(request)):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="문의가 너무 잦아요. 잠시 후 다시 시도해 주세요.",
+        )

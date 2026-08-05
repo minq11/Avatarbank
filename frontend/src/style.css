@@ -67,11 +67,12 @@ body {
 }
 
 /* Header Styles */
-header {
-  background-color: white;
-  border-bottom: 1px solid #e0e0e0;
-  padding: 1rem 0;
-}
+/*
+ * 주의: 여기에 bare `header { background: white; border-bottom; padding }` 를 두면
+ * 앱 헤더뿐 아니라 각 페이지의 <header class="studio-head"> / .doc-head / .redeem-header
+ * 까지 전부 흰 박스 + 회색 실선이 붙는다 (해당 클래스들은 배경을 선언하지 않아 이 규칙이 이김).
+ * 앱 헤더 스타일은 App.vue 의 .app-header 가 전담하므로 element 셀렉터는 두지 않는다.
+ */
 
 header nav {
   display: flex;

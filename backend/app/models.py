@@ -139,10 +139,12 @@ class Generation(Base):
     num_inference_steps = Column(Integer, nullable=True)
     enable_safety_checker = Column(Boolean, nullable=True)  # True = safety on (no NSFW)
     lora_scale = Column(Float, nullable=True)  # LoRA scale 0–4
+    # image-to-image: 소스 이미지와 변형 강도
+    source_image_url = Column(String, nullable=True)  # null = 기본 이미지 사용
+    strength = Column(Float, nullable=True)  # 0~1, 낮을수록 원본 유지
     # Creator Studio 피벗: 쿼터 기반 생성 귀속/출처
     creator_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # 쿼터 소유 크리에이터
     redeem_code_id = Column(Integer, ForeignKey("redeem_codes.id"), nullable=True)  # 팬 코드 생성 시
-    template_id = Column(Integer, ForeignKey("generation_templates.id"), nullable=True)
     source = Column(String, nullable=True)  # "self" | "fan"
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
 
@@ -361,26 +363,6 @@ class Subscription(Base):
     )
 
 
-class GenerationTemplate(Base):
-    """크리에이터가 승인한 생성 프리셋. 팬은 이 프롬프트 범위 안에서만 생성 가능 (SFW 통제)."""
-
-    __tablename__ = "generation_templates"
-
-    id = Column(Integer, primary_key=True, index=True)
-    creator_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    avatar_id = Column(Integer, ForeignKey("avatars.id"), nullable=False)
-    name = Column(String, nullable=False)
-    prompt = Column(Text, nullable=False)  # 고정 프롬프트 (팬에게 노출/적용)
-    negative_prompt = Column(Text, nullable=True)
-    image_size = Column(String, nullable=True, default="portrait_4_3")
-    num_inference_steps = Column(Integer, nullable=True, default=8)
-    lora_scale = Column(Float, nullable=True, default=1.6)
-    preview_image_url = Column(String, nullable=True)
-    is_active = Column(Boolean, nullable=False, default=True)
-    deleted_at = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
-
-
 class RedeemCode(Base):
     """팬에게 배포하는 생성 코드. 1회/다회/무제한, 만료, 연결된 아바타·템플릿."""
 
@@ -390,10 +372,55 @@ class RedeemCode(Base):
     code = Column(String, unique=True, nullable=False, index=True)
     creator_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     avatar_id = Column(Integer, ForeignKey("avatars.id"), nullable=False)
-    template_id = Column(Integer, ForeignKey("generation_templates.id"), nullable=True)
     max_uses = Column(Integer, nullable=True)  # null = 무제한(쿼터 소진 시까지), 1 = 일회용
     used_count = Column(Integer, nullable=False, default=0)
     is_active = Column(Boolean, nullable=False, default=True)
     expires_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
 
+
+
+# ---------------------------------------------------------------------------
+# 고객 문의 (푸터 → 고객지원 폼 → 관리자 답장)
+# ---------------------------------------------------------------------------
+
+
+class InquiryStatus(str, Enum):
+    OPEN = "open"          # 접수됨, 답변 대기
+    ANSWERED = "answered"  # 관리자가 답장 발송
+    CLOSED = "closed"      # 답장 없이 종료
+
+
+class InquiryCategory(str, Enum):
+    ACCOUNT = "account"        # 계정/로그인
+    AVATAR = "avatar"          # 아바타 등록·학습
+    GENERATION = "generation"  # 생성/쿼터
+    CODE = "code"              # 리딤 코드
+    BILLING = "billing"        # 결제/구독
+    REPORT = "report"          # 신고 (도용/권리침해)
+    ETC = "etc"
+
+
+class Inquiry(Base):
+    """고객지원 페이지에서 접수된 문의. 비로그인도 접수 가능."""
+
+    __tablename__ = "inquiries"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # 비로그인 문의면 null
+    name = Column(String, nullable=False)
+    email = Column(String, nullable=False, index=True)  # 답장 받을 주소
+    category = Column(String, nullable=False, default=InquiryCategory.ETC.value)
+    subject = Column(String, nullable=False)
+    message = Column(Text, nullable=False)
+    status = Column(String, nullable=False, default=InquiryStatus.OPEN.value, index=True)
+    # 접수 알림 메일이 실제로 나갔는지 (SMTP 미설정/실패해도 문의 자체는 보존)
+    notified_at = Column(DateTime, nullable=True)
+    reply_body = Column(Text, nullable=True)
+    replied_at = Column(DateTime, nullable=True)
+    replied_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    client_ip = Column(String, nullable=True)  # 스팸 대응용
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = Column(
+        DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
+    )

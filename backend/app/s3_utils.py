@@ -177,3 +177,23 @@ def generate_presigned_download_url(s3_url: str, expires_in: int = 3600) -> str:
         )
     except Exception:
         return s3_url
+
+
+def download_s3_bytes(s3_url: str) -> tuple[bytes, str] | None:
+    """
+    S3 객체를 바이트로 내려받는다. (bytes, content_type) 반환, 실패 시 None.
+    fal 이미지 입력을 data URI 로 만들 때 사용.
+    """
+    parsed = urlparse(s3_url)
+    if not parsed.hostname or "amazonaws" not in parsed.hostname:
+        return None
+    key = (parsed.path or "").lstrip("/")
+    bucket = parsed.hostname.split(".")[0]
+    if not bucket or not key:
+        return None
+    try:
+        client = get_s3_client()
+        obj = client.get_object(Bucket=bucket, Key=key)
+        return obj["Body"].read(), obj.get("ContentType") or "image/png"
+    except Exception:
+        return None

@@ -35,7 +35,12 @@ class Settings(BaseSettings):
     FAL_API_BASE_URL: str = "https://fal.run"
     FAL_SYNC_BASE_URL: str = "https://fal.run"
     FAL_MODEL: str = "fal-ai/z-image/turbo"
-    FAL_SUBPATH: str = "lora"
+    # image-to-image + LoRA 엔드포인트
+    FAL_SUBPATH: str = "image-to-image/lora"
+    # fal 결과 이미지 안전 검사. 현재 끔 — 켜도 입력 이미지 거절(fal 422)에는
+    # 영향이 없고 결과만 폐기해서 실효가 없었다. UI 스위치 없이 여기서만 결정한다.
+    # False 면 has_nsfw_concepts 기반 결과 폐기 로직도 함께 비활성화된다.
+    FAL_ENABLE_SAFETY_CHECKER: bool = False
 
     # Admin
     ADMIN_EMAIL_WHITELIST: str = ""
@@ -52,6 +57,21 @@ class Settings(BaseSettings):
     # 리딤 생성은 크리에이터 쿼터를 소모하므로 조회보다 훨씬 낮게 잡는다.
     REDEEM_INFO_RATE_LIMIT_PER_MINUTE: int = 30
     REDEEM_GENERATE_RATE_LIMIT_PER_MINUTE: int = 6
+
+    # 고객 문의 메일 (고객지원 폼 접수 알림 + 관리자 답장 발송)
+    # Gmail 사용 시: SMTP_HOST=smtp.gmail.com / SMTP_PORT=587 / SMTP_USER=발신 계정 /
+    # SMTP_PASSWORD=앱 비밀번호(2단계 인증 후 발급). 미설정이면 메일 발송만 건너뛰고
+    # 문의는 DB 에 그대로 저장된다 (관리자 페이지에서 확인 가능).
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_USE_TLS: bool = True
+    SMTP_FROM: str = ""  # 비우면 SMTP_USER 사용
+    # 새 문의 접수 알림을 받을 내부 주소
+    INQUIRY_NOTIFY_EMAIL: str = "gooddonutsyh@gmail.com"
+    # 공개 문의 접수 엔드포인트 — IP당 분당 요청 수. 0 = 비활성.
+    INQUIRY_RATE_LIMIT_PER_MINUTE: int = 3
 
     # 아바타 preview 로컬 복사 (frontend assets 또는 서빙용 디렉터리)
     # 설정 시 PUT /my/avatars/{id} preview 업로드 시 여기에도 저장하고, GET /static/preview_image/{id}.png 로 서빙

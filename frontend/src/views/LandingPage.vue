@@ -14,15 +14,15 @@
 
           <!-- Headline -->
           <h1 class="hero-title">
-            내 아바타로,<br />
-            팬들을 위한 사진을 만드세요
+            내 얼굴로,<br />
+            무엇이든 자유롭게 만드세요
           </h1>
 
           <!-- Subheadline -->
           <p class="hero-subtitle">
-            사진 몇 장으로 나만의 AI 아바타를 등록하고,
-            팬에게 나눠줄 일회용 생성 링크를 발급하세요.
-            사용 현황은 실시간으로 확인할 수 있어요.
+            사진 몇 장으로 나만의 AI 아바타를 등록하면,
+            원하는 장면을 프롬프트로 자유롭게 생성할 수 있어요.
+            원할 땐 팬에게 리딤 코드를 나눠줘 함께 만들 수도 있습니다.
           </p>
 
           <!-- CTAs -->
@@ -40,6 +40,155 @@
               </svg>
             </a>
           </div>
+
+          <!--
+            서비스 흐름 일러스트: 사진 → 내 AI 아바타 → (위) 직접 생성 / (아래) 팬에게 코드 공유.
+            텍스트 없이 그림만으로 표현 — 모바일에서 축소돼도 글자가 뭉개지지 않게 하기 위함.
+          -->
+          <div class="hero-illustration">
+            <svg viewBox="0 0 740 250" fill="none" xmlns="http://www.w3.org/2000/svg" role="img">
+              <title>
+                사진 몇 장으로 내 AI 아바타를 만들고, 직접 생성하거나 팬에게 리딤 코드를 나눠주는 흐름
+              </title>
+              <defs>
+                <linearGradient id="ab-grad" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stop-color="#9333ea" />
+                  <stop offset="100%" stop-color="#4f46e5" />
+                </linearGradient>
+                <linearGradient id="ab-soft" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#faf5ff" />
+                  <stop offset="100%" stop-color="#eef2ff" />
+                </linearGradient>
+                <marker
+                  id="ab-arrow"
+                  viewBox="0 0 10 10"
+                  refX="8"
+                  refY="5"
+                  markerWidth="6"
+                  markerHeight="6"
+                  orient="auto-start-reverse"
+                >
+                  <path d="M0 1L9 5L0 9z" fill="#c4b5fd" />
+                </marker>
+                <clipPath id="ab-frame">
+                  <rect x="496" y="26" width="68" height="80" rx="10" />
+                </clipPath>
+              </defs>
+
+              <!-- 1. 올린 사진 몇 장 -->
+              <g>
+                <rect
+                  x="46" y="70" width="90" height="110" rx="12"
+                  fill="#ede9fe" transform="rotate(-10 91 125)"
+                />
+                <rect
+                  x="50" y="70" width="90" height="110" rx="12"
+                  fill="#faf5ff" stroke="#ddd6fe" stroke-width="1.5"
+                  transform="rotate(-5 95 125)"
+                />
+                <rect
+                  x="54" y="70" width="90" height="110" rx="12"
+                  fill="#ffffff" stroke="#e5e7eb" stroke-width="1.5"
+                />
+                <circle cx="99" cy="112" r="16" fill="#c7d2fe" />
+                <path d="M75 160c0-13 11-24 24-24s24 11 24 24z" fill="#c7d2fe" />
+              </g>
+
+              <path
+                d="M164 125h40" stroke="#c4b5fd" stroke-width="2.5"
+                stroke-linecap="round" marker-end="url(#ab-arrow)"
+              />
+
+              <!-- 2. 학습된 내 AI 아바타 -->
+              <g>
+                <rect
+                  x="228" y="60" width="104" height="130" rx="18"
+                  fill="url(#ab-soft)" stroke="url(#ab-grad)" stroke-width="2.5"
+                />
+                <circle cx="280" cy="116" r="21" fill="url(#ab-grad)" />
+                <path d="M248 172c0-17.7 14.3-32 32-32s32 14.3 32 32z" fill="url(#ab-grad)" />
+                <circle cx="330" cy="66" r="16" fill="#ffffff" />
+                <circle cx="330" cy="66" r="13" fill="url(#ab-grad)" />
+                <path
+                  d="M330 58c1 5 2 6 7 7-5 1-6 2-7 7-1-5-2-6-7-7 5-1 6-2 7-7z"
+                  fill="#ffffff"
+                />
+              </g>
+
+              <!-- 갈래: 위 = 직접 생성, 아래 = 팬에게 코드 -->
+              <path
+                d="M344 104c30-10 52-22 84-26" stroke="#c4b5fd" stroke-width="2.5"
+                stroke-linecap="round" marker-end="url(#ab-arrow)"
+              />
+              <path
+                d="M344 150c30 12 52 24 84 28" stroke="#c4b5fd" stroke-width="2.5"
+                stroke-linecap="round" marker-end="url(#ab-arrow)"
+              />
+
+              <!-- 3a. 내가 자유롭게 만든 사진들 -->
+              <g>
+                <rect
+                  x="452" y="30" width="68" height="80" rx="10"
+                  fill="#faf5ff" stroke="#ddd6fe" stroke-width="1.5"
+                  transform="rotate(-6 486 70)"
+                />
+                <g clip-path="url(#ab-frame)">
+                  <rect x="496" y="26" width="68" height="80" fill="#ffffff" />
+                  <circle cx="545" cy="50" r="8" fill="#fde68a" />
+                  <path d="M494 106l18-26 13 17 11-13 30 22z" fill="#c7d2fe" />
+                </g>
+                <rect
+                  x="496" y="26" width="68" height="80" rx="10"
+                  fill="none" stroke="#e5e7eb" stroke-width="1.5"
+                />
+                <path
+                  d="M588 44c1 5 2 6 7 7-5 1-6 2-7 7-1-5-2-6-7-7 5-1 6-2 7-7z"
+                  fill="#ddd6fe"
+                />
+                <path
+                  d="M602 68c.7 3.4 1.4 4.1 4.8 4.8-3.4.7-4.1 1.4-4.8 4.8-.7-3.4-1.4-4.1-4.8-4.8 3.4-.7 4.1-1.4 4.8-4.8z"
+                  fill="#ede9fe"
+                />
+              </g>
+
+              <!-- 3b. 팬에게 나눠주는 리딤 코드 -->
+              <g>
+                <rect
+                  x="452" y="150" width="116" height="72" rx="12"
+                  fill="#ffffff" stroke="#e5e7eb" stroke-width="1.5"
+                />
+                <rect x="464" y="162" width="14" height="14" rx="3" fill="#4f46e5" />
+                <rect x="482" y="162" width="14" height="14" rx="3" fill="#c7d2fe" />
+                <rect x="464" y="180" width="14" height="14" rx="3" fill="#c7d2fe" />
+                <rect x="482" y="180" width="14" height="14" rx="3" fill="#4f46e5" />
+                <rect x="464" y="198" width="32" height="10" rx="5" fill="#ede9fe" />
+                <path d="M508 158v56" stroke="#e5e7eb" stroke-width="1.5" stroke-dasharray="4 5" />
+                <rect x="518" y="166" width="38" height="8" rx="4" fill="#ddd6fe" />
+                <rect x="518" y="182" width="30" height="8" rx="4" fill="#ede9fe" />
+                <rect x="518" y="198" width="34" height="8" rx="4" fill="#ede9fe" />
+              </g>
+
+              <path
+                d="M580 186h20" stroke="#c4b5fd" stroke-width="2.5"
+                stroke-linecap="round" marker-end="url(#ab-arrow)"
+              />
+
+              <!-- 팬들 -->
+              <g>
+                <circle cx="626" cy="186" r="17" fill="#eef2ff" stroke="#c7d2fe" stroke-width="1.5" />
+                <circle cx="626" cy="181" r="5.5" fill="#818cf8" />
+                <path d="M617 197c0-5 4-9 9-9s9 4 9 9z" fill="#818cf8" />
+
+                <circle cx="666" cy="164" r="14" fill="#f5f3ff" stroke="#ddd6fe" stroke-width="1.5" />
+                <circle cx="666" cy="160" r="4.5" fill="#a5b4fc" />
+                <path d="M659 173c0-4 3-7 7-7s7 3 7 7z" fill="#a5b4fc" />
+
+                <circle cx="672" cy="206" r="12" fill="#f5f3ff" stroke="#ddd6fe" stroke-width="1.5" />
+                <circle cx="672" cy="203" r="4" fill="#a5b4fc" />
+                <path d="M666 214c0-3.3 2.7-6 6-6s6 2.7 6 6z" fill="#a5b4fc" />
+              </g>
+            </svg>
+          </div>
         </div>
       </div>
     </section>
@@ -50,7 +199,7 @@
         <div class="section-header">
           <h2 class="section-title">이렇게 작동해요</h2>
           <p class="section-description">
-            아바타 등록부터 팬에게 링크를 나눠주기까지, 네 단계면 충분해요
+            아바타 등록부터 자유 생성, 그리고 팬 공유까지 — 네 단계면 충분해요
           </p>
         </div>
 
@@ -101,16 +250,16 @@ const steps = [
     description: "정면·측면·전신 사진을 올리면 나만의 아바타를 만들어요. 관리자가 도용 여부를 확인한 뒤 승인돼요.",
   },
   {
-    title: "일회용 링크 발급",
-    description: "아바타로 사진을 생성할 수 있는 일회용 링크를 원하는 만큼 만들어요.",
+    title: "자유롭게 직접 생성",
+    description: "내 아바타로 원하는 장면·의상·분위기를 프롬프트로 자유롭게 만들어요. 완전히 내 마음대로.",
   },
   {
-    title: "팬에게 공유",
-    description: "링크를 팬에게 보내면, 팬은 그 링크로 바로 사진을 생성할 수 있어요.",
+    title: "팬에게 코드 공유 (선택)",
+    description: "원하면 리딤 코드를 발급해 팬에게 나눠주세요. 팬은 원하는 장면을 직접 묘사해 함께 만들 수 있어요.",
   },
   {
     title: "실시간 현황 확인",
-    description: "사용된 링크와 아직 남은 링크를 내 페이지에서 한눈에 확인해요.",
+    description: "내 생성물과 발급한 코드의 사용 현황을 스튜디오에서 한눈에 확인해요.",
   },
 ];
 </script>
@@ -243,6 +392,24 @@ const steps = [
 .btn-icon {
   width: 1.25rem;
   height: 1.25rem;
+}
+
+/* 서비스 흐름 일러스트 */
+.hero-illustration {
+  max-width: 46rem;
+  margin: 4rem auto 0;
+}
+
+.hero-illustration svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+@media (max-width: 640px) {
+  .hero-illustration {
+    margin-top: 2.5rem;
+  }
 }
 
 .arrow-icon {

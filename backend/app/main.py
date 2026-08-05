@@ -22,7 +22,7 @@ from .auth import (
 )
 from .config import settings
 from .db import Base, engine, get_db
-from .dependencies import get_current_user, get_current_user_optional
+from .dependencies import get_current_user, get_current_user_optional, is_admin_email
 from .models import (
     Avatar,
     AvatarComment,
@@ -35,6 +35,7 @@ from .models import (
     User,
 )
 from .fal_client import run_generation_sync
+from .inquiries import router as inquiries_router
 from .studio import router as studio_router, seed_plans
 
 # Fal 프롬프트용: DB에 저장된 국적/성별 코드를 풀네임으로 변환 (KR->Korean, M->male 등)
@@ -126,6 +127,9 @@ def on_startup() -> None:
 
 # Creator Studio 라우터 (구독/템플릿/코드/리딤)
 app.include_router(studio_router)
+
+# 고객 문의 라우터 (고객지원 폼 / 관리자 답장)
+app.include_router(inquiries_router)
 
 
 @app.get("/health", tags=["system"])
@@ -326,12 +330,8 @@ def upgrade_to_seller(
 
 
 def _is_admin_email(email: str) -> bool:
-    whitelist = {
-        value.strip().lower()
-        for value in settings.ADMIN_EMAIL_WHITELIST.split(",")
-        if value.strip()
-    }
-    return email.lower() in whitelist
+    # 판별 로직은 dependencies.is_admin_email 한 곳에만 둔다 (라우터마다 재구현 방지).
+    return is_admin_email(email)
 
 
 @app.post("/admin/influencer-approve", response_model=UserBase, tags=["admin"])
@@ -390,7 +390,6 @@ def create_generation(
     from .moderation import assert_sfw_prompt
 
     assert_sfw_prompt(payload.prompt)
-    assert_sfw_prompt(payload.negative_prompt)
 
     # TODO: idempotency 체크 구현
 
@@ -425,7 +424,10 @@ def create_generation(
     before = buyer.credit_balance
     buyer.credit_balance -= total_credits
 
-    parts = [avatar.negative_prompt, payload.negative_prompt]
+    # 안전 검사 여부는 .env 의 FAL_ENABLE_SAFETY_CHECKER 하나로만 결정한다.
+    safety_on = settings.FAL_ENABLE_SAFETY_CHECKER
+
+    parts = [avatar.negative_prompt]
     combined_negative = ", ".join(p.strip() for p in parts if p and p.strip()) or None
 
     generation = Generation(
@@ -436,8 +438,10 @@ def create_generation(
         negative_prompt=combined_negative,
         image_size=payload.image_size,
         num_inference_steps=payload.num_inference_steps,
-        enable_safety_checker=True,  # SFW 전용 정책 — 클라이언트 값 무시하고 강제 ON
+        enable_safety_checker=safety_on,
         lora_scale=payload.lora_scale,
+        source_image_url=payload.source_image_url,
+        strength=payload.strength,
         status=GenerationStatus.PENDING.value,
     )
     db.add(generation)
@@ -475,12 +479,14 @@ def create_generation(
         lora_url = avatar.lora_path
         if lora_url and "s3" in lora_url.lower() and "amazonaws" in lora_url.lower():
             lora_url = generate_presigned_download_url(lora_url, expires_in=3600)
+        # negative_prompt 는 i2i 엔드포인트에 없어 fal 로 보내지 않는다 (DB 기록만).
         response_payload = run_generation_sync(
             prompt_for_fal,
+            source_image_url=payload.source_image_url,
+            strength=payload.strength,
             lora_url=lora_url,
             lora_scale=payload.lora_scale,
-            negative_prompt=combined_negative,
-            enable_safety_checker=True,  # SFW 전용 정책 — 강제 ON
+            enable_safety_checker=safety_on,
             image_size=payload.image_size,
             num_inference_steps=payload.num_inference_steps,
             output_format=payload.output_format,
@@ -492,7 +498,8 @@ def create_generation(
             if response_payload.get("seed") is not None
             else None
         )
-        is_nsfw = any(response_payload.get("has_nsfw_concepts") or [])
+        # checker 를 끈 경우 fal 이 플래그를 주더라도 결과를 폐기하지 않는다.
+        is_nsfw = safety_on and any(response_payload.get("has_nsfw_concepts") or [])
         generation.nsfw_flag = is_nsfw
         if is_nsfw:
             # SFW 정책: NSFW 감지 시 이미지 서빙 차단 + 실패 처리 + 크레딧 환불

@@ -349,10 +349,8 @@ export type OutputFormatOption = "jpeg" | "png" | "webp";
 export interface GenerationCreatePayload {
   avatar_id: number;
   prompt: string;
-  negative_prompt?: string | null;
   option_credits: number;
   idempotency_key: string;
-  enable_safety_checker: boolean;
   image_size: ImageSizeOption;
   num_inference_steps: number;
   output_format: OutputFormatOption;
@@ -582,35 +580,10 @@ export interface SubscriptionInfo {
   current_period_end: string | null;
 }
 
-export interface TemplateItem {
-  id: number;
-  avatar_id: number;
-  name: string;
-  prompt: string;
-  negative_prompt: string | null;
-  image_size: string | null;
-  num_inference_steps: number | null;
-  lora_scale: number | null;
-  preview_image_url: string | null;
-  is_active: boolean;
-  created_at: string;
-}
-
-export interface CreateTemplatePayload {
-  avatar_id: number;
-  name: string;
-  prompt: string;
-  negative_prompt?: string | null;
-  image_size?: string;
-  num_inference_steps?: number;
-  lora_scale?: number;
-}
-
 export interface CodeItem {
   id: number;
   code: string;
   avatar_id: number;
-  template_id: number | null;
   max_uses: number | null;
   used_count: number;
   is_active: boolean;
@@ -618,9 +591,15 @@ export interface CodeItem {
   created_at: string;
 }
 
+export interface SourceImage {
+  /** 생성 요청에 넘길 값 (S3 원본 URL) */
+  url: string;
+  /** 미리보기용 presigned URL */
+  preview_url: string;
+}
+
 export interface CreateCodePayload {
   avatar_id: number;
-  template_id?: number | null;
   max_uses?: number | null;
   count?: number;
   expires_at?: string | null;
@@ -633,8 +612,6 @@ export interface RedeemInfo {
   avatar_title: string;
   avatar_preview_url: string | null;
   uses_left: number | null;
-  free_prompt_allowed: boolean;
-  templates: TemplateItem[];
 }
 
 export interface RedeemGenerateResult {
@@ -659,25 +636,10 @@ export const studioApi = {
     });
     return response.data;
   },
-  getTemplates: async (): Promise<TemplateItem[]> => {
-    const response = await api.get<TemplateItem[]>("/my/templates");
-    return response.data;
-  },
-  createTemplate: async (data: CreateTemplatePayload): Promise<TemplateItem> => {
-    const response = await api.post<TemplateItem>("/my/templates", data);
-    return response.data;
-  },
-  uploadTemplatePreview: async (id: number, file: File): Promise<TemplateItem> => {
-    const formData = new FormData();
-    formData.append("preview_image", file);
-    const response = await api.post<TemplateItem>(`/my/templates/${id}/preview`, formData);
-    return response.data;
-  },
-  deleteTemplate: async (id: number): Promise<void> => {
-    await api.delete(`/my/templates/${id}`);
-  },
   /** QR SVG 절대 URL (리딤 링크 등을 인코딩) */
   qrUrl: (data: string): string => `${apiBaseUrl}/qr.svg?data=${encodeURIComponent(data)}`,
+  /** image-to-image 기본 소스 이미지 URL (업로드 안 했을 때 실제로 쓰이는 이미지) */
+  defaultSourceImageUrl: (): string => `${apiBaseUrl}/default-source-image`,
   getCodes: async (): Promise<CodeItem[]> => {
     const response = await api.get<CodeItem[]>("/my/codes");
     return response.data;
@@ -689,14 +651,23 @@ export const studioApi = {
   deactivateCode: async (id: number): Promise<void> => {
     await api.delete(`/my/codes/${id}`);
   },
+  /** image-to-image 소스 이미지 업로드 (크리에이터) */
+  uploadSourceImage: async (file: File): Promise<SourceImage> => {
+    const formData = new FormData();
+    formData.append("image", file);
+    const response = await api.post<SourceImage>("/my/source-images", formData);
+    return response.data;
+  },
   generateSelf: async (data: {
     avatar_id: number;
     prompt: string;
-    negative_prompt?: string | null;
     image_size?: string;
     num_inference_steps?: number;
     lora_scale?: number;
     seed?: number | null;
+    /** 비우면 서버 기본 이미지(itoi_example) 사용 */
+    source_image_url?: string | null;
+    strength?: number;
   }): Promise<{ id: number; status: string; image_url: string | null; fail_reason: string | null }> => {
     const response = await api.post("/my/generate", data);
     return response.data;
@@ -709,17 +680,106 @@ export const redeemApi = {
     const response = await api.get<RedeemInfo>(`/r/${encodeURIComponent(code)}`);
     return response.data;
   },
+  /** 팬: 소스 이미지 업로드 (비로그인, 유효한 코드 필요) */
+  uploadSourceImage: async (code: string, file: File): Promise<SourceImage> => {
+    const formData = new FormData();
+    formData.append("image", file);
+    const response = await api.post<SourceImage>(
+      `/r/${encodeURIComponent(code)}/source-images`,
+      formData
+    );
+    return response.data;
+  },
   /** 팬: 템플릿 또는 자유 프롬프트로 생성 (비로그인) */
   generate: async (
     code: string,
-    opts: { templateId?: number | null; prompt?: string | null; seed?: number | null }
+    opts: {
+      prompt: string;
+      seed?: number | null;
+      sourceImageUrl?: string | null;
+      strength?: number;
+      loraScale?: number;
+    }
   ): Promise<RedeemGenerateResult> => {
     const response = await api.post<RedeemGenerateResult>(`/r/${encodeURIComponent(code)}/generate`, {
-      template_id: opts.templateId ?? null,
-      prompt: opts.prompt ?? null,
+      prompt: opts.prompt,
       seed: opts.seed ?? null,
+      source_image_url: opts.sourceImageUrl ?? null,
+      ...(opts.strength !== undefined ? { strength: opts.strength } : {}),
+      ...(opts.loraScale !== undefined ? { lora_scale: opts.loraScale } : {}),
     });
     return response.data;
   },
 };
 
+
+// ---------------------------------------------------------------------------
+// 고객 문의 (고객지원 폼 / 관리자 답장)
+// ---------------------------------------------------------------------------
+
+export type InquiryCategory =
+  | "account"
+  | "avatar"
+  | "generation"
+  | "code"
+  | "billing"
+  | "report"
+  | "etc";
+
+export interface InquiryCreatePayload {
+  name: string;
+  email: string;
+  category: InquiryCategory;
+  subject: string;
+  message: string;
+  privacy_consent: boolean;
+}
+
+export interface InquiryCreateResult {
+  id: number;
+  status: string;
+  /** 접수 알림 메일 발송 여부. false 여도 문의는 정상 접수된 것. */
+  email_sent: boolean;
+}
+
+export interface AdminInquiryItem {
+  id: number;
+  user_id: number | null;
+  name: string;
+  email: string;
+  category: InquiryCategory;
+  subject: string;
+  message: string;
+  status: "open" | "answered" | "closed";
+  reply_body: string | null;
+  replied_at: string | null;
+  notified_at: string | null;
+  created_at: string;
+}
+
+export const inquiriesApi = {
+  /** 고객지원 폼 접수 (비로그인 가능) */
+  create: async (payload: InquiryCreatePayload): Promise<InquiryCreateResult> => {
+    const response = await api.post<InquiryCreateResult>("/inquiries", payload);
+    return response.data;
+  },
+  /** 관리자: 문의 목록 (status 로 필터) */
+  adminList: async (status?: string): Promise<AdminInquiryItem[]> => {
+    const response = await api.get<AdminInquiryItem[]>("/admin/inquiries", {
+      params: status ? { status } : undefined,
+    });
+    return response.data;
+  },
+  /** 관리자: 답장 메일 발송 */
+  adminReply: async (id: number, replyBody: string): Promise<AdminInquiryItem> => {
+    const response = await api.post<AdminInquiryItem>(`/admin/inquiries/${id}/reply`, {
+      reply_body: replyBody,
+    });
+    return response.data;
+  },
+  /** 관리자: 답장 없이 종료 (스팸 등) */
+  adminClose: async (id: number): Promise<AdminInquiryItem> => {
+    const response = await api.post<AdminInquiryItem>(`/admin/inquiries/${id}/close`);
+    return response.data;
+  },
+};

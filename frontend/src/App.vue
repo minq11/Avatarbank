@@ -98,6 +98,14 @@
                     관리자 · 학습 요청
                   </RouterLink>
                   <RouterLink
+                    v-if="authStore.isAdmin"
+                    to="/admin/inquiries"
+                    class="dropdown-item"
+                    @click="showProfileMenu = false"
+                  >
+                    관리자 · 문의함
+                  </RouterLink>
+                  <RouterLink
                     to="/my/page"
                     class="dropdown-item"
                     @click="showProfileMenu = false"
@@ -132,56 +140,86 @@
           <div class="footer-brand">
             <h4 class="footer-brand-title">AvatarBank</h4>
             <p class="footer-brand-description">
-              The premier AI avatar marketplace connecting creators and users.
+              내 얼굴로 만드는 AI 아바타 스튜디오. 크리에이터가 직접 생성하고,
+              원할 땐 팬에게 리딤 코드를 나눠 함께 만듭니다.
             </p>
           </div>
 
-          <!-- Legal -->
+          <!-- 서비스 -->
           <div class="footer-column">
-            <h5 class="footer-column-title">Legal</h5>
+            <h5 class="footer-column-title">서비스</h5>
             <ul class="footer-links-list">
-              <li><a href="#terms" class="footer-link">Terms of Service</a></li>
-              <li><a href="#privacy" class="footer-link">Privacy Policy</a></li>
+              <li><RouterLink to="/studio" class="footer-link">크리에이터 스튜디오</RouterLink></li>
+              <li><RouterLink to="/my/avatars" class="footer-link">내 아바타</RouterLink></li>
+              <li><RouterLink to="/guide" class="footer-link">크리에이터 가이드</RouterLink></li>
             </ul>
           </div>
 
-          <!-- Resources -->
+          <!-- 정책 -->
           <div class="footer-column">
-            <h5 class="footer-column-title">Resources</h5>
+            <h5 class="footer-column-title">정책</h5>
             <ul class="footer-links-list">
-              <li><a href="#guide" class="footer-link">Influencer Guide</a></li>
-              <li><a href="#support" class="footer-link">Support</a></li>
+              <li><RouterLink to="/terms" class="footer-link">이용약관</RouterLink></li>
+              <li>
+                <RouterLink to="/privacy" class="footer-link">
+                  <strong>개인정보처리방침</strong>
+                </RouterLink>
+              </li>
+              <li><RouterLink to="/content-policy" class="footer-link">콘텐츠·초상권 정책</RouterLink></li>
             </ul>
           </div>
 
-          <!-- Connect -->
+          <!-- 지원 -->
           <div class="footer-column">
-            <h5 class="footer-column-title">Connect</h5>
+            <h5 class="footer-column-title">지원</h5>
             <ul class="footer-links-list">
-              <li><a href="#twitter" class="footer-link">Twitter</a></li>
-              <li><a href="#discord" class="footer-link">Discord</a></li>
+              <li><RouterLink to="/support" class="footer-link">문의하기</RouterLink></li>
+              <li>
+                <RouterLink to="/support#report" class="footer-link">도용·권리침해 신고</RouterLink>
+              </li>
+              <li>
+                <a
+                  href="https://www.instagram.com/avatarbank_official/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="footer-link"
+                >
+                  인스타그램
+                </a>
+              </li>
             </ul>
           </div>
         </div>
 
         <!-- Bottom Bar -->
         <div class="footer-bottom">
-          <p class="footer-copyright">© 2026 AvatarBank. All rights reserved.</p>
+          <div class="footer-legal-bottom">
+            <p class="footer-copyright">© {{ currentYear }} AvatarBank. All rights reserved.</p>
+            <p class="footer-note">
+              AvatarBank는 전 연령 이용 가능한(SFW) 이미지만 생성합니다.
+              타인의 얼굴을 무단으로 등록하는 행위는 금지되며, 적발 시 계정이 정지됩니다.
+            </p>
+          </div>
           <div class="footer-social">
-            <a href="#twitter" class="social-icon" aria-label="Twitter">
-              <svg viewBox="0 0 24 24" fill="currentColor">
-                <path d="M8.29 20.251c7.547 0 11.675-6.253 11.675-11.675 0-.178 0-.355-.012-.53A8.348 8.348 0 0022 5.92a8.19 8.19 0 01-2.357.646 4.118 4.118 0 001.804-2.27 8.224 8.224 0 01-2.605.996 4.107 4.107 0 00-6.993 3.743 11.65 11.65 0 01-8.457-4.287 4.106 4.106 0 001.27 5.477A4.072 4.072 0 012.8 9.713v.052a4.105 4.105 0 003.292 4.022 4.095 4.095 0 01-1.853.07 4.108 4.108 0 003.834 2.85A8.233 8.233 0 012 18.407a11.616 11.616 0 006.29 1.84" />
+            <a
+              href="https://www.instagram.com/avatarbank_official/"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="social-icon"
+              aria-label="AvatarBank 인스타그램"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="2" width="20" height="20" rx="5" />
+                <circle cx="12" cy="12" r="4" />
+                <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
               </svg>
             </a>
-            <a href="#github" class="social-icon" aria-label="GitHub">
-              <svg viewBox="0 0 24 24" fill="currentColor">
-                <path
-                  fill-rule="evenodd"
-                  d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"
-                  clip-rule="evenodd"
-                />
+            <RouterLink to="/support" class="social-icon" aria-label="문의하기">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="4" width="20" height="16" rx="2" />
+                <path d="m22 7-10 6L2 7" />
               </svg>
-            </a>
+            </RouterLink>
           </div>
         </div>
       </div>
@@ -198,6 +236,9 @@ import diamondIcon from "./assets/icons/diamond_credit_icon.svg";
 import logoCart from "./assets/icons/logo3D.png";
 
 const authStore = useAuthStore();
+
+// 푸터 저작권 표기 (연도 하드코딩 방지)
+const currentYear = new Date().getFullYear();
 
 const locale = ref<"en" | "ko" | "ja">("en");
 const showLanguageMenu = ref(false);
@@ -863,9 +904,22 @@ onUnmounted(() => {
   }
 }
 
+.footer-legal-bottom {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
 .footer-copyright {
   font-size: 0.875rem;
   color: #4b5563;
+}
+
+.footer-note {
+  font-size: 0.78rem;
+  color: #9ca3af;
+  max-width: 640px;
+  line-height: 1.5;
 }
 
 .footer-social {

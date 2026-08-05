@@ -8,13 +8,17 @@ import InfluencerDashboardPage from "./views/InfluencerDashboardPage.vue";
 import AdminTrainingRequestsPage from "./views/AdminTrainingRequestsPage.vue";
 import GalleryPage from "./views/GalleryPage.vue";
 import MyPage from "./views/MyPage.vue";
-import RevenueModelPage from "./views/RevenueModelPage.vue";
 import CreatorStudioPage from "./views/CreatorStudioPage.vue";
 import RedeemPage from "./views/RedeemPage.vue";
+import TermsPage from "./views/TermsPage.vue";
+import PrivacyPage from "./views/PrivacyPage.vue";
+import ContentPolicyPage from "./views/ContentPolicyPage.vue";
+import GuidePage from "./views/GuidePage.vue";
+import SupportPage from "./views/SupportPage.vue";
+import AdminInquiriesPage from "./views/AdminInquiriesPage.vue";
 
 const routes: RouteRecordRaw[] = [
   { path: "/", name: "landing", component: LandingPage },
-  { path: "/revenue-model", name: "revenue-model", component: RevenueModelPage },
   { path: "/market", name: "market", component: MarketPage },
   { path: "/gallery", name: "gallery", component: GalleryPage },
   { path: "/generate", redirect: "/avatars" },
@@ -25,6 +29,12 @@ const routes: RouteRecordRaw[] = [
   { path: "/my/page", name: "my-page", component: MyPage },
   { path: "/studio", name: "creator-studio", component: CreatorStudioPage },
   { path: "/r/:code", name: "redeem", component: RedeemPage },
+  // 푸터: 정책·안내·지원 페이지
+  { path: "/terms", name: "terms", component: TermsPage },
+  { path: "/privacy", name: "privacy", component: PrivacyPage },
+  { path: "/content-policy", name: "content-policy", component: ContentPolicyPage },
+  { path: "/guide", name: "guide", component: GuidePage },
+  { path: "/support", name: "support", component: SupportPage },
   {
     path: "/influencer/dashboard",
     name: "influencer-dashboard",
@@ -35,13 +45,20 @@ const routes: RouteRecordRaw[] = [
     name: "admin-training-requests",
     component: AdminTrainingRequestsPage,
   },
+  {
+    path: "/admin/inquiries",
+    name: "admin-inquiries",
+    component: AdminInquiriesPage,
+  },
 ];
 
 const router = createRouter({
   history: createWebHistory(),
   routes,
-  scrollBehavior(_, __, savedPosition) {
+  scrollBehavior(to, __, savedPosition) {
     if (savedPosition) return savedPosition;
+    // /support#report, /content-policy#report 같은 앵커 링크 지원
+    if (to.hash) return { el: to.hash, behavior: "smooth" };
     return { top: 0 };
   },
 });

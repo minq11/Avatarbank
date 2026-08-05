@@ -4,7 +4,7 @@
       <header class="studio-head">
         <h1>크리에이터 스튜디오</h1>
         <p class="lead">
-          내 AI 얼굴로 콘텐츠를 만들고, 팬에게 리딤 코드를 나눠주세요.
+          내 AI 얼굴로 <strong>무엇이든 자유롭게</strong> 만들고, 원할 땐 팬에게 리딤 코드를 나눠주세요.
         </p>
       </header>
 
@@ -34,18 +34,18 @@
                 </p>
               </div>
             </div>
-            <div class="step" :class="{ done: hasLook }">
-              <span class="step-dot">{{ hasLook ? "✓" : 3 }}</span>
+            <div class="step" :class="{ done: hasGeneration }">
+              <span class="step-dot">{{ hasGeneration ? "✓" : 3 }}</span>
               <div>
-                <strong>룩 추가</strong>
-                <p class="muted small">팬이 생성할 수 있는 프리셋 룩을 만들어요 (선택).</p>
+                <strong>직접 만들기</strong>
+                <p class="muted small">아바타로 원하는 사진을 자유롭게 생성해요.</p>
               </div>
             </div>
             <div class="step" :class="{ done: hasCode }">
               <span class="step-dot">{{ hasCode ? "✓" : 4 }}</span>
               <div>
-                <strong>코드 공유</strong>
-                <p class="muted small">리딤 코드를 발급해 팬에게 나눠주세요.</p>
+                <strong>팬에게 코드 공유 (선택)</strong>
+                <p class="muted small">원하면 리딤 코드를 발급해 팬에게 나눠주세요.</p>
               </div>
             </div>
           </div>
@@ -93,67 +93,136 @@
           </p>
         </section>
 
-        <!-- Templates -->
-        <section class="card">
-          <h2>룩 (템플릿)</h2>
+        <!-- Direct create (creator's own free generation) -->
+        <section class="card highlight">
+          <h2>직접 만들기</h2>
           <p class="muted small">
-            팬은 여기 등록된 승인된 룩으로만 생성할 수 있고, 직접 프롬프트를 입력할 수 없어요.
-            그래서 내 얼굴을 온전히 내가 통제할 수 있습니다.
+            내 아바타로 원하는 장면을 <strong>자유롭게 프롬프트로</strong> 만드세요.
+            생성 1장당 쿼터가 1 차감돼요 (건전한 이미지만 생성됩니다).
           </p>
 
-          <form class="template-form" @submit.prevent="createTemplate">
+          <form class="gen-form" @submit.prevent="generateSelf">
             <div class="form-row">
               <label>아바타</label>
-              <select v-model.number="newTemplate.avatar_id" required>
+              <select v-model.number="newGen.avatar_id" required>
                 <option :value="0" disabled>아바타 선택…</option>
                 <option v-for="a in avatars" :key="a.id" :value="a.id">{{ a.title }}</option>
               </select>
             </div>
             <div class="form-row">
-              <label>룩 이름</label>
-              <input v-model="newTemplate.name" placeholder="예) 크리스마스, 여름 바닷가" required />
+              <label>원본 이미지</label>
+              <div class="source-row">
+                <button type="button" class="source-thumb" @click="sourceInput?.click()">
+                  <img :src="sourcePreview" alt="원본 이미지" />
+                  <span v-if="usingDefaultSource" class="source-badge">기본</span>
+                  <span v-if="uploadingSource" class="source-uploading">업로드 중…</span>
+                </button>
+                <div class="source-actions">
+                  <button type="button" class="btn-outline" @click="sourceInput?.click()">
+                    {{ usingDefaultSource ? "다른 이미지 올리기" : "이미지 변경" }}
+                  </button>
+                  <button
+                    v-if="!usingDefaultSource"
+                    type="button"
+                    class="btn-text"
+                    @click="clearSourceImage"
+                  >
+                    기본 이미지로 되돌리기
+                  </button>
+                  <p class="muted small">
+                    {{
+                      usingDefaultSource
+                        ? "기본 이미지가 원본으로 적용돼 있어요. 바꾸고 싶으면 올려주세요."
+                        : "올린 이미지를 원본으로 변형해요."
+                    }}
+                    PNG·JPEG·WebP, 10MB 이하.
+                  </p>
+                </div>
+              </div>
+              <input
+                ref="sourceInput"
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                style="display: none"
+                @change="onSourceSelected"
+              />
             </div>
+
             <div class="form-row">
               <label>프롬프트</label>
               <textarea
-                v-model="newTemplate.prompt"
-                placeholder="장면·의상을 묘사하세요 (팬에게는 이 룩이 보이지만 수정은 불가)"
-                rows="2"
+                v-model="newGen.prompt"
+                placeholder="원하는 장면·의상·배경·분위기를 자유롭게 묘사하세요 (예: 노을 지는 해변, 리넨 셔츠, 영화 같은 조명)"
+                rows="3"
                 required
               ></textarea>
             </div>
-            <button class="btn-primary" :disabled="creatingTemplate || !newTemplate.avatar_id">
-              {{ creatingTemplate ? "추가 중…" : "룩 추가" }}
+
+            <div class="form-row inline">
+              <div>
+                <label>
+                  변형 강도 (strength)
+                  <span class="slider-value">{{ newGen.strength.toFixed(2) }}</span>
+                </label>
+                <input
+                  v-model.number="newGen.strength"
+                  type="range"
+                  min="0.05"
+                  max="1"
+                  step="0.05"
+                />
+                <p class="muted small">낮을수록 원본 유지, 높을수록 프롬프트를 강하게 반영해요.</p>
+              </div>
+              <div>
+                <label>
+                  LoRA 강도 (scale)
+                  <span class="slider-value">{{ newGen.lora_scale.toFixed(1) }}</span>
+                </label>
+                <input
+                  v-model.number="newGen.lora_scale"
+                  type="range"
+                  min="0"
+                  max="4"
+                  step="0.1"
+                />
+                <p class="muted small">높을수록 아바타 얼굴을 강하게 반영해요. 기본 2.0.</p>
+              </div>
+            </div>
+
+            <button
+              class="btn-primary"
+              :disabled="
+                generatingSelf ||
+                uploadingSource ||
+                !newGen.avatar_id ||
+                !newGen.prompt.trim()
+              "
+            >
+              <span v-if="generatingSelf" class="spinner-inline"></span>
+              {{ generatingSelf ? "만드는 중…" : "이미지 생성" }}
             </button>
           </form>
 
-          <div v-if="templates.length" class="list">
-            <div v-for="t in templates" :key="t.id" class="list-item">
-              <div class="tpl-row">
-                <button class="tpl-thumb" @click="triggerThumb(t.id)" :title="'썸네일 설정'">
-                  <img v-if="t.preview_image_url" :src="t.preview_image_url" alt="" />
-                  <span v-else class="tpl-thumb-add">＋</span>
+          <!-- 생성 실패: 사라지지 않고 남으며 그대로 복사할 수 있다 -->
+          <div v-if="genError" class="gen-error">
+            <div class="gen-error-head">
+              <strong>생성에 실패했어요</strong>
+              <div class="gen-error-actions">
+                <button type="button" class="btn-text" @click="copyGenError">
+                  {{ genErrorCopied ? "✓ 복사됨" : "복사" }}
                 </button>
-                <div>
-                  <strong>{{ t.name }}</strong>
-                  <span class="muted small"> · {{ avatarTitle(t.avatar_id) }}</span>
-                  <p class="muted small prompt-preview">{{ t.prompt }}</p>
-                  <button class="btn-text" @click="triggerThumb(t.id)">
-                    {{ t.preview_image_url ? "썸네일 변경" : "썸네일 추가" }}
-                  </button>
-                </div>
+                <button type="button" class="btn-text" @click="genError = null">닫기</button>
               </div>
-              <button class="btn-text danger" @click="deleteTemplate(t.id)">삭제</button>
             </div>
+            <pre class="gen-error-body">{{ genError }}</pre>
           </div>
-          <p v-else class="muted">아직 룩이 없어요.</p>
-          <input
-            ref="thumbInput"
-            type="file"
-            accept="image/*"
-            style="display: none"
-            @change="onThumbSelected"
-          />
+
+          <div v-if="genResult" class="gen-result">
+            <img :src="genResult" alt="생성 결과" />
+            <a class="btn-text" :href="genResult" download="creation.png" target="_blank">
+              다운로드
+            </a>
+          </div>
         </section>
 
         <!-- Redeem codes -->
@@ -170,15 +239,6 @@
               <select v-model.number="newCode.avatar_id" required>
                 <option :value="0" disabled>아바타 선택…</option>
                 <option v-for="a in avatars" :key="a.id" :value="a.id">{{ a.title }}</option>
-              </select>
-            </div>
-            <div class="form-row">
-              <label>룩 (선택)</label>
-              <select v-model.number="newCode.template_id">
-                <option :value="0">이 아바타의 모든 룩</option>
-                <option v-for="t in templatesForAvatar(newCode.avatar_id)" :key="t.id" :value="t.id">
-                  {{ t.name }}
-                </option>
               </select>
             </div>
             <div class="form-row inline">
@@ -243,7 +303,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { RouterLink } from "vue-router";
 import { useAuthStore } from "../stores/auth";
 import {
@@ -251,9 +311,9 @@ import {
   avatarsApi,
   type Plan,
   type SubscriptionInfo,
-  type TemplateItem,
   type CodeItem,
   type AvatarItem,
+  type SourceImage,
 } from "../services/api";
 
 const authStore = useAuthStore();
@@ -261,15 +321,57 @@ const authStore = useAuthStore();
 const plans = ref<Plan[]>([]);
 const subscription = ref<SubscriptionInfo | null>(null);
 const avatars = ref<AvatarItem[]>([]);
-const templates = ref<TemplateItem[]>([]);
 const codes = ref<CodeItem[]>([]);
 
 const subscribing = ref(false);
-const creatingTemplate = ref(false);
 const creatingCodes = ref(false);
 
-const newTemplate = ref({ avatar_id: 0, name: "", prompt: "" });
-const newCode = ref({ avatar_id: 0, template_id: 0, max_uses: 1, count: 1 });
+const newCode = ref({ avatar_id: 0, max_uses: 1, count: 1 });
+// strength/lora_scale 기본값은 백엔드 스키마와 동일하게 맞춘다.
+const newGen = ref({
+  avatar_id: 0,
+  prompt: "",
+  strength: 0.6,
+  lora_scale: 2.0,
+});
+const generatingSelf = ref(false);
+const genResult = ref<string | null>(null);
+// 생성 실패는 토스트로 흘려보내지 않고, 복사할 수 있게 화면에 남긴다.
+const genError = ref<string | null>(null);
+const genErrorCopied = ref(false);
+
+// image-to-image 소스 이미지.
+// 업로드 전에는 서버가 실제로 사용할 기본 이미지를 그대로 보여준다 (이미 탑재된 상태).
+const sourceInput = ref<HTMLInputElement | null>(null);
+const sourceImage = ref<SourceImage | null>(null);
+const uploadedPreview = ref<string | null>(null);
+const uploadingSource = ref(false);
+const defaultSourceUrl = studioApi.defaultSourceImageUrl();
+const sourcePreview = computed(() => uploadedPreview.value || defaultSourceUrl);
+const usingDefaultSource = computed(() => !sourceImage.value);
+
+const onSourceSelected = async (e: Event) => {
+  const target = e.target as HTMLInputElement;
+  const file = target.files?.[0];
+  target.value = "";
+  if (!file) return;
+  uploadingSource.value = true;
+  try {
+    const uploaded = await studioApi.uploadSourceImage(file);
+    sourceImage.value = uploaded;
+    uploadedPreview.value = uploaded.preview_url;
+    showToast("원본 이미지를 올렸어요");
+  } catch (err: any) {
+    showToast(errMsg(err, "이미지 업로드에 실패했어요."), "err");
+  } finally {
+    uploadingSource.value = false;
+  }
+};
+
+const clearSourceImage = () => {
+  sourceImage.value = null;
+  uploadedPreview.value = null;
+};
 
 const toast = ref<{ msg: string; kind: "ok" | "err" } | null>(null);
 let toastTimer: ReturnType<typeof setTimeout> | null = null;
@@ -281,41 +383,17 @@ const showToast = (msg: string, kind: "ok" | "err" = "ok") => {
 const errMsg = (e: any, fallback: string): string => e?.response?.data?.detail || fallback;
 
 const avatarTitle = (id: number) => avatars.value.find((a) => a.id === id)?.title || "—";
-const templatesForAvatar = (avatarId: number) =>
-  templates.value.filter((t) => t.avatar_id === avatarId);
 const redeemUrl = (code: string) => `${window.location.origin}/r/${code}`;
 
 // Onboarding
 const hasSubscription = computed(() => !!subscription.value);
 const hasAvatar = computed(() => avatars.value.length > 0);
-const hasLook = computed(() => templates.value.length > 0);
+const hasGeneration = ref(false);
 const hasCode = computed(() => codes.value.length > 0);
+// 코드 공유는 선택 단계라 온보딩 완료 조건에서 제외.
 const allStepsDone = computed(
-  () => hasSubscription.value && hasAvatar.value && hasLook.value && hasCode.value
+  () => hasSubscription.value && hasAvatar.value && hasGeneration.value
 );
-
-// Template thumbnail upload
-const thumbInput = ref<HTMLInputElement | null>(null);
-const pendingThumbId = ref<number | null>(null);
-const triggerThumb = (id: number) => {
-  pendingThumbId.value = id;
-  thumbInput.value?.click();
-};
-const onThumbSelected = async (e: Event) => {
-  const target = e.target as HTMLInputElement;
-  const file = target.files?.[0];
-  target.value = "";
-  if (!file || pendingThumbId.value == null) return;
-  try {
-    await studioApi.uploadTemplatePreview(pendingThumbId.value, file);
-    templates.value = await studioApi.getTemplates();
-    showToast("썸네일이 업데이트됐어요");
-  } catch (err: any) {
-    showToast(errMsg(err, "썸네일 업로드에 실패했어요."), "err");
-  } finally {
-    pendingThumbId.value = null;
-  }
-};
 
 // QR modal
 const qrCodeStr = ref<string | null>(null);
@@ -328,14 +406,30 @@ const openQr = (code: string) => {
 
 const loadAll = async () => {
   if (!authStore.isLoggedIn) return;
-  try {
-    plans.value = await studioApi.getPlans();
-    subscription.value = await studioApi.getSubscription();
-    avatars.value = await avatarsApi.getMyAvatars();
-    templates.value = await studioApi.getTemplates();
-    codes.value = await studioApi.getCodes();
-  } catch (e) {
-    console.error("Failed to load studio data", e);
+
+  // 각 항목은 서로 독립적이다. 한 엔드포인트가 500 이 나도 나머지는 그대로 채운다
+  // (예전엔 순차 await 라 앞이 실패하면 뒤가 통째로 안 불러와졌다).
+  const results = await Promise.allSettled([
+    studioApi.getPlans(),
+    studioApi.getSubscription(),
+    avatarsApi.getMyAvatars(),
+    studioApi.getCodes(),
+  ]);
+
+  const [plansRes, subRes, avatarsRes, codesRes] = results;
+  if (plansRes.status === "fulfilled") plans.value = plansRes.value;
+  if (subRes.status === "fulfilled") subscription.value = subRes.value;
+  if (avatarsRes.status === "fulfilled") avatars.value = avatarsRes.value;
+  if (codesRes.status === "fulfilled") codes.value = codesRes.value;
+
+  const failed = results.filter((r) => r.status === "rejected");
+  if (failed.length) {
+    // 조용히 빈 화면을 보여주지 않는다 — 어디가 실패했는지 콘솔에 남기고 알린다.
+    failed.forEach((r) => console.error("Studio load failed:", (r as PromiseRejectedResult).reason));
+    showToast(
+      `일부 정보를 불러오지 못했어요 (${failed.length}건). 새로고침해 주세요.`,
+      "err"
+    );
   }
 };
 
@@ -351,28 +445,81 @@ const subscribe = async (planCode: string) => {
   }
 };
 
-const createTemplate = async () => {
-  creatingTemplate.value = true;
+/** 요청 조건 + 실패 사유를 한 덩어리 텍스트로. 그대로 복사해 공유할 수 있게. */
+const buildErrorReport = (reason: string, e?: any): string => {
+  const lines = [
+    `[생성 실패] ${new Date().toLocaleString("ko-KR")}`,
+    "",
+    "■ 사유",
+    reason,
+  ];
+
+  const status = e?.response?.status;
+  if (status) lines.push("", "■ 응답", `HTTP ${status}`);
+
+  const detail = e?.response?.data?.detail;
+  if (Array.isArray(detail)) {
+    // pydantic 422 는 배열로 온다 — 필드별로 펼친다.
+    lines.push(
+      ...detail.map(
+        (d: any) => `- ${(d.loc ?? []).join(".")}: ${d.msg ?? JSON.stringify(d)}`
+      )
+    );
+  } else if (detail && detail !== reason) {
+    lines.push(String(detail));
+  }
+
+  lines.push(
+    "",
+    "■ 요청 조건",
+    `avatar_id: ${newGen.value.avatar_id}`,
+    `source_image: ${sourceImage.value?.url ?? "(기본 이미지)"}`,
+    `strength: ${newGen.value.strength}`,
+    `lora_scale: ${newGen.value.lora_scale}`,
+    "",
+    "■ 프롬프트",
+    newGen.value.prompt.trim() || "(비어 있음)"
+  );
+  return lines.join("\n");
+};
+
+const generateSelf = async () => {
+  generatingSelf.value = true;
+  genResult.value = null;
+  genError.value = null;
+  genErrorCopied.value = false;
   try {
-    await studioApi.createTemplate({ ...newTemplate.value });
-    newTemplate.value = { avatar_id: 0, name: "", prompt: "" };
-    templates.value = await studioApi.getTemplates();
-    showToast("룩이 추가됐어요");
+    const res = await studioApi.generateSelf({
+      avatar_id: newGen.value.avatar_id,
+      prompt: newGen.value.prompt.trim(),
+      source_image_url: sourceImage.value?.url ?? null,
+      strength: newGen.value.strength,
+      lora_scale: newGen.value.lora_scale,
+    });
+    if (res.status === "success" && res.image_url) {
+      genResult.value = res.image_url;
+      hasGeneration.value = true;
+      subscription.value = await studioApi.getSubscription();
+      showToast("이미지가 생성됐어요 🎉");
+    } else {
+      // 사라지는 토스트 대신, 복사 가능한 패널로 남긴다.
+      genError.value = buildErrorReport(res.fail_reason || "생성에 실패했어요.");
+    }
   } catch (e: any) {
-    showToast(errMsg(e, "룩 추가에 실패했어요."), "err");
+    genError.value = buildErrorReport(errMsg(e, "생성에 실패했어요."), e);
   } finally {
-    creatingTemplate.value = false;
+    generatingSelf.value = false;
   }
 };
 
-const deleteTemplate = async (id: number) => {
-  if (!confirm("이 룩을 삭제할까요?")) return;
+const copyGenError = async () => {
+  if (!genError.value) return;
   try {
-    await studioApi.deleteTemplate(id);
-    templates.value = await studioApi.getTemplates();
-    showToast("룩이 삭제됐어요");
-  } catch (e: any) {
-    showToast(errMsg(e, "삭제에 실패했어요."), "err");
+    await navigator.clipboard.writeText(genError.value);
+    genErrorCopied.value = true;
+    setTimeout(() => (genErrorCopied.value = false), 2000);
+  } catch {
+    showToast("복사에 실패했어요. 텍스트를 직접 선택해 주세요.", "err");
   }
 };
 
@@ -381,7 +528,6 @@ const createCodes = async () => {
   try {
     const created = await studioApi.createCodes({
       avatar_id: newCode.value.avatar_id,
-      template_id: newCode.value.template_id || null,
       max_uses: newCode.value.max_uses || 1,
       count: newCode.value.count || 1,
     });
@@ -414,6 +560,16 @@ const copyLink = async (code: string) => {
 };
 
 onMounted(loadAll);
+
+// App.vue 가 onMounted 에서 authStore.initialize() 를 await 하므로, 새로고침 직후에는
+// 이 컴포넌트의 onMounted 시점에 아직 isLoggedIn=false 다 (→ loadAll 이 조기 반환).
+// 인증이 끝나 로그인 상태가 되면 한 번 더 불러온다. 모달 로그인 직후에도 동작.
+watch(
+  () => authStore.isLoggedIn,
+  (loggedIn) => {
+    if (loggedIn) loadAll();
+  }
+);
 </script>
 
 <style scoped>
@@ -550,8 +706,8 @@ onMounted(loadAll);
   gap: 0.3rem;
 }
 
-.template-form,
-.code-form {
+.code-form,
+.gen-form {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
@@ -559,6 +715,92 @@ onMounted(loadAll);
   padding: 1rem;
   background: #f9fafb;
   border-radius: 0.75rem;
+}
+
+/* Direct-create highlight */
+.card.highlight {
+  border-color: #ddd6fe;
+  box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.08);
+}
+
+/* 생성 실패 리포트 — 자동으로 사라지지 않고 선택·복사 가능 */
+.gen-error {
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+.gen-error-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.65rem 0.9rem;
+  border-bottom: 1px solid #fecaca;
+}
+
+.gen-error-head strong {
+  font-size: 0.875rem;
+  color: #b91c1c;
+}
+
+.gen-error-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.gen-error-actions .btn-text {
+  color: #b91c1c;
+}
+
+.gen-error-body {
+  margin: 0;
+  padding: 0.9rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.78rem;
+  line-height: 1.65;
+  color: #7f1d1d;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 320px;
+  overflow-y: auto;
+  /* 드래그로 선택해 복사할 수 있게 */
+  user-select: text;
+}
+
+.gen-result {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.gen-result img {
+  max-width: 100%;
+  width: 320px;
+  border-radius: 0.75rem;
+  border: 1px solid #e5e7eb;
+}
+
+.spinner-inline {
+  display: inline-block;
+  width: 0.9rem;
+  height: 0.9rem;
+  margin-right: 0.4rem;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  border-top-color: #fff;
+  border-radius: 50%;
+  vertical-align: -2px;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .form-row {
@@ -663,6 +905,99 @@ textarea {
   color: #dc2626;
 }
 
+.btn-outline {
+  flex-shrink: 0;
+  background: #fff;
+  border: 1px solid #ddd6fe;
+  color: #6d28d9;
+  border-radius: 0.5rem;
+  padding: 0.55rem 0.85rem;
+  font-weight: 700;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.btn-outline:hover {
+  background: #f5f3ff;
+}
+
+.source-row {
+  display: flex;
+  gap: 0.9rem;
+  align-items: flex-start;
+}
+
+.source-thumb {
+  position: relative;
+  flex-shrink: 0;
+  width: 72px;
+  height: 92px;
+  border-radius: 0.6rem;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  overflow: hidden;
+  padding: 0;
+  cursor: pointer;
+}
+
+.source-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* 기본 이미지가 적용 중임을 알리는 뱃지 */
+.source-badge {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background: rgba(17, 24, 39, 0.72);
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 0.15rem 0;
+  text-align: center;
+}
+
+.source-uploading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.85);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #6d28d9;
+}
+
+.source-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.4rem;
+}
+
+.source-actions .muted {
+  margin: 0;
+}
+
+.slider-value {
+  float: right;
+  font-weight: 700;
+  color: #6d28d9;
+  font-variant-numeric: tabular-nums;
+}
+
+input[type="range"] {
+  padding: 0;
+  accent-color: #7c3aed;
+}
+
 /* Onboarding stepper */
 .stepper .steps {
   display: grid;
@@ -704,39 +1039,6 @@ textarea {
 .inline-link {
   color: #6d28d9;
   font-weight: 600;
-}
-
-/* Template thumbnails */
-.tpl-row {
-  display: flex;
-  gap: 0.85rem;
-  align-items: flex-start;
-}
-
-.tpl-thumb {
-  flex-shrink: 0;
-  width: 56px;
-  height: 72px;
-  border-radius: 0.6rem;
-  border: 1px dashed #d1d5db;
-  background: #f9fafb;
-  overflow: hidden;
-  cursor: pointer;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.tpl-thumb img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.tpl-thumb-add {
-  font-size: 1.4rem;
-  color: #9ca3af;
 }
 
 /* QR modal */
