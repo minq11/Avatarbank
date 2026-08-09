@@ -34,7 +34,7 @@ CATEGORY_LABELS_KO = {
     "account": "계정/로그인",
     "avatar": "아바타 등록·학습",
     "generation": "생성/쿼터",
-    "code": "리딤 코드",
+    "code": "리딤 링크",
     "billing": "결제/구독",
     "report": "신고 (도용·권리침해)",
     "etc": "기타",

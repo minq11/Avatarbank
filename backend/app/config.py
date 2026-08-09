@@ -49,9 +49,23 @@ class Settings(BaseSettings):
     # 예: "https://avatarbank.example.com,https://www.avatarbank.example.com"
     CORS_EXTRA_ORIGINS: str = ""
 
-    # 결제 미연동 스텁으로 "유료" 플랜 구독 허용 여부.
-    # 운영에서는 False로 두고 결제(Stripe 등) 웹훅에서만 구독을 활성화할 것.
-    SUBSCRIPTION_STUB_PAID_PLANS: bool = True
+    # ------------------------------------------------------------------
+    # 크레딧 / 결제 (토스페이먼츠)
+    # ------------------------------------------------------------------
+    # 1 크레딧 = 이미지 1장. 구독제는 제거했다.
+    # 가입 축하 무료 크레딧. 생성 원가가 장당 10원대라 체험 유도용으로 지급한다.
+    SIGNUP_BONUS_CREDITS: int = 10
+    # 크리에이터가 동시에 활성화할 수 있는 리딤 코드 수 (플랜 한도를 대체하는 고정값).
+    MAX_ACTIVE_REDEEM_CODES: int = 500
+
+    # 토스페이먼츠. 테스트 키(test_ck_*, test_sk_*)로 심사 전에도 개발 가능.
+    # 시크릿 키는 절대 프론트로 내보내지 말 것 — 승인 API 는 서버에서만 호출한다.
+    TOSS_CLIENT_KEY: str = ""
+    TOSS_SECRET_KEY: str = ""
+    TOSS_API_BASE_URL: str = "https://api.tosspayments.com"
+    # 결제 완료/실패 후 돌아올 프론트 주소 (결제창에 넘긴다)
+    PAYMENT_SUCCESS_URL: str = "http://localhost:5173/payments/success"
+    PAYMENT_FAIL_URL: str = "http://localhost:5173/payments/fail"
 
     # 공개 리딤 엔드포인트(/r/*) 레이트리밋 — IP당 분당 요청 수. 0 = 비활성.
     # 리딤 생성은 크리에이터 쿼터를 소모하므로 조회보다 훨씬 낮게 잡는다.

@@ -141,7 +141,7 @@
             <h4 class="footer-brand-title">AvatarBank</h4>
             <p class="footer-brand-description">
               내 얼굴로 만드는 AI 아바타 스튜디오. 크리에이터가 직접 생성하고,
-              원할 땐 팬에게 리딤 코드를 나눠 함께 만듭니다.
+              원할 땐 팬에게 리딤 링크를 나눠 함께 만듭니다.
             </p>
           </div>
 

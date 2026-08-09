@@ -12,7 +12,7 @@ const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ||
   (import.meta.env.DEV ? "/api" : "http://localhost:8000");
 
-/** 정적/이미지 엔드포인트 절대 URL 조립용 (예: QR SVG) */
+/** 정적/이미지 엔드포인트 절대 URL 조립용 (예: 기본 소스 이미지) */
 export const apiBaseUrl = API_BASE_URL;
 
 // Create axios instance
@@ -557,28 +557,8 @@ export const trainingRequestsApi = {
 };
 
 // ---------------------------------------------------------------------------
-// Creator Studio (구독 / 템플릿 / 리딤 코드) + 팬 리딤
+// Creator Studio (템플릿 / 리딤 링크) + 팬 리딤
 // ---------------------------------------------------------------------------
-
-export interface Plan {
-  id: number;
-  code: string;
-  name: string;
-  monthly_quota: number;
-  price_usd: number;
-  max_avatars: number;
-  max_active_codes: number;
-  allow_nsfw: boolean;
-}
-
-export interface SubscriptionInfo {
-  plan_code: string;
-  plan_name: string;
-  status: string;
-  quota_remaining: number;
-  monthly_quota: number;
-  current_period_end: string | null;
-}
 
 export interface CodeItem {
   id: number;
@@ -622,22 +602,6 @@ export interface RedeemGenerateResult {
 }
 
 export const studioApi = {
-  getPlans: async (): Promise<Plan[]> => {
-    const response = await api.get<Plan[]>("/plans");
-    return response.data;
-  },
-  getSubscription: async (): Promise<SubscriptionInfo | null> => {
-    const response = await api.get<SubscriptionInfo | null>("/my/subscription");
-    return response.data;
-  },
-  subscribe: async (planCode: string): Promise<SubscriptionInfo> => {
-    const response = await api.post<SubscriptionInfo>("/my/subscription", {
-      plan_code: planCode,
-    });
-    return response.data;
-  },
-  /** QR SVG 절대 URL (리딤 링크 등을 인코딩) */
-  qrUrl: (data: string): string => `${apiBaseUrl}/qr.svg?data=${encodeURIComponent(data)}`,
   /** image-to-image 기본 소스 이미지 URL (업로드 안 했을 때 실제로 쓰이는 이미지) */
   defaultSourceImageUrl: (): string => `${apiBaseUrl}/default-source-image`,
   getCodes: async (): Promise<CodeItem[]> => {
@@ -675,12 +639,12 @@ export const studioApi = {
 };
 
 export const redeemApi = {
-  /** 팬: 코드 정보 + 사용 가능 템플릿 (비로그인) */
+  /** 팬: 링크 정보 + 사용 가능 템플릿 (비로그인) */
   getInfo: async (code: string): Promise<RedeemInfo> => {
     const response = await api.get<RedeemInfo>(`/r/${encodeURIComponent(code)}`);
     return response.data;
   },
-  /** 팬: 소스 이미지 업로드 (비로그인, 유효한 코드 필요) */
+  /** 팬: 소스 이미지 업로드 (비로그인, 유효한 링크 필요) */
   uploadSourceImage: async (code: string, file: File): Promise<SourceImage> => {
     const formData = new FormData();
     formData.append("image", file);
@@ -709,6 +673,86 @@ export const redeemApi = {
       ...(opts.loraScale !== undefined ? { lora_scale: opts.loraScale } : {}),
     });
     return response.data;
+  },
+};
+
+
+// ---------------------------------------------------------------------------
+// 크레딧 / 결제 (토스페이먼츠)
+// 1 크레딧 = 이미지 1장. 구독제는 걷어냈다.
+// ---------------------------------------------------------------------------
+
+export interface CreditPack {
+  id: number;
+  code: string;
+  name: string;
+  credits: number;
+  price_krw: number;
+}
+
+export interface CreditTransaction {
+  id: number;
+  /** purchase | generation | refund | bonus | adjust */
+  type: string;
+  /** 부호 있는 변동량. 차감이면 음수 */
+  amount: number;
+  credit_after: number | null;
+  reference_id: string | null;
+  created_at: string;
+}
+
+export interface MyCredits {
+  balance: number;
+  transactions: CreditTransaction[];
+}
+
+/** 결제창을 띄우는 데 필요한 값 일체. 금액은 서버가 확정한 것이다. */
+export interface CreditOrder {
+  order_id: string;
+  order_name: string;
+  amount_krw: number;
+  credits: number;
+  status: string;
+  client_key: string;
+  success_url: string;
+  fail_url: string;
+}
+
+export const creditsApi = {
+  getPacks: async (): Promise<CreditPack[]> => {
+    const response = await api.get<CreditPack[]>("/credits/packs");
+    return response.data;
+  },
+  getMyCredits: async (): Promise<MyCredits> => {
+    const response = await api.get<MyCredits>("/my/credits");
+    return response.data;
+  },
+  /** 결제창을 띄우기 전에 서버에 주문을 만든다 (금액 확정 = 위변조 방지의 기준). */
+  prepare: async (packCode: string): Promise<CreditOrder> => {
+    const response = await api.post<CreditOrder>("/payments/toss/prepare", {
+      pack_code: packCode,
+    });
+    return response.data;
+  },
+  /**
+   * 결제 승인. 이걸 호출해야 실제로 결제가 완료된다 — 승인하지 않으면 토스가 자동 취소한다.
+   * 갱신된 잔액을 돌려준다.
+   */
+  confirm: async (params: {
+    paymentKey: string;
+    orderId: string;
+    amount: number;
+  }): Promise<MyCredits> => {
+    const response = await api.post<MyCredits>("/payments/toss/confirm", {
+      payment_key: params.paymentKey,
+      order_id: params.orderId,
+      amount: params.amount,
+    });
+    return response.data;
+  },
+  /** 사용자가 결제창을 닫았을 때 대기 중인 주문을 정리한다. */
+  cancelOrder: async (orderId: string): Promise<void> => {
+    await api.post("/payments/toss/cancel-order", { order_id: orderId });
   },
 };
 

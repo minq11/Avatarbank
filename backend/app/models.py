@@ -150,8 +150,11 @@ class Generation(Base):
 
 
 class TransactionType(str, Enum):
-    PURCHASE = "purchase"
-    GENERATION = "generation"
+    PURCHASE = "purchase"      # 크레딧 팩 결제로 적립
+    GENERATION = "generation"  # 생성으로 차감
+    REFUND = "refund"          # 생성 실패로 환불
+    BONUS = "bonus"            # 가입 축하 등 무상 지급
+    ADJUST = "adjust"          # 관리자 수동 조정
     PAYOUT = "payout"
 
 
@@ -316,12 +319,16 @@ class TrainingRequest(Base):
 
 
 # ---------------------------------------------------------------------------
-# Creator Studio 피벗: 구독 / 요금제 / 리딤 코드 / 생성 템플릿
+# Creator Studio 피벗: 구독 / 요금제 / 리딤 링크 / 생성 템플릿
 # ---------------------------------------------------------------------------
 
 
 class Plan(Base):
-    """구독 요금제. 월 생성 쿼터(이미지 수)를 정의."""
+    """
+    DEPRECATED — 구독제를 걷어내고 장당 크레딧 구매로 전환했다(2026-08).
+    코드 경로에서는 더 이상 쓰지 않으며, 롤백 여지를 남기려고 테이블만 방치한다.
+    새 코드는 CreditPack / CreditOrder / User.credit_balance 를 쓸 것.
+    """
 
     __tablename__ = "plans"
 
@@ -345,7 +352,7 @@ class SubscriptionStatus(str, Enum):
 
 
 class Subscription(Base):
-    """크리에이터의 현재 구독 + 남은 쿼터."""
+    """DEPRECATED — Plan 과 같은 이유로 방치. 잔액은 User.credit_balance 로 이관했다."""
 
     __tablename__ = "subscriptions"
     __table_args__ = (UniqueConstraint("user_id", name="uq_subscriptions_user"),)
@@ -357,6 +364,61 @@ class Subscription(Base):
     quota_remaining = Column(Integer, nullable=False, default=0)  # 이번 주기 남은 생성 수
     current_period_start = Column(DateTime, nullable=False, default=datetime.utcnow)
     current_period_end = Column(DateTime, nullable=True)  # 다음 갱신/리셋 시점
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = Column(
+        DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+
+# ---------------------------------------------------------------------------
+# 크레딧 결제 (장당 구매). 잔액은 User.credit_balance, 이력은 Transaction.
+# ---------------------------------------------------------------------------
+
+
+class CreditPack(Base):
+    """판매 중인 크레딧 팩. 1 크레딧 = 이미지 1장."""
+
+    __tablename__ = "credit_packs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    code = Column(String, unique=True, nullable=False, index=True)  # pack30 / pack100 ...
+    name = Column(String, nullable=False)
+    credits = Column(Integer, nullable=False)
+    price_krw = Column(Integer, nullable=False)  # 부가세 포함 실제 결제 금액(원). 소수 없음
+    is_active = Column(Boolean, nullable=False, default=True)
+    sort_order = Column(Integer, nullable=False, default=0)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+
+class CreditOrderStatus(str, Enum):
+    PENDING = "pending"    # 주문 생성, 결제창 호출 전/중
+    PAID = "paid"          # 토스 승인 완료 + 크레딧 적립 완료
+    FAILED = "failed"      # 승인 실패
+    CANCELED = "canceled"  # 사용자 취소
+
+
+class CreditOrder(Base):
+    """
+    크레딧 팩 결제 주문. 토스 결제의 orderId 를 우리가 발급하고 금액을 여기 박아둔다.
+    승인 시 클라이언트가 보낸 금액이 아니라 이 행의 amount_krw 와 대조해야 한다.
+    """
+
+    __tablename__ = "credit_orders"
+
+    id = Column(Integer, primary_key=True, index=True)
+    # 토스로 넘기는 주문번호. 멱등성의 기준이므로 유니크.
+    order_id = Column(String, unique=True, nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    pack_code = Column(String, nullable=False)      # 주문 시점의 팩 코드 (팩이 바뀌어도 기록 보존)
+    pack_name = Column(String, nullable=False)      # 주문 시점의 팩 이름
+    credits = Column(Integer, nullable=False)       # 주문 시점의 크레딧 수 (적립할 양)
+    amount_krw = Column(Integer, nullable=False)    # 주문 시점의 결제 금액 — 검증 기준
+    status = Column(String, nullable=False, default=CreditOrderStatus.PENDING.value, index=True)
+    payment_key = Column(String, nullable=True, index=True)  # 토스 paymentKey
+    method = Column(String, nullable=True)          # 카드 / 간편결제 등
+    fail_reason = Column(Text, nullable=True)
+    raw_response = Column(JSONB, nullable=True)     # 토스 승인 응답 원문 (대조·CS용)
+    approved_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     updated_at = Column(
         DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
@@ -395,7 +457,7 @@ class InquiryCategory(str, Enum):
     ACCOUNT = "account"        # 계정/로그인
     AVATAR = "avatar"          # 아바타 등록·학습
     GENERATION = "generation"  # 생성/쿼터
-    CODE = "code"              # 리딤 코드
+    CODE = "code"              # 리딤 링크
     BILLING = "billing"        # 결제/구독
     REPORT = "report"          # 신고 (도용/권리침해)
     ETC = "etc"

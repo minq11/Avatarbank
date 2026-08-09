@@ -186,7 +186,7 @@
             </div>
             <div class="option-row">
               <span class="option-label-wrap option-help-wrap">
-                <span class="option-label">LoRA 강도</span>
+                <span class="option-label">아바타 일치도</span>
                 <span class="option-help" aria-label="Help" @click.stop="toggleHelp('loraScale')">?</span>
                 <div v-if="openHelpOption === 'loraScale'" class="option-help-popover option-help-popover-above">{{ optionHelpText.loraScale }}</div>
               </span>
@@ -456,7 +456,7 @@ const optionHelpText: Record<HelpOptionKey, string> = {
   imageSize: "Aspect ratio and resolution of the generated image.",
   steps: "More steps usually improve quality but take longer. 8 is a good default.",
   seed: "Same seed + same prompt gives the same image. Leave empty for random.",
-  loraScale: "How strongly to apply the avatar LoRA (0–4). 1.6 is default; higher = more avatar likeness, lower = more prompt-driven.",
+  loraScale: "아바타 얼굴을 얼마나 강하게 반영할지 (0–4). 높을수록 아바타를 닮고, 낮을수록 프롬프트대로 만들어져요.",
 };
 function toggleHelp(key: HelpOptionKey) {
   openHelpOption.value = openHelpOption.value === key ? null : key;

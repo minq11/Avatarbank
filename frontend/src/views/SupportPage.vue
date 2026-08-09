@@ -4,7 +4,7 @@
       <header class="doc-head">
         <h1>문의하기</h1>
         <p class="doc-lead">
-          계정·아바타·생성·코드 무엇이든 물어보세요. 남겨주신 이메일로 답변드립니다.
+          계정·아바타·생성·링크 무엇이든 물어보세요. 남겨주신 이메일로 답변드립니다.
           로그인하지 않아도 문의할 수 있어요.
         </p>
       </header>
@@ -30,7 +30,7 @@
           <h2>{{ isReport ? "도용·권리침해 신고" : "문의 남기기" }}</h2>
           <p v-if="isReport" class="doc-note report-note">
             내 얼굴이 무단으로 등록됐거나, 부적절한 생성물을 발견하셨다면 여기에 접수해 주세요.
-            문제가 되는 <strong>아바타 이름·리딤 코드·이미지 링크</strong>와 상황을 함께 적어주시면
+            문제가 되는 <strong>아바타 이름·리딤 링크·이미지 링크</strong>와 상황을 함께 적어주시면
             확인이 빨라져요. 처리 절차는
             <RouterLink to="/content-policy#report" class="doc-link">콘텐츠·초상권 정책</RouterLink>에
             안내돼 있어요.
@@ -113,13 +113,13 @@
               (<RouterLink to="/content-policy" class="doc-link">콘텐츠 정책</RouterLink>).
             </li>
             <li>
-              <strong>쿼터가 빨리 줄어요</strong> — 팬이 리딤 코드로 만든 이미지도 크리에이터
-              쿼터에서 차감돼요. 코드는 언제든 비활성화할 수 있어요.
+              <strong>쿼터가 빨리 줄어요</strong> — 팬이 리딤 링크로 만든 이미지도 크리에이터
+              쿼터에서 차감돼요. 링크는 언제든 비활성화할 수 있어요.
             </li>
             <li>
               <strong>사용법이 궁금해요</strong> —
               <RouterLink to="/guide" class="doc-link">크리에이터 가이드</RouterLink>에 아바타 등록부터
-              코드 공유까지 정리해 두었어요.
+              링크 공유까지 정리해 두었어요.
             </li>
           </ul>
         </section>
@@ -149,7 +149,7 @@ const categories: { value: InquiryCategory; label: string }[] = [
   { value: "account", label: "계정/로그인" },
   { value: "avatar", label: "아바타 등록·학습" },
   { value: "generation", label: "생성/쿼터" },
-  { value: "code", label: "리딤 코드" },
+  { value: "code", label: "리딤 링크" },
   { value: "billing", label: "결제/구독" },
   { value: "report", label: "신고 (도용·권리침해)" },
   { value: "etc", label: "기타" },
@@ -172,7 +172,7 @@ const isReport = computed(() => form.value.category === "report");
 
 const messagePlaceholder = computed(() =>
   isReport.value
-    ? "문제가 되는 아바타 이름·리딤 코드·이미지 링크와 상황을 구체적으로 적어주세요."
+    ? "문제가 되는 아바타 이름·리딤 링크·이미지 링크와 상황을 구체적으로 적어주세요."
     : "상황을 구체적으로 적어주시면 더 빠르게 도와드릴 수 있어요."
 );
 

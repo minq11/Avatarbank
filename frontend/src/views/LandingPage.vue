@@ -14,16 +14,9 @@
 
           <!-- Headline -->
           <h1 class="hero-title">
-            내 얼굴로,<br />
-            무엇이든 자유롭게 만드세요
+            사진 몇 장이 아바타가 되고,<br class="wide-only" />
+            아바타는 무한한 콘텐츠가 됩니다
           </h1>
-
-          <!-- Subheadline -->
-          <p class="hero-subtitle">
-            사진 몇 장으로 나만의 AI 아바타를 등록하면,
-            원하는 장면을 프롬프트로 자유롭게 생성할 수 있어요.
-            원할 땐 팬에게 리딤 코드를 나눠줘 함께 만들 수도 있습니다.
-          </p>
 
           <!-- CTAs -->
           <div class="hero-actions">
@@ -50,7 +43,8 @@
         <div class="section-header">
           <h2 class="section-title">평소 찍은 사진이 이렇게 바뀝니다</h2>
           <p class="section-description">
-            일상 사진 몇 장으로 아바타를 학습시키면, 직접 찍지 않은 장면도 내 얼굴로 만들어져요
+            일상 사진 몇 장으로 아바타를 학습시키면<br class="wide-only" />
+            직접 찍지 않은 장면도 내 얼굴로 만들어져요
           </p>
         </div>
 
@@ -176,16 +170,29 @@
           </div>
         </div>
 
-        <!-- 등록 심사 안내 -->
-        <div class="review-notice">
-          <svg class="review-notice-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M9 12l2 2 4-4" />
-            <circle cx="12" cy="12" r="10" />
-          </svg>
-          <p class="review-notice-text">
-            아바타 등록 및 학습은 관리자가 <strong>도용 여부를 확인</strong>한 뒤 진행되며,
-            승인 및 학습까지 <strong>2~7일</strong>이 소요됩니다.
-          </p>
+        <!-- 등록 심사 · 안전 정책 안내 -->
+        <div class="notice-stack">
+          <div class="review-notice">
+            <svg class="review-notice-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 12l2 2 4-4" />
+              <circle cx="12" cy="12" r="10" />
+            </svg>
+            <p class="review-notice-text">
+              학습을 요청하시면 관리자가 <strong>공식 인스타그램 DM</strong>으로 본인 확인을 진행해요.
+              DM으로 <strong>본인임이 인증된 뒤에만</strong> 학습이 시작되며, 승인 및 학습까지
+              <strong>2~7일</strong>이 소요됩니다.
+            </p>
+          </div>
+
+          <div class="review-notice review-notice--safety">
+            <svg class="review-notice-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg>
+            <p class="review-notice-text">
+              <strong>음란물·범죄적 이미지는 등록도 생성도 허용하지 않아요.</strong>
+              업로드한 사진과 생성 결과는 상시 검수되며, 위반 시 즉시 삭제되고 이용이 제한됩니다.
+            </p>
+          </div>
         </div>
       </div>
     </section>
@@ -214,20 +221,20 @@ watch(() => authStore.isInitialized, redirectIfLoggedIn);
 
 const steps = [
   {
-    title: "아바타 등록",
-    description: "정면·측면·전신 사진을 올리면 나만의 아바타를 만들어요. 관리자가 도용 여부를 확인한 뒤 승인돼요.",
+    title: "아바타 등록 · 본인 인증",
+    description: "정면·측면·전신 사진을 올려 학습을 요청하면, 공식 인스타그램 DM으로 본인임을 인증한 뒤 학습이 진행돼요.",
   },
   {
     title: "자유롭게 직접 생성",
     description: "내 아바타로 원하는 장면·의상·분위기를 프롬프트로 자유롭게 만들어요. 완전히 내 마음대로.",
   },
   {
-    title: "팬에게 코드 공유 (선택)",
-    description: "원하면 리딤 코드를 발급해 팬에게 나눠주세요. 팬은 원하는 장면을 직접 묘사해 함께 만들 수 있어요.",
+    title: "팬에게 링크 공유 (선택)",
+    description: "원하면 리딤 링크를 발급해 팬에게 나눠주세요. 팬은 원하는 장면을 직접 묘사해 함께 만들 수 있어요.",
   },
   {
     title: "실시간 현황 확인",
-    description: "내 생성물과 발급한 코드의 사용 현황을 스튜디오에서 한눈에 확인해요.",
+    description: "내 생성물과 발급한 링크의 사용 현황을 스튜디오에서 한눈에 확인해요.",
   },
 ];
 </script>
@@ -235,6 +242,36 @@ const steps = [
 <style scoped>
 .landing-page {
   width: 100%;
+}
+
+/*
+ * 한국어 줄바꿈 규칙 (페이지 전역)
+ * - keep-all: 어절(띄어쓰기) 단위로만 끊어 "자유롭게 만드 / 세요" 같은 어색한 분리를 막는다.
+ * - overflow-wrap: 끊을 공백이 없는 긴 URL·영문만 예외적으로 강제 줄바꿈.
+ * - balance/pretty: 마지막 줄에 한 단어만 남는 고아 줄을 브라우저가 알아서 없애준다.
+ */
+.landing-page :where(h1, h2, h3, h4, p, span, a, li, figcaption, strong, label) {
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+.landing-page :where(h1, h2, h3, h4) {
+  text-wrap: balance;
+}
+
+.landing-page :where(p, figcaption, li) {
+  text-wrap: pretty;
+}
+
+/* 좁은 화면에서는 고정 <br /> 대신 브라우저가 알아서 줄을 나누게 둔다 */
+.wide-only {
+  display: none;
+}
+
+@media (min-width: 640px) {
+  .wide-only {
+    display: inline;
+  }
 }
 
 /* Hero Section */
@@ -291,22 +328,14 @@ const steps = [
 }
 
 .hero-title {
-  font-size: 3rem;
+  /* 좁은 화면에서 한 어절이 통째로 넘쳐 줄이 지저분해지지 않도록 화면 폭에 맞춰 줄인다 */
+  font-size: clamp(2.125rem, 8.5vw, 3rem);
   line-height: 1.15;
   font-weight: 600;
   letter-spacing: -0.025em;
   color: #111827;
-  margin-bottom: 1.5rem;
-}
-
-.hero-subtitle {
-  font-size: 1.25rem;
-  color: #4b5563;
+  /* 서브카피가 없으므로 제목이 직접 CTA 와의 간격을 갖는다 */
   margin-bottom: 3rem;
-  max-width: 36rem;
-  margin-left: auto;
-  margin-right: auto;
-  line-height: 1.625;
 }
 
 .hero-actions {
@@ -391,7 +420,7 @@ const steps = [
 }
 
 .section-title {
-  font-size: 1.875rem;
+  font-size: clamp(1.5rem, 5.5vw, 1.875rem);
   line-height: 1.2;
   font-weight: 600;
   letter-spacing: -0.025em;
@@ -671,15 +700,35 @@ const steps = [
   line-height: 1.6;
 }
 
+.notice-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 2rem;
+}
+
 .review-notice {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  margin-top: 2rem;
   padding: 1rem 1.25rem;
   background: #eef2ff;
   border: 1px solid #c7d2fe;
   border-radius: 0.75rem;
+}
+
+/* 안전 정책 안내 — 심사 안내와 구분되도록 초록 계열 */
+.review-notice--safety {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+}
+
+.review-notice--safety .review-notice-icon {
+  color: #059669;
+}
+
+.review-notice--safety .review-notice-text {
+  color: #065f46;
 }
 
 .review-notice-icon {
@@ -719,7 +768,7 @@ const steps = [
 }
 
 .links-title {
-  font-size: 2.25rem;
+  font-size: clamp(1.75rem, 6.5vw, 2.25rem);
   line-height: 1.15;
   font-weight: 600;
   letter-spacing: -0.025em;
@@ -952,7 +1001,7 @@ const steps = [
 }
 
 .cta-title {
-  font-size: 2rem;
+  font-size: clamp(1.625rem, 6vw, 2rem);
   font-weight: 600;
   letter-spacing: -0.025em;
   color: white;

@@ -20,6 +20,7 @@ from .auth import (
     get_user_by_nickname,
     verify_token,
 )
+from . import credits
 from .config import settings
 from .db import Base, engine, get_db
 from .dependencies import get_current_user, get_current_user_optional, is_admin_email
@@ -31,12 +32,14 @@ from .models import (
     Generation,
     GenerationStatus,
     Transaction,
+    TransactionType,
     TrainingRequest,
     User,
 )
 from .fal_client import run_generation_sync
 from .inquiries import router as inquiries_router
-from .studio import router as studio_router, seed_plans
+from .payments import router as payments_router, seed_credit_packs
+from .studio import router as studio_router
 
 # Fal 프롬프트용: DB에 저장된 국적/성별 코드를 풀네임으로 변환 (KR->Korean, M->male 등)
 NATIONALITY_FOR_PROMPT = {
@@ -114,19 +117,22 @@ def on_startup() -> None:
             "JWT_SECRET_KEY is using the default value — change it before deploying."
         )
     Base.metadata.create_all(bind=engine)
-    # Creator Studio 기본 요금제 시드 (멱등)
+    # 크레딧 팩 시드 (멱등)
     from .db import SessionLocal
     db = SessionLocal()
     try:
-        seed_plans(db)
+        seed_credit_packs(db)
     except Exception:
         db.rollback()
     finally:
         db.close()
 
 
-# Creator Studio 라우터 (구독/템플릿/코드/리딤)
+# Creator Studio 라우터 (템플릿/코드/리딤/본인 생성)
 app.include_router(studio_router)
+
+# 크레딧 결제 라우터 (팩 조회 / 토스 결제 / 잔액)
+app.include_router(payments_router)
 
 # 고객 문의 라우터 (고객지원 폼 / 관리자 답장)
 app.include_router(inquiries_router)
@@ -178,17 +184,32 @@ def register(
             detail="Nickname already in use",
         )
 
-    # 새 사용자 생성
+    # 새 사용자 생성. 가입 축하 크레딧은 잔액에 바로 넣고 원장에도 남긴다
+    # (생성 원가가 장당 10원대라, 체험 없이 이탈하는 것보다 주는 편이 낫다).
+    bonus = max(0, settings.SIGNUP_BONUS_CREDITS)
     new_user = User(
         email=payload.email,
         nickname=payload.nickname,
         password_hash=get_password_hash(payload.password),
         role=payload.role,
         locale=payload.locale,
-        credit_balance=0,
+        credit_balance=bonus,
         status="active",
     )
     db.add(new_user)
+    db.flush()  # 원장에 user_id 를 넣으려면 id 가 먼저 필요하다
+    if bonus:
+        db.add(
+            Transaction(
+                user_id=new_user.id,
+                type=TransactionType.BONUS.value,
+                amount=bonus,
+                currency="CREDIT",
+                credit_before=0,
+                credit_after=bonus,
+                reference_id="signup",
+            )
+        )
     db.commit()
     db.refresh(new_user)
 
@@ -413,16 +434,9 @@ def create_generation(
             detail="This avatar has no LoRA file; image generation is not available yet.",
         )
 
-    total_credits = 1 + (avatar.credit_per_generation or 0)
-    if buyer.credit_balance < total_credits:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Insufficient credits.",
-        )
-
-    # 크레딧 선차감
-    before = buyer.credit_balance
-    buyer.credit_balance -= total_credits
+    # 1장 = 1크레딧 고정. avatar.credit_per_generation(마켓 시절의 생성당 추가 요금)은
+    # 더 이상 반영하지 않는다 — 장당 균일가로 파는 지금 구조와 맞지 않는다.
+    total_credits = 1
 
     # 안전 검사 여부는 .env 의 FAL_ENABLE_SAFETY_CHECKER 하나로만 결정한다.
     safety_on = settings.FAL_ENABLE_SAFETY_CHECKER
@@ -445,17 +459,18 @@ def create_generation(
         status=GenerationStatus.PENDING.value,
     )
     db.add(generation)
+    db.flush()  # 거래 내역에 생성 id 를 남기려면 먼저 확보해야 한다
 
-    tx = Transaction(
-        user_id=buyer.id,
-        type="generation",
-        amount=-total_credits,
-        currency="CREDIT",
-        credit_before=before,
-        credit_after=buyer.credit_balance,
-        reference_id=None,
-    )
-    db.add(tx)
+    # 크레딧 원자적 선차감. 읽고-검사하고-쓰면 동시 요청이 같은 잔액을 읽어
+    # 각자 차감하면서 잔액이 음수로 내려간다.
+    if credits.deduct(
+        db, user_id=buyer.id, amount=total_credits, reference_id=str(generation.id)
+    ) is None:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="크레딧이 부족해요.",
+        )
     db.commit()
     db.refresh(generation)
 
@@ -506,18 +521,8 @@ def create_generation(
             generation.image_url = None
             generation.status = GenerationStatus.FAILED.value
             generation.fail_reason = "Blocked: generated image was flagged as NSFW."
-            refund_before = buyer.credit_balance
-            buyer.credit_balance += total_credits
-            db.add(
-                Transaction(
-                    user_id=buyer.id,
-                    type="refund",
-                    amount=total_credits,
-                    currency="CREDIT",
-                    credit_before=refund_before,
-                    credit_after=buyer.credit_balance,
-                    reference_id=str(generation.id),
-                )
+            credits.refund(
+                db, user_id=buyer.id, amount=total_credits, reference_id=str(generation.id)
             )
         else:
             if images:
@@ -528,19 +533,9 @@ def create_generation(
     except Exception as exc:
         generation.status = GenerationStatus.FAILED.value
         generation.fail_reason = str(exc)
-
-        refund_before = buyer.credit_balance
-        buyer.credit_balance += total_credits
-        tx_refund = Transaction(
-            user_id=buyer.id,
-            type="refund",
-            amount=total_credits,
-            currency="CREDIT",
-            credit_before=refund_before,
-            credit_after=buyer.credit_balance,
-            reference_id=str(generation.id),
+        credits.refund(
+            db, user_id=buyer.id, amount=total_credits, reference_id=str(generation.id)
         )
-        db.add(tx_refund)
         db.commit()
         db.refresh(generation)
 

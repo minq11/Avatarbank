@@ -1,6 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
-from typing import Literal, Optional
+from typing import List, Literal, Optional
 
 from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 
@@ -270,40 +270,69 @@ class AvatarUpdateRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 
-class PlanResponse(BaseModel):
+# 구독 스키마(PlanResponse/SubscribeRequest/SubscriptionResponse)는 제거했다.
+# 장당 크레딧 구매로 전환 — 아래 크레딧/결제 스키마를 쓴다.
+
+
+class CreditPackResponse(BaseModel):
+    """판매 중인 크레딧 팩."""
+
     id: int
     code: str
     name: str
-    monthly_quota: int
-    price_usd: float
-    max_avatars: int
-    max_active_codes: int
-    allow_nsfw: bool
-
-    @field_validator("price_usd", mode="before")
-    @classmethod
-    def coerce_price(cls, v: Optional[Decimal | float]) -> float:
-        if v is None:
-            return 0.0
-        if isinstance(v, Decimal):
-            return float(v)
-        return v
+    credits: int
+    price_krw: int
 
     class Config:
         from_attributes = True
 
 
-class SubscribeRequest(BaseModel):
-    plan_code: str = Field(..., min_length=1, max_length=50)
+class TransactionResponse(BaseModel):
+    """크레딧 변동 내역 한 줄."""
+
+    id: int
+    type: str
+    amount: int
+    credit_after: Optional[int] = None
+    reference_id: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
 
 
-class SubscriptionResponse(BaseModel):
-    plan_code: str
-    plan_name: str
+class MyCreditsResponse(BaseModel):
+    balance: int
+    transactions: List[TransactionResponse] = []
+
+
+class TossPrepareRequest(BaseModel):
+    pack_code: str = Field(..., min_length=1, max_length=50)
+
+
+class OrderIdRequest(BaseModel):
+    order_id: str = Field(..., min_length=6, max_length=64)
+
+
+class CreditOrderResponse(BaseModel):
+    """결제창에 넘길 주문 정보. 금액은 서버가 확정한 값이다."""
+
+    order_id: str
+    order_name: str
+    amount_krw: int
+    credits: int
     status: str
-    quota_remaining: int
-    monthly_quota: int
-    current_period_end: Optional[datetime] = None
+    client_key: str
+    success_url: str
+    fail_url: str
+
+
+class TossConfirmRequest(BaseModel):
+    """결제 성공 리다이렉트로 받은 값. amount 는 검증용이며 신뢰하지 않는다."""
+
+    payment_key: str = Field(..., min_length=1, max_length=200)
+    order_id: str = Field(..., min_length=6, max_length=64)
+    amount: int = Field(..., ge=0)
 
 
 class CodeCreateRequest(BaseModel):

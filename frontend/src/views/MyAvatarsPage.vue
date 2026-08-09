@@ -55,7 +55,12 @@
         <div class="avatars-section-content">
           <div class="section-header">
             <h3 class="section-title">내 아바타</h3>
-            <button class="btn-new-request" type="button" @click="openUploadLoraModal">
+            <button
+              v-if="authStore.isAdmin"
+              class="btn-new-request"
+              type="button"
+              @click="openUploadLoraModal"
+            >
               Upload LoRA
             </button>
           </div>
@@ -69,8 +74,17 @@
           <!-- Empty -->
           <div v-else-if="avatars.length === 0" class="empty-state">
             <p>아직 아바타가 없어요</p>
-            <button class="btn-new-request" type="button" @click="openUploadLoraModal">
+            <!-- 일반 사용자는 학습 요청으로만 아바타를 만든다 -->
+            <button
+              v-if="authStore.isAdmin"
+              class="btn-new-request"
+              type="button"
+              @click="openUploadLoraModal"
+            >
               Upload LoRA
+            </button>
+            <button v-else class="btn-new-request" type="button" @click="openTrainingRequestModal">
+              학습 요청하기
             </button>
           </div>
 
@@ -1149,7 +1163,11 @@
 import { ref, computed, onMounted } from "vue";
 import { avatarsApi, trainingRequestsApi, type AvatarItem, type TrainingRequestItem, type TrainingRequestDetailItem } from "@/services/api";
 import { getAvatarPreviewUrls } from "@/utils/avatarPreview";
+import { useAuthStore } from "@/stores/auth";
 import testfaceImage from "@/assets/testface.png";
+
+// LoRA 직접 업로드는 학습 심사를 건너뛰므로 관리자에게만 노출한다.
+const authStore = useAuthStore();
 
 function getPreviewUrls(avatar: { id: number; preview_image_url?: string | null }) {
   return getAvatarPreviewUrls(avatar.id, avatar.preview_image_url ?? null);
