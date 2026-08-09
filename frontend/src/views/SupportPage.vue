@@ -108,13 +108,18 @@
               2~7일이 걸려요.
             </li>
             <li>
-              <strong>생성이 실패했어요</strong> — 실패한 생성은 쿼터가 차감되지 않아요.
-              프롬프트가 안전 필터에 걸렸을 수도 있어요
+              <strong>생성이 실패했어요</strong> — 실패한 생성은 크레딧이 차감되지 않아요 (이미
+              빠졌다면 자동으로 환원돼요). 프롬프트가 안전 필터에 걸렸을 수도 있어요
               (<RouterLink to="/content-policy" class="doc-link">콘텐츠 정책</RouterLink>).
             </li>
             <li>
-              <strong>쿼터가 빨리 줄어요</strong> — 팬이 리딤 링크로 만든 이미지도 크리에이터
-              쿼터에서 차감돼요. 링크는 언제든 비활성화할 수 있어요.
+              <strong>크레딧이 빨리 줄어요</strong> — 팬이 리딤 링크로 만든 이미지도 크리에이터
+              크레딧에서 차감돼요. 링크는 언제든 비활성화할 수 있어요.
+            </li>
+            <li>
+              <strong>결제했는데 크레딧이 안 들어왔어요</strong> — 스튜디오에서 잔액과 내역을 먼저
+              확인해 주세요. 반영이 늦어지는 경우가 있어요. 그래도 없으면 결제 일시와 금액을 적어
+              문의해 주세요. 중복 결제는 되지 않습니다.
             </li>
             <li>
               <strong>사용법이 궁금해요</strong> —
@@ -148,9 +153,9 @@ const route = useRoute();
 const categories: { value: InquiryCategory; label: string }[] = [
   { value: "account", label: "계정/로그인" },
   { value: "avatar", label: "아바타 등록·학습" },
-  { value: "generation", label: "생성/쿼터" },
+  { value: "generation", label: "생성/크레딧" },
   { value: "code", label: "리딤 링크" },
-  { value: "billing", label: "결제/구독" },
+  { value: "billing", label: "결제/환불" },
   { value: "report", label: "신고 (도용·권리침해)" },
   { value: "etc", label: "기타" },
 ];

@@ -172,7 +172,7 @@ const CATEGORY_LABELS: Record<InquiryCategory, string> = {
   avatar: "아바타 등록·학습",
   generation: "생성/크레딧",
   code: "리딤 링크",
-  billing: "결제/구독",
+  billing: "결제/환불",
   report: "신고",
   etc: "기타",
 };
