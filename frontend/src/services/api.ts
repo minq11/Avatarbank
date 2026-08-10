@@ -134,6 +134,18 @@ export const authApi = {
     return response.data;
   },
 
+  /** 구글 로그인/가입 — GIS credential(ID 토큰)을 보내면 우리 JWT 페어를 받는다 */
+  googleLogin: async (credential: string): Promise<LoginResponse> => {
+    const response = await api.post<LoginResponse>("/auth/google", { credential });
+    return response.data;
+  },
+
+  /** 인증 설정 (구글 클라이언트 ID 등 공개 값) */
+  getAuthConfig: async (): Promise<{ google_client_id: string }> => {
+    const response = await api.get<{ google_client_id: string }>("/auth/config");
+    return response.data;
+  },
+
   refreshToken: async (refreshToken: string): Promise<RefreshTokenResponse> => {
     const response = await api.post<RefreshTokenResponse>("/auth/refresh", {
       refresh_token: refreshToken,

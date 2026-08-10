@@ -13,6 +13,29 @@ export const useAuthStore = defineStore("auth", () => {
   const refreshToken = ref<string | null>(localStorage.getItem("refresh_token"));
   const isInitialized = ref(false);
 
+  // 전역 인증 모달 상태 — 어느 페이지에서든 openAuthModal() 로 띄운다 (App.vue 가 렌더링).
+  // postAuthRedirect: 로그인/가입 성공 후 이동할 경로 (홈 CTA → 가입 → 생성 페이지 흐름용)
+  const authModalOpen = ref(false);
+  const authModalMode = ref<"login" | "register">("login");
+  const postAuthRedirect = ref<string | null>(null);
+
+  const openAuthModal = (mode: "login" | "register" = "login", redirect?: string) => {
+    authModalMode.value = mode;
+    postAuthRedirect.value = redirect ?? null;
+    authModalOpen.value = true;
+  };
+
+  const closeAuthModal = () => {
+    authModalOpen.value = false;
+  };
+
+  /** 성공 시 1회성으로 리다이렉트 경로를 꺼내 간다 (없으면 null) */
+  const consumePostAuthRedirect = (): string | null => {
+    const r = postAuthRedirect.value;
+    postAuthRedirect.value = null;
+    return r;
+  };
+
   // Getters
   const isLoggedIn = computed(() => !!user.value && !!accessToken.value);
   const userRole = computed(() => user.value?.role || null);
@@ -71,6 +94,21 @@ export const useAuthStore = defineStore("auth", () => {
     }
   };
 
+  /** 구글 로그인/가입 — GIS credential 로 백엔드 인증 후 토큰 저장 */
+  const loginWithGoogle = async (credential: string) => {
+    try {
+      const response = await authApi.googleLogin(credential);
+      setTokens(response.access_token, response.refresh_token);
+      setUser(response.user);
+      return { success: true };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.detail || "구글 로그인에 실패했어요.",
+      };
+    }
+  };
+
   const logout = () => {
     clearAuth();
   };
@@ -124,9 +162,16 @@ export const useAuthStore = defineStore("auth", () => {
     isSeller,
     isAdmin,
     isInitialized,
+    // Auth modal (전역)
+    authModalOpen,
+    authModalMode,
+    openAuthModal,
+    closeAuthModal,
+    consumePostAuthRedirect,
     // Actions
     login,
     register,
+    loginWithGoogle,
     logout,
     fetchUser,
     initialize,

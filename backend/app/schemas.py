@@ -43,6 +43,18 @@ class UserLoginResponse(BaseModel):
     user: UserBase
 
 
+class GoogleLoginRequest(BaseModel):
+    """구글 로그인/가입: GIS 가 발급한 ID 토큰(credential)."""
+
+    credential: str = Field(..., min_length=20)
+
+
+class AuthConfigResponse(BaseModel):
+    """프론트 인증 설정 — 공개 가능한 값만."""
+
+    google_client_id: str = ""
+
+
 class RefreshTokenRequest(BaseModel):
     refresh_token: str
 

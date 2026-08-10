@@ -126,11 +126,12 @@
       <RouterView />
     </main>
 
-    <!-- Auth Modal -->
+    <!-- Auth Modal (전역 — 상태는 auth 스토어가 들고, 어느 페이지든 openAuthModal 로 띄운다) -->
     <AuthModal
-      :is-open="showAuthModal"
-      :initial-mode="authModalMode"
-      @close="closeAuthModal"
+      :is-open="authStore.authModalOpen"
+      :initial-mode="authStore.authModalMode"
+      @close="authStore.closeAuthModal"
+      @success="onAuthSuccess"
     />
 
     <footer class="app-footer">
@@ -229,7 +230,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-import { RouterLink, RouterView } from "vue-router";
+import { RouterLink, RouterView, useRouter } from "vue-router";
 import { useAuthStore } from "./stores/auth";
 import AuthModal from "./components/AuthModal.vue";
 import diamondIcon from "./assets/icons/diamond_credit_icon.svg";
@@ -240,11 +241,11 @@ const authStore = useAuthStore();
 // 푸터 저작권 표기 (연도 하드코딩 방지)
 const currentYear = new Date().getFullYear();
 
+const router = useRouter();
+
 const locale = ref<"en" | "ko" | "ja">("en");
 const showLanguageMenu = ref(false);
 const showProfileMenu = ref(false);
-const showAuthModal = ref(false);
-const authModalMode = ref<"login" | "register">("login");
 
 const languages = [
   { value: "en", label: "EN", flagCode: "gb" },
@@ -261,19 +262,14 @@ const selectLanguage = (value: "en" | "ko" | "ja") => {
   showLanguageMenu.value = false;
 };
 
-// Auth modal related
-const openLoginModal = () => {
-  authModalMode.value = "login";
-  showAuthModal.value = true;
-};
+// Auth modal related (상태는 스토어)
+const openLoginModal = () => authStore.openAuthModal("login");
+const openRegisterModal = () => authStore.openAuthModal("register");
 
-const openRegisterModal = () => {
-  authModalMode.value = "register";
-  showAuthModal.value = true;
-};
-
-const closeAuthModal = () => {
-  showAuthModal.value = false;
+// 로그인/가입 성공: 예약된 리다이렉트가 있으면 이동 (홈 CTA → 가입 → 생성 페이지)
+const onAuthSuccess = () => {
+  const redirect = authStore.consumePostAuthRedirect();
+  if (redirect) router.push(redirect);
 };
 
 // Logout

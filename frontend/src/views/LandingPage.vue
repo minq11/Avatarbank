@@ -20,12 +20,12 @@
 
           <!-- CTAs -->
           <div class="hero-actions">
-            <RouterLink to="/my/avatars" class="btn-primary-hero">
+            <button type="button" class="btn-primary-hero" @click="goCreateAvatar">
               <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
               </svg>
-              내 아바타 등록하기
-            </RouterLink>
+              아바타 생성 요청하기
+            </button>
             <a href="#how" class="btn-secondary-hero">
               작동 방식 보기
               <svg class="arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -201,7 +201,7 @@
 
 <script setup lang="ts">
 import { onMounted, watch } from "vue";
-import { RouterLink, useRouter } from "vue-router";
+import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 // 쇼케이스 이미지 — Vite 가 해시를 붙여 번들·캐싱한다.
 import sourcePicturesImg from "@/assets/showcase/source_pictures.jpg";
@@ -218,6 +218,16 @@ function redirectIfLoggedIn() {
 }
 onMounted(redirectIfLoggedIn);
 watch(() => authStore.isInitialized, redirectIfLoggedIn);
+
+// 메인 CTA: 아바타 생성으로 유인.
+// 로그인 상태면 바로 생성 페이지로, 아니면 회원가입 모달 → 성공 시 생성 페이지로 리다이렉트.
+function goCreateAvatar() {
+  if (authStore.isLoggedIn) {
+    router.push("/my/avatars/new");
+  } else {
+    authStore.openAuthModal("register", "/my/avatars/new");
+  }
+}
 
 const steps = [
   {

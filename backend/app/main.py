@@ -53,6 +53,7 @@ GENDER_FOR_PROMPT = {"M": "male", "W": "female", "ETC": " "}
 from .schemas import (
     AdminTrainingRequestResponse,
     AdminUpgradeRequest,
+    AuthConfigResponse,
     AvatarCommentCreateRequest,
     AvatarCommentResponse,
     AvatarDetailResponse,
@@ -66,6 +67,7 @@ from .schemas import (
     GalleryItemResponse,
     GenerationCreateRequest,
     GenerationResponse,
+    GoogleLoginRequest,
     RefreshTokenRequest,
     RefreshTokenResponse,
     TrainingRequestResponse,
@@ -238,6 +240,132 @@ def login(
     access_token = create_access_token(data={"sub": user.id})
     refresh_token = create_refresh_token(data={"sub": user.id})
 
+    return UserLoginResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        token_type="bearer",
+        user=UserBase.model_validate(user),
+    )
+
+
+@app.get("/auth/config", response_model=AuthConfigResponse, tags=["auth"])
+def get_auth_config() -> AuthConfigResponse:
+    """프론트 인증 설정. 구글 클라이언트 ID 는 공개 값이라 그대로 내려간다."""
+    return AuthConfigResponse(google_client_id=settings.GOOGLE_CLIENT_ID)
+
+
+def _unique_nickname_from_google(db: Session, name: Optional[str], email: str) -> str:
+    """구글 프로필 이름/이메일에서 3~20자 유니크 닉네임을 만든다."""
+    import re
+    import secrets as _secrets
+
+    base = (name or email.split("@")[0] or "user").strip()
+    # 닉네임 규칙(3~20자)에 맞게 공백 제거 + 길이 제한
+    base = re.sub(r"\s+", "", base)[:20]
+    if len(base) < 3:
+        base = f"user{base}"[:20]
+    candidate = base
+    for _ in range(10):
+        if not get_user_by_nickname(db, candidate):
+            return candidate
+        suffix = _secrets.token_hex(2)  # 4자
+        candidate = f"{base[: 20 - len(suffix)]}{suffix}"
+    return f"user{_secrets.token_hex(6)}"[:20]
+
+
+@app.post("/auth/google", response_model=UserLoginResponse, tags=["auth"])
+def google_login(
+    payload: GoogleLoginRequest,
+    db: Session = Depends(get_db),
+) -> UserLoginResponse:
+    """
+    구글 로그인/회원가입 (하나의 엔드포인트).
+    GIS ID 토큰을 구글 tokeninfo 로 검증한 뒤, 이메일 기준으로 기존 계정 로그인
+    또는 신규 가입(가입 축하 크레딧 포함) 처리하고 우리 JWT 를 발급한다.
+    """
+    import secrets as _secrets
+
+    import httpx
+
+    if not settings.GOOGLE_CLIENT_ID:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="구글 로그인이 아직 설정되지 않았어요.",
+        )
+
+    # 구글 서버에서 토큰 서명·만료 검증 (tokeninfo 는 유효하지 않으면 4xx 를 돌려준다)
+    try:
+        resp = httpx.get(
+            "https://oauth2.googleapis.com/tokeninfo",
+            params={"id_token": payload.credential},
+            timeout=10,
+        )
+    except httpx.HTTPError:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="구글 인증 서버에 연결하지 못했어요. 잠시 후 다시 시도해 주세요.",
+        )
+    if resp.status_code != 200:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="구글 인증에 실패했어요. 다시 시도해 주세요.",
+        )
+    claims = resp.json()
+
+    # 토큰이 '우리 앱' 대상으로 발급됐는지 + 발급자 + 이메일 검증 여부 확인
+    if claims.get("aud") != settings.GOOGLE_CLIENT_ID:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="잘못된 토큰이에요.")
+    if claims.get("iss") not in ("accounts.google.com", "https://accounts.google.com"):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="잘못된 토큰이에요.")
+    email = (claims.get("email") or "").strip().lower()
+    if not email or str(claims.get("email_verified")).lower() != "true":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="이메일이 확인된 구글 계정만 사용할 수 있어요.",
+        )
+
+    user = get_user_by_email(db, email)
+    if user and user.status != "active":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="이용이 제한된 계정이에요.",
+        )
+
+    if not user:
+        # 신규 가입 — 일반 가입과 동일하게 축하 크레딧 지급.
+        # 구글 계정엔 비밀번호가 없으므로 아무도 모르는 랜덤 값을 해시해 저장한다
+        # (이메일/비밀번호 로그인은 불가, 필요 시 비밀번호 변경 기능으로 설정).
+        bonus = max(0, settings.SIGNUP_BONUS_CREDITS)
+        user = User(
+            email=email,
+            nickname=_unique_nickname_from_google(db, claims.get("name"), email),
+            password_hash=get_password_hash(_secrets.token_urlsafe(32)),
+            role="buyer",
+            locale="ko",
+            credit_balance=bonus,
+            status="active",
+        )
+        db.add(user)
+        db.flush()
+        if bonus:
+            db.add(
+                Transaction(
+                    user_id=user.id,
+                    type=TransactionType.BONUS.value,
+                    amount=bonus,
+                    currency="CREDIT",
+                    credit_before=0,
+                    credit_after=bonus,
+                    reference_id="signup",
+                )
+            )
+
+    user.last_login_at = datetime.utcnow()
+    db.commit()
+    db.refresh(user)
+
+    access_token = create_access_token(data={"sub": user.id})
+    refresh_token = create_refresh_token(data={"sub": user.id})
     return UserLoginResponse(
         access_token=access_token,
         refresh_token=refresh_token,

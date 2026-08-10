@@ -9,12 +9,12 @@
 
       <!-- Login Form -->
       <div v-if="mode === 'login'" class="auth-form">
-        <h2 class="form-title">Login</h2>
-        <p class="form-subtitle">Welcome back! Please login to your account.</p>
+        <h2 class="form-title">로그인</h2>
+        <p class="form-subtitle">다시 만나서 반가워요! 계정으로 로그인해 주세요.</p>
 
         <form @submit.prevent="handleLogin" class="form">
           <div class="form-group">
-            <label for="login-email">Email</label>
+            <label for="login-email">이메일</label>
             <input
               id="login-email"
               v-model="loginEmail"
@@ -26,7 +26,7 @@
           </div>
 
           <div class="form-group">
-            <label for="login-password">Password</label>
+            <label for="login-password">비밀번호</label>
             <input
               id="login-password"
               v-model="loginPassword"
@@ -42,13 +42,20 @@
           </div>
 
           <button type="submit" class="btn-primary" :disabled="isLoading">
-            {{ isLoading ? "Logging in..." : "Login" }}
+            {{ isLoading ? "로그인 중…" : "로그인" }}
           </button>
 
+          <!-- 구글 로그인 (클라이언트 ID 설정 시에만 표시) -->
+          <template v-if="googleReady">
+            <div class="divider"><span>또는</span></div>
+            <div ref="googleBtnLogin" class="google-btn-slot"></div>
+          </template>
+          <div v-if="googleError" class="error-message">{{ googleError }}</div>
+
           <p class="form-footer">
-            Don't have an account?
+            아직 계정이 없나요?
             <button type="button" @click="mode = 'register'" class="link-button">
-              Sign up
+              회원가입
             </button>
           </p>
         </form>
@@ -56,12 +63,14 @@
 
       <!-- Register Form -->
       <div v-else class="auth-form">
-        <h2 class="form-title">Sign Up</h2>
-        <p class="form-subtitle">Create a new account to get started.</p>
+        <h2 class="form-title">회원가입</h2>
+        <p class="form-subtitle">
+          가입하면 무료 크레딧을 드려요. 바로 아바타를 만들어보세요.
+        </p>
 
         <form @submit.prevent="handleRegister" class="form">
           <div class="form-group">
-            <label for="register-nickname">Nickname</label>
+            <label for="register-nickname">닉네임</label>
             <input
               id="register-nickname"
               v-model="registerNickname"
@@ -69,13 +78,13 @@
               required
               minlength="3"
               maxlength="20"
-              placeholder="Your nickname"
+              placeholder="닉네임 (3~20자)"
               class="form-input"
             />
           </div>
 
           <div class="form-group">
-            <label for="register-email">Email</label>
+            <label for="register-email">이메일</label>
             <input
               id="register-email"
               v-model="registerEmail"
@@ -87,14 +96,14 @@
           </div>
 
           <div class="form-group">
-            <label for="register-password">Password</label>
+            <label for="register-password">비밀번호</label>
             <input
               id="register-password"
               v-model="registerPassword"
               type="password"
               required
               minlength="8"
-              placeholder="At least 8 characters"
+              placeholder="8자 이상"
               class="form-input"
             />
           </div>
@@ -104,13 +113,20 @@
           </div>
 
           <button type="submit" class="btn-primary" :disabled="isLoading">
-            {{ isLoading ? "Creating account..." : "Sign Up" }}
+            {{ isLoading ? "가입 중…" : "회원가입" }}
           </button>
 
+          <!-- 구글로 바로 가입 -->
+          <template v-if="googleReady">
+            <div class="divider"><span>또는</span></div>
+            <div ref="googleBtnRegister" class="google-btn-slot"></div>
+          </template>
+          <div v-if="googleError" class="error-message">{{ googleError }}</div>
+
           <p class="form-footer">
-            Already have an account?
+            이미 계정이 있나요?
             <button type="button" @click="mode = 'login'" class="link-button">
-              Login
+              로그인
             </button>
           </p>
         </form>
@@ -120,8 +136,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { nextTick, ref, watch } from "vue";
 import { useAuthStore } from "../stores/auth";
+import { authApi } from "../services/api";
 
 const props = defineProps<{
   isOpen: boolean;
@@ -130,6 +147,8 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   close: [];
+  /** 로그인/가입이 실제로 성공했을 때 (닫기와 구분 — 리다이렉트 트리거용) */
+  success: [];
 }>();
 
 const authStore = useAuthStore();
@@ -148,6 +167,68 @@ const registerEmail = ref("");
 const registerPassword = ref("");
 const registerNickname = ref("");
 
+// ---------------------------------------------------------------------------
+// 구글 로그인 (Google Identity Services)
+// ---------------------------------------------------------------------------
+const googleReady = ref(false);
+const googleError = ref("");
+const googleBtnLogin = ref<HTMLElement | null>(null);
+const googleBtnRegister = ref<HTMLElement | null>(null);
+let googleClientId: string | null = null; // null = 아직 안 가져옴, "" = 미설정
+let googleInitialized = false;
+
+async function fetchGoogleClientId(): Promise<string> {
+  if (googleClientId !== null) return googleClientId;
+  try {
+    const cfg = await authApi.getAuthConfig();
+    googleClientId = cfg.google_client_id || "";
+  } catch {
+    googleClientId = "";
+  }
+  return googleClientId;
+}
+
+async function handleGoogleCredential(response: { credential: string }) {
+  googleError.value = "";
+  isLoading.value = true;
+  const result = await authStore.loginWithGoogle(response.credential);
+  isLoading.value = false;
+  if (result.success) {
+    emit("success");
+    closeModal();
+  } else {
+    googleError.value = result.error || "구글 로그인에 실패했어요.";
+  }
+}
+
+/** 모달이 열릴 때 구글 버튼을 렌더링 (클라이언트 ID + GIS 스크립트가 있을 때만) */
+async function setupGoogleButton() {
+  const clientId = await fetchGoogleClientId();
+  const gsi = (window as any).google?.accounts?.id;
+  if (!clientId || !gsi) {
+    googleReady.value = false;
+    return;
+  }
+  if (!googleInitialized) {
+    gsi.initialize({ client_id: clientId, callback: handleGoogleCredential });
+    googleInitialized = true;
+  }
+  googleReady.value = true;
+  await nextTick();
+  // 현재 보이는 폼의 슬롯에만 렌더 (탭 전환 시에도 다시 호출된다)
+  const slot = mode.value === "login" ? googleBtnLogin.value : googleBtnRegister.value;
+  if (slot) {
+    slot.innerHTML = "";
+    gsi.renderButton(slot, {
+      theme: "outline",
+      size: "large",
+      width: 320,
+      text: mode.value === "login" ? "signin_with" : "signup_with",
+      locale: "ko",
+    });
+  }
+}
+
 // Initialize mode when modal opens
 watch(
   () => props.isOpen,
@@ -156,14 +237,21 @@ watch(
       mode.value = props.initialMode || "login";
       loginError.value = "";
       registerError.value = "";
+      googleError.value = "";
       loginEmail.value = "";
       loginPassword.value = "";
       registerNickname.value = "";
       registerEmail.value = "";
       registerPassword.value = "";
+      setupGoogleButton();
     }
   }
 );
+
+// 로그인 ↔ 가입 탭 전환 시 해당 폼 슬롯에 구글 버튼 다시 렌더
+watch(mode, () => {
+  if (props.isOpen) setupGoogleButton();
+});
 
 const closeModal = () => {
   emit("close");
@@ -182,9 +270,10 @@ const handleLogin = async () => {
   const result = await authStore.login(loginEmail.value, loginPassword.value);
 
   if (result.success) {
+    emit("success");
     closeModal();
   } else {
-    loginError.value = result.error || "Login failed";
+    loginError.value = result.error || "로그인에 실패했어요.";
   }
 
   isLoading.value = false;
@@ -202,9 +291,10 @@ const handleRegister = async () => {
   );
 
   if (result.success) {
+    emit("success");
     closeModal();
   } else {
-    registerError.value = result.error || "Registration failed";
+    registerError.value = result.error || "회원가입에 실패했어요.";
   }
 
   isLoading.value = false;
@@ -350,6 +440,28 @@ const handleRegister = async () => {
   border-radius: 0.5rem;
   color: #dc2626;
   font-size: 0.875rem;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #9ca3af;
+  font-size: 0.8rem;
+}
+
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: #e5e7eb;
+}
+
+.google-btn-slot {
+  display: flex;
+  justify-content: center;
+  min-height: 44px;
 }
 
 .form-footer {

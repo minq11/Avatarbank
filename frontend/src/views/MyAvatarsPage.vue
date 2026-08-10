@@ -10,7 +10,7 @@
         <div class="training-request-section">
           <div class="section-header">
             <h3 class="section-title">학습 요청</h3>
-            <button class="btn-new-request" type="button" @click="openTrainingRequestModal">
+            <button class="btn-new-request" type="button" @click="goToCreatePage">
               New Request
             </button>
           </div>
@@ -83,7 +83,7 @@
             >
               Upload LoRA
             </button>
-            <button v-else class="btn-new-request" type="button" @click="openTrainingRequestModal">
+            <button v-else class="btn-new-request" type="button" @click="goToCreatePage">
               학습 요청하기
             </button>
           </div>
@@ -117,452 +117,6 @@
               </span>
             </div>
           </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Training Request Modal -->
-    <div v-if="showTrainingRequestModal" class="modal-overlay">
-      <div class="modal-card training-modal">
-        <div class="modal-header">
-          <h3>아바타 학습 요청</h3>
-          <button class="modal-close" type="button" @click="closeTrainingRequestModal">×</button>
-        </div>
-
-        <div class="modal-body">
-          <!-- Basic Information Input -->
-          <div class="form-section">
-            <h4 class="form-section-title">기본 정보</h4>
-            
-            <div class="form-group">
-              <label class="form-label">아바타 이름 <span class="required">*</span></label>
-              <input
-                v-model="trainingForm.avatarName"
-                type="text"
-                class="form-input"
-                placeholder="아바타 이름을 입력하세요"
-              />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">실존 인물 기반 아바타인가요? <span class="required">*</span></label>
-              <div class="radio-group">
-                <label class="radio-label">
-                  <input
-                    v-model="trainingForm.isRealPerson"
-                    type="radio"
-                    :value="true"
-                    class="radio-input"
-                  />
-                  <span>예</span>
-                </label>
-                <label class="radio-label">
-                  <input
-                    v-model="trainingForm.isRealPerson"
-                    type="radio"
-                    :value="false"
-                    class="radio-input"
-                  />
-                  <span>아니오</span>
-                </label>
-              </div>
-            </div>
-
-            <template v-if="trainingForm.isRealPerson === true">
-              <div class="form-group">
-                <label class="form-label">인스타그램 ID <span class="required">*</span></label>
-                <input
-                  v-model="trainingForm.instagramId"
-                  type="text"
-                  class="form-input"
-                  placeholder="인스타그램 ID를 입력하세요"
-                />
-              </div>
-              <div class="info-box">
-                <p>
-                  본인 요청임을 DM으로 확인해 주세요 (<a
-                    href="https://www.instagram.com/avatarbank_official/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >@avatarbank_official</a>).
-                </p>
-                <p>본인 요청이 아니면 학습을 진행하지 않아요.</p>
-              </div>
-            </template>
-
-            <div class="form-group">
-              <label class="form-label">네거티브 프롬프트 <span class="required">*</span></label>
-              <input
-                v-model="trainingForm.negativePrompt"
-                type="text"
-                class="form-input"
-                placeholder="네거티브 프롬프트를 입력하세요"
-              />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">생성당 크레딧 <span class="required">*</span></label>
-              <input
-                v-model.number="trainingForm.creditPerGeneration"
-                type="number"
-                min="1"
-                class="form-input"
-                placeholder="생성당 크레딧"
-              />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">국가 <span class="required">*</span></label>
-              <select v-model="trainingForm.national" class="form-input">
-                <option value="">국가 선택</option>
-                <option value="KR">Korea</option>
-                <option value="US">United States</option>
-                <option value="JP">Japan</option>
-                <option value="CN">China</option>
-                <option value="GB">United Kingdom</option>
-                <option value="FR">France</option>
-                <option value="DE">Germany</option>
-                <option value="IT">Italy</option>
-                <option value="ES">Spain</option>
-                <option value="BR">Brazil</option>
-                <option value="IN">India</option>
-                <option value="RU">Russia</option>
-                <option value="AU">Australia</option>
-                <option value="CA">Canada</option>
-                <option value="MX">Mexico</option>
-                <option value="ETC">Other</option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">성별 <span class="required">*</span></label>
-              <div class="radio-group">
-                <label class="radio-label">
-                  <input
-                    v-model="trainingForm.gender"
-                    type="radio"
-                    value="M"
-                    class="radio-input"
-                  />
-                  <span>남성</span>
-                </label>
-                <label class="radio-label">
-                  <input
-                    v-model="trainingForm.gender"
-                    type="radio"
-                    value="W"
-                    class="radio-input"
-                  />
-                  <span>여성</span>
-                </label>
-                <label class="radio-label">
-                  <input
-                    v-model="trainingForm.gender"
-                    type="radio"
-                    value="Etc"
-                    class="radio-input"
-                  />
-                  <span>기타</span>
-                </label>
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">나이 <span class="field-optional">(선택)</span></label>
-              <input
-                v-model.number="trainingForm.age"
-                type="number"
-                min="1"
-                max="120"
-                class="form-input"
-                placeholder="나이"
-              />
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">설명 <span class="required">*</span></label>
-              <textarea
-                v-model="trainingForm.description"
-                class="form-textarea"
-                rows="4"
-                placeholder="아바타 설명을 입력하세요"
-              ></textarea>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">대표 이미지 <span class="required">*</span></label>
-              <div class="file-upload-wrapper">
-                <input
-                  ref="previewImageInput"
-                  type="file"
-                  accept="image/*"
-                  class="file-input"
-                  @change="handlePreviewImageChange"
-                />
-                <div v-if="trainingForm.previewImage" class="preview-image">
-                  <img :src="trainingForm.previewImageUrl" alt="Preview" />
-                  <button
-                    type="button"
-                    class="remove-image-btn"
-                    @click="removePreviewImage"
-                  >
-                    ×
-                  </button>
-                </div>
-                <button
-                  v-else
-                  type="button"
-                  class="file-upload-btn"
-                  @click="previewImageInput?.click()"
-                >
-                  이미지 선택
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Training Photos Upload -->
-          <div class="form-section">
-            <h4 class="form-section-title">학습 사진 업로드</h4>
-
-            <!-- Front -->
-            <div class="photo-category">
-              <label class="category-label">정면 <span class="required">최소 4장</span></label>
-              <div class="photo-slots">
-                <label
-                  v-for="(slot, index) in trainingForm.frontPhotos"
-                  :key="`front-${index}`"
-                  class="photo-slot"
-                >
-                  <img
-                    v-if="slot.url"
-                    :src="slot.url"
-                    alt="Front photo"
-                    class="slot-image"
-                  />
-                  <div v-else class="slot-placeholder">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                      <polyline points="17 8 12 3 7 8"/>
-                      <line x1="12" y1="3" x2="12" y2="15"/>
-                    </svg>
-                  </div>
-                  <button
-                    v-if="slot.url"
-                    type="button"
-                    class="remove-photo-btn"
-                    @click.stop="removePhoto('front', index)"
-                  >
-                    ×
-                  </button>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    class="hidden-file-input"
-                    @change="(e) => handlePhotoUpload('front', index, e)"
-                  />
-                </label>
-                <input
-                  ref="frontPhotosInput"
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  class="hidden-file-input"
-                  @change="(e) => handleMultiplePhotoUpload('front', e)"
-                />
-                <button
-                  type="button"
-                  class="add-photo-btn"
-                  @click="frontPhotosInput?.click()"
-                >
-                  + 사진 추가
-                </button>
-              </div>
-            </div>
-
-            <!-- Side -->
-            <div class="photo-category">
-              <label class="category-label">측면 <span class="required">최소 4장</span></label>
-              <div class="photo-slots">
-                <label
-                  v-for="(slot, index) in trainingForm.sidePhotos"
-                  :key="`side-${index}`"
-                  class="photo-slot"
-                >
-                  <img
-                    v-if="slot.url"
-                    :src="slot.url"
-                    alt="Side photo"
-                    class="slot-image"
-                  />
-                  <div v-else class="slot-placeholder">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                      <polyline points="17 8 12 3 7 8"/>
-                      <line x1="12" y1="3" x2="12" y2="15"/>
-                    </svg>
-                  </div>
-                  <button
-                    v-if="slot.url"
-                    type="button"
-                    class="remove-photo-btn"
-                    @click.stop="removePhoto('side', index)"
-                  >
-                    ×
-                  </button>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    class="hidden-file-input"
-                    @change="(e) => handlePhotoUpload('side', index, e)"
-                  />
-                </label>
-                <input
-                  ref="sidePhotosInput"
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  class="hidden-file-input"
-                  @change="(e) => handleMultiplePhotoUpload('side', e)"
-                />
-                <button
-                  type="button"
-                  class="add-photo-btn"
-                  @click="sidePhotosInput?.click()"
-                >
-                  + 사진 추가
-                </button>
-              </div>
-            </div>
-
-            <!-- Full Body -->
-            <div class="photo-category">
-              <label class="category-label">전신 <span class="required">최소 1장</span></label>
-              <div class="photo-slots">
-                <label
-                  v-for="(slot, index) in trainingForm.fullBodyPhotos"
-                  :key="`fullbody-${index}`"
-                  class="photo-slot"
-                >
-                  <img
-                    v-if="slot.url"
-                    :src="slot.url"
-                    alt="Full body photo"
-                    class="slot-image"
-                  />
-                  <div v-else class="slot-placeholder">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                      <polyline points="17 8 12 3 7 8"/>
-                      <line x1="12" y1="3" x2="12" y2="15"/>
-                    </svg>
-                  </div>
-                  <button
-                    v-if="slot.url"
-                    type="button"
-                    class="remove-photo-btn"
-                    @click.stop="removePhoto('fullbody', index)"
-                  >
-                    ×
-                  </button>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    class="hidden-file-input"
-                    @change="(e) => handlePhotoUpload('fullbody', index, e)"
-                  />
-                </label>
-                <input
-                  ref="fullBodyPhotosInput"
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  class="hidden-file-input"
-                  @change="(e) => handleMultiplePhotoUpload('fullbody', e)"
-                />
-                <button
-                  type="button"
-                  class="add-photo-btn"
-                  @click="fullBodyPhotosInput?.click()"
-                >
-                  + 사진 추가
-                </button>
-              </div>
-            </div>
-
-            <!-- Other -->
-            <div class="photo-category">
-              <label class="category-label">기타 <span class="required">최소 1장</span></label>
-              <div class="photo-slots">
-                <label
-                  v-for="(slot, index) in trainingForm.otherPhotos"
-                  :key="`other-${index}`"
-                  class="photo-slot"
-                >
-                  <img
-                    v-if="slot.url"
-                    :src="slot.url"
-                    alt="Other photo"
-                    class="slot-image"
-                  />
-                  <div v-else class="slot-placeholder">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                      <polyline points="17 8 12 3 7 8"/>
-                      <line x1="12" y1="3" x2="12" y2="15"/>
-                    </svg>
-                  </div>
-                  <button
-                    v-if="slot.url"
-                    type="button"
-                    class="remove-photo-btn"
-                    @click.stop="removePhoto('other', index)"
-                  >
-                    ×
-                  </button>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    class="hidden-file-input"
-                    @change="(e) => handlePhotoUpload('other', index, e)"
-                  />
-                </label>
-                <input
-                  ref="otherPhotosInput"
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  class="hidden-file-input"
-                  @change="(e) => handleMultiplePhotoUpload('other', e)"
-                />
-                <button
-                  type="button"
-                  class="add-photo-btn"
-                  @click="otherPhotosInput?.click()"
-                >
-                  + 사진 추가
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="modal-footer">
-          <button
-            class="btn-secondary"
-            type="button"
-            @click="closeTrainingRequestModal"
-          >
-            닫기
-          </button>
-          <button
-            class="btn-primary"
-            type="button"
-            :disabled="!isTrainingFormValid || submitting"
-            @click="submitTrainingRequest"
-          >
-            {{ submitting ? "제출 중…" : "요청 제출" }}
-          </button>
         </div>
       </div>
     </div>
@@ -1161,13 +715,19 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
+import { useRouter } from "vue-router";
 import { avatarsApi, trainingRequestsApi, type AvatarItem, type TrainingRequestItem, type TrainingRequestDetailItem } from "@/services/api";
 import { getAvatarPreviewUrls } from "@/utils/avatarPreview";
 import { useAuthStore } from "@/stores/auth";
-import testfaceImage from "@/assets/testface.png";
 
 // LoRA 직접 업로드는 학습 심사를 건너뛰므로 관리자에게만 노출한다.
 const authStore = useAuthStore();
+const router = useRouter();
+
+// 생성 요청은 팝업이 아니라 전용 페이지에서 한다
+function goToCreatePage() {
+  router.push("/my/avatars/new");
+}
 
 function getPreviewUrls(avatar: { id: number; preview_image_url?: string | null }) {
   return getAvatarPreviewUrls(avatar.id, avatar.preview_image_url ?? null);
@@ -1212,25 +772,18 @@ const previewImageFallbackUrl = computed(() => {
 });
 
 // Refs for file inputs
-const previewImageInput = ref<HTMLInputElement | null>(null);
 const editPreviewImageInput = ref<HTMLInputElement | null>(null);
 const uploadLoraPreviewInput = ref<HTMLInputElement | null>(null);
 const uploadLoraFileInput = ref<HTMLInputElement | null>(null);
-const frontPhotosInput = ref<HTMLInputElement | null>(null);
-const sidePhotosInput = ref<HTMLInputElement | null>(null);
-const fullBodyPhotosInput = ref<HTMLInputElement | null>(null);
-const otherPhotosInput = ref<HTMLInputElement | null>(null);
 
 // State
 const loadingRequests = ref(false);
 const loadingAvatars = ref(false);
 const trainingRequests = ref<TrainingRequestItem[]>([]);
 const avatars = ref<AvatarItem[]>([]);
-const showTrainingRequestModal = ref(false);
 const showUploadLoraModal = ref(false);
 const selectedAvatar = ref<AvatarItem | null>(null);
 const selectedRequest = ref<TrainingRequestDetailItem | null>(null);
-const submitting = ref(false);
 const uploadingLora = ref(false);
 const saving = ref(false);
 const uploadProgress = ref(0);
@@ -1238,25 +791,6 @@ const cancelling = ref(false);
 const deletingRequest = ref(false);
 const deletingAvatar = ref(false);
 const loadingRequestDetail = ref(false);
-
-// Training request form
-const trainingForm = ref({
-  avatarName: "",
-  negativePrompt: "",
-  creditPerGeneration: 1,
-  national: "",
-  gender: "",
-  age: null as number | null,
-  description: "",
-  previewImage: null as File | null,
-  previewImageUrl: "",
-  isRealPerson: null as boolean | null,
-  instagramId: "",
-  frontPhotos: [] as Array<{ file: File | null; url: string }>,
-  sidePhotos: [] as Array<{ file: File | null; url: string }>,
-  fullBodyPhotos: [] as Array<{ file: File | null; url: string }>,
-  otherPhotos: [] as Array<{ file: File | null; url: string }>,
-});
 
 // Edit form
 const editForm = ref({
@@ -1282,26 +816,6 @@ const uploadLoraForm = ref({
   previewImage: null as File | null,
   previewImageUrl: "",
   loraFile: null as File | null,
-});
-
-// Form validation
-const isTrainingFormValid = computed(() => {
-  const form = trainingForm.value;
-  return (
-    form.avatarName.trim() !== "" &&
-    form.negativePrompt.trim() !== "" &&
-    form.creditPerGeneration > 0 &&
-    form.national !== "" &&
-    form.gender !== "" &&
-    form.description.trim() !== "" &&
-    form.previewImage !== null &&
-    form.isRealPerson !== null &&
-    (form.isRealPerson === false || form.instagramId.trim() !== "") &&
-    form.frontPhotos.filter(p => p.file !== null).length >= 4 &&
-    form.sidePhotos.filter(p => p.file !== null).length >= 4 &&
-    form.fullBodyPhotos.filter(p => p.file !== null).length >= 1 &&
-    form.otherPhotos.filter(p => p.file !== null).length >= 1
-  );
 });
 
 // Training Request와 동일 필수값 (사진 관련만 제외). Credit per generation은 0 허용.
@@ -1385,16 +899,6 @@ function getStatusClass(status: string): string {
 }
 
 // Modal management
-async function openTrainingRequestModal() {
-  showTrainingRequestModal.value = true;
-  await resetTrainingForm();
-}
-
-function closeTrainingRequestModal() {
-  showTrainingRequestModal.value = false;
-  resetTrainingForm();
-}
-
 function openUploadLoraModal() {
   uploadLoraForm.value = {
     avatarName: "",
@@ -1464,77 +968,6 @@ async function submitUploadLora() {
   } finally {
     uploadingLora.value = false;
   }
-}
-
-// Load default image as File
-async function loadDefaultImage(): Promise<File> {
-  const response = await fetch(testfaceImage);
-  const blob = await response.blob();
-  return new File([blob], "testface.png", { type: blob.type });
-}
-
-async function resetTrainingForm() {
-  // Revoke all existing object URLs to prevent memory leaks
-  trainingForm.value.frontPhotos.forEach(slot => {
-    if (slot.url) URL.revokeObjectURL(slot.url);
-  });
-  trainingForm.value.sidePhotos.forEach(slot => {
-    if (slot.url) URL.revokeObjectURL(slot.url);
-  });
-  trainingForm.value.fullBodyPhotos.forEach(slot => {
-    if (slot.url) URL.revokeObjectURL(slot.url);
-  });
-  trainingForm.value.otherPhotos.forEach(slot => {
-    if (slot.url) URL.revokeObjectURL(slot.url);
-  });
-  if (trainingForm.value.previewImageUrl) {
-    URL.revokeObjectURL(trainingForm.value.previewImageUrl);
-  }
-  
-  // Reset form fields
-  trainingForm.value = {
-    avatarName: "",
-    negativePrompt: "",
-    creditPerGeneration: 1,
-    national: "",
-    gender: "",
-    age: null,
-    description: "",
-    previewImage: null,
-    previewImageUrl: "",
-    isRealPerson: null,
-    instagramId: "",
-    frontPhotos: [],
-    sidePhotos: [],
-    fullBodyPhotos: [],
-    otherPhotos: [],
-  };
-  
-  // Load default image for preview
-  const defaultPreviewFile = await loadDefaultImage();
-  trainingForm.value.previewImage = defaultPreviewFile;
-  trainingForm.value.previewImageUrl = URL.createObjectURL(defaultPreviewFile);
-  
-  // Initialize with minimum required photos (pre-filled with default images)
-  // Front photos (4 required)
-  for (let i = 0; i < 4; i++) {
-    const file = await loadDefaultImage();
-    trainingForm.value.frontPhotos.push({ file, url: URL.createObjectURL(file) });
-  }
-  
-  // Side photos (4 required)
-  for (let i = 0; i < 4; i++) {
-    const file = await loadDefaultImage();
-    trainingForm.value.sidePhotos.push({ file, url: URL.createObjectURL(file) });
-  }
-  
-  // Full body photos (1 required)
-  const fullBodyFile = await loadDefaultImage();
-  trainingForm.value.fullBodyPhotos.push({ file: fullBodyFile, url: URL.createObjectURL(fullBodyFile) });
-  
-  // Other photos (1 required)
-  const otherFile = await loadDefaultImage();
-  trainingForm.value.otherPhotos.push({ file: otherFile, url: URL.createObjectURL(otherFile) });
 }
 
 function openAvatarDetailModal(avatar: AvatarItem) {
@@ -1616,20 +1049,6 @@ async function deleteTrainingRequest() {
 }
 
 // Image upload handling
-function handlePreviewImageChange(event: Event) {
-  const input = event.target as HTMLInputElement;
-  if (input.files && input.files[0]) {
-    const file = input.files[0];
-    trainingForm.value.previewImage = file;
-    trainingForm.value.previewImageUrl = URL.createObjectURL(file);
-  }
-}
-
-function removePreviewImage() {
-  trainingForm.value.previewImage = null;
-  trainingForm.value.previewImageUrl = "";
-}
-
 function handleEditPreviewImageChange(event: Event) {
   const input = event.target as HTMLInputElement;
   if (input.files && input.files[0]) {
@@ -1643,126 +1062,6 @@ function removeEditPreviewImage() {
   editForm.value.previewImage = null;
   if (selectedAvatar.value) {
     editForm.value.previewImageUrl = selectedAvatar.value.preview_image_url || "";
-  }
-}
-
-// Photo slot management
-function handleMultiplePhotoUpload(category: string, event: Event) {
-  const input = event.target as HTMLInputElement;
-  if (input.files && input.files.length > 0) {
-    const files = Array.from(input.files);
-    
-    files.forEach((file) => {
-      const url = URL.createObjectURL(file);
-      
-      if (category === "front") {
-        trainingForm.value.frontPhotos.push({ file, url });
-      } else if (category === "side") {
-        trainingForm.value.sidePhotos.push({ file, url });
-      } else if (category === "fullbody") {
-        trainingForm.value.fullBodyPhotos.push({ file, url });
-      } else if (category === "other") {
-        trainingForm.value.otherPhotos.push({ file, url });
-      }
-    });
-    
-    // Reset input to allow selecting the same files again
-    input.value = "";
-  }
-}
-
-function removePhoto(category: string, index: number) {
-  if (category === "front") {
-    const slot = trainingForm.value.frontPhotos[index];
-    if (slot.url) {
-      URL.revokeObjectURL(slot.url);
-    }
-    trainingForm.value.frontPhotos.splice(index, 1);
-  } else if (category === "side") {
-    const slot = trainingForm.value.sidePhotos[index];
-    if (slot.url) {
-      URL.revokeObjectURL(slot.url);
-    }
-    trainingForm.value.sidePhotos.splice(index, 1);
-  } else if (category === "fullbody") {
-    const slot = trainingForm.value.fullBodyPhotos[index];
-    if (slot.url) {
-      URL.revokeObjectURL(slot.url);
-    }
-    trainingForm.value.fullBodyPhotos.splice(index, 1);
-  } else if (category === "other") {
-    const slot = trainingForm.value.otherPhotos[index];
-    if (slot.url) {
-      URL.revokeObjectURL(slot.url);
-    }
-    trainingForm.value.otherPhotos.splice(index, 1);
-  }
-}
-
-function handlePhotoUpload(category: string, index: number, event: Event) {
-  const input = event.target as HTMLInputElement;
-  if (input.files && input.files[0]) {
-    const file = input.files[0];
-    const url = URL.createObjectURL(file);
-    
-    // Revoke old URL if exists
-    if (category === "front" && trainingForm.value.frontPhotos[index]?.url) {
-      URL.revokeObjectURL(trainingForm.value.frontPhotos[index].url);
-    } else if (category === "side" && trainingForm.value.sidePhotos[index]?.url) {
-      URL.revokeObjectURL(trainingForm.value.sidePhotos[index].url);
-    } else if (category === "fullbody" && trainingForm.value.fullBodyPhotos[index]?.url) {
-      URL.revokeObjectURL(trainingForm.value.fullBodyPhotos[index].url);
-    } else if (category === "other" && trainingForm.value.otherPhotos[index]?.url) {
-      URL.revokeObjectURL(trainingForm.value.otherPhotos[index].url);
-    }
-    
-    if (category === "front") {
-      trainingForm.value.frontPhotos[index] = { file, url };
-    } else if (category === "side") {
-      trainingForm.value.sidePhotos[index] = { file, url };
-    } else if (category === "fullbody") {
-      trainingForm.value.fullBodyPhotos[index] = { file, url };
-    } else if (category === "other") {
-      trainingForm.value.otherPhotos[index] = { file, url };
-    }
-    
-    // Reset input to allow selecting the same file again
-    input.value = "";
-  }
-}
-
-// Submit training request
-async function submitTrainingRequest() {
-  if (!isTrainingFormValid.value) return;
-
-  submitting.value = true;
-  try {
-    await trainingRequestsApi.createRequest({
-      avatar_name: trainingForm.value.avatarName,
-      negative_prompt: trainingForm.value.negativePrompt,
-      credit_per_generation: trainingForm.value.creditPerGeneration,
-      national: trainingForm.value.national,
-      gender: trainingForm.value.gender,
-      age: trainingForm.value.age,
-      description: trainingForm.value.description,
-      is_real_person: trainingForm.value.isRealPerson === true,
-      instagram_id: trainingForm.value.isRealPerson === true ? trainingForm.value.instagramId : undefined,
-      preview_image: trainingForm.value.previewImage!,
-      front_photos: trainingForm.value.frontPhotos.filter(p => p.file).map(p => p.file!),
-      side_photos: trainingForm.value.sidePhotos.filter(p => p.file).map(p => p.file!),
-      fullbody_photos: trainingForm.value.fullBodyPhotos.filter(p => p.file).map(p => p.file!),
-      other_photos: trainingForm.value.otherPhotos.filter(p => p.file).map(p => p.file!),
-    });
-
-    closeTrainingRequestModal();
-    await loadTrainingRequests();
-  } catch (error: any) {
-    console.error("Failed to submit training request:", error);
-    const errorMessage = error?.response?.data?.detail || error?.message || "Failed to submit request. Please try again.";
-    console.error("Error details:", error?.response?.data);
-    alert(errorMessage);
-  } finally {
-    submitting.value = false;
   }
 }
 

@@ -45,6 +45,11 @@ class Settings(BaseSettings):
     # Admin
     ADMIN_EMAIL_WHITELIST: str = ""
 
+    # 구글 로그인 (Google Identity Services)
+    # GCP 콘솔 → OAuth 클라이언트 ID(웹). 비어 있으면 구글 로그인 버튼이 숨겨진다.
+    # 클라이언트 ID 는 공개돼도 되는 값이라 프론트에 그대로 내려간다 (/auth/config).
+    GOOGLE_CLIENT_ID: str = ""
+
     # CORS: 기본 localhost 외 추가 허용 오리진 (콤마 구분, 운영 도메인 등)
     # 예: "https://avatarbank.example.com,https://www.avatarbank.example.com"
     CORS_EXTRA_ORIGINS: str = ""
