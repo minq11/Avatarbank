@@ -64,8 +64,6 @@ from .schemas import (
     AvatarUpdateRequest,
     ChangeNicknameRequest,
     ChangePasswordRequest,
-    GalleryItemResponse,
-    GenerationCreateRequest,
     GenerationResponse,
     GoogleLoginRequest,
     RefreshTokenRequest,
@@ -525,149 +523,9 @@ def admin_approve_influencer(
     return UserBase.model_validate(target_user)
 
 
-@app.post("/generations", response_model=GenerationResponse, tags=["generation"])
-def create_generation(
-    payload: GenerationCreateRequest,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-) -> GenerationResponse:
-    """
-    이미지 생성 요청. 로그인 필수.
-    get_current_user로 인증 검증 - 토큰 없거나 유효하지 않으면 401 반환.
-    """
-    # SFW 정책: fal 호출 전 프롬프트 사전 모더레이션 (차단 시 크레딧 소모 0)
-    from .moderation import assert_sfw_prompt
-
-    assert_sfw_prompt(payload.prompt)
-
-    # TODO: idempotency 체크 구현
-
-    # 인증된 사용자를 buyer로 사용
-    buyer = current_user
-
-    if payload.avatar_id is None:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Avatar is required for image generation.",
-        )
-    avatar = db.query(Avatar).filter(Avatar.id == payload.avatar_id).first()
-    if not avatar or avatar.deleted_at is not None:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Avatar not found. Please select an avatar first.",
-        )
-    if not avatar.lora_path:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="This avatar has no LoRA file; image generation is not available yet.",
-        )
-
-    # 1장 = 1크레딧 고정. avatar.credit_per_generation(마켓 시절의 생성당 추가 요금)은
-    # 더 이상 반영하지 않는다 — 장당 균일가로 파는 지금 구조와 맞지 않는다.
-    total_credits = 1
-
-    # 안전 검사 여부는 .env 의 FAL_ENABLE_SAFETY_CHECKER 하나로만 결정한다.
-    safety_on = settings.FAL_ENABLE_SAFETY_CHECKER
-
-    parts = [avatar.negative_prompt]
-    combined_negative = ", ".join(p.strip() for p in parts if p and p.strip()) or None
-
-    generation = Generation(
-        avatar_id=payload.avatar_id,
-        buyer_id=buyer.id,
-        credits_used=total_credits,
-        prompt=payload.prompt,
-        negative_prompt=combined_negative,
-        image_size=payload.image_size,
-        num_inference_steps=payload.num_inference_steps,
-        enable_safety_checker=safety_on,
-        lora_scale=payload.lora_scale,
-        source_image_url=payload.source_image_url,
-        strength=payload.strength,
-        status=GenerationStatus.PENDING.value,
-    )
-    db.add(generation)
-    db.flush()  # 거래 내역에 생성 id 를 남기려면 먼저 확보해야 한다
-
-    # 크레딧 원자적 선차감. 읽고-검사하고-쓰면 동시 요청이 같은 잔액을 읽어
-    # 각자 차감하면서 잔액이 음수로 내려간다.
-    if credits.deduct(
-        db, user_id=buyer.id, amount=total_credits, reference_id=str(generation.id)
-    ) is None:
-        db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="크레딧이 부족해요.",
-        )
-    db.commit()
-    db.refresh(generation)
-
-    # Fal에 넘길 프롬프트: 맨 앞에 국적 + 성별 + 나이 한 줄 추가 (코드는 풀네임으로 변환, 내부용)
-    prefix_parts = []
-    if getattr(avatar, "nationality", None) and str(avatar.nationality).strip():
-        code = str(avatar.nationality).strip().upper()
-        prefix_parts.append(NATIONALITY_FOR_PROMPT.get(code, avatar.nationality.strip()))
-    if getattr(avatar, "gender", None) and str(avatar.gender).strip():
-        code = str(avatar.gender).strip().upper()
-        prefix_parts.append(GENDER_FOR_PROMPT.get(code, avatar.gender.strip()))
-    if getattr(avatar, "age", None) is not None:
-        prefix_parts.append(f"{avatar.age} years old")
-    prompt_for_fal = payload.prompt
-    if prefix_parts:
-        prompt_for_fal = ", ".join(prefix_parts) + ". " + payload.prompt
-
-    try:
-        from .s3_utils import generate_presigned_download_url
-
-        lora_url = avatar.lora_path
-        if lora_url and "s3" in lora_url.lower() and "amazonaws" in lora_url.lower():
-            lora_url = generate_presigned_download_url(lora_url, expires_in=3600)
-        # negative_prompt 는 i2i 엔드포인트에 없어 fal 로 보내지 않는다 (DB 기록만).
-        response_payload = run_generation_sync(
-            prompt_for_fal,
-            source_image_url=payload.source_image_url,
-            strength=payload.strength,
-            lora_url=lora_url,
-            lora_scale=payload.lora_scale,
-            enable_safety_checker=safety_on,
-            image_size=payload.image_size,
-            num_inference_steps=payload.num_inference_steps,
-            output_format=payload.output_format,
-            seed=payload.seed,
-        )
-        images = response_payload.get("images") or []
-        generation.seed = (
-            str(response_payload.get("seed"))
-            if response_payload.get("seed") is not None
-            else None
-        )
-        # checker 를 끈 경우 fal 이 플래그를 주더라도 결과를 폐기하지 않는다.
-        is_nsfw = safety_on and any(response_payload.get("has_nsfw_concepts") or [])
-        generation.nsfw_flag = is_nsfw
-        if is_nsfw:
-            # SFW 정책: NSFW 감지 시 이미지 서빙 차단 + 실패 처리 + 크레딧 환불
-            generation.image_url = None
-            generation.status = GenerationStatus.FAILED.value
-            generation.fail_reason = "Blocked: generated image was flagged as NSFW."
-            credits.refund(
-                db, user_id=buyer.id, amount=total_credits, reference_id=str(generation.id)
-            )
-        else:
-            if images:
-                generation.image_url = images[0].get("url")
-            generation.status = GenerationStatus.SUCCESS.value
-        db.commit()
-        db.refresh(generation)
-    except Exception as exc:
-        generation.status = GenerationStatus.FAILED.value
-        generation.fail_reason = str(exc)
-        credits.refund(
-            db, user_id=buyer.id, amount=total_credits, reference_id=str(generation.id)
-        )
-        db.commit()
-        db.refresh(generation)
-
-    return GenerationResponse.model_validate(generation)
+# POST /generations (마켓 시절의 생성 엔드포인트) 는 제거됐다.
+# 크리에이터 생성은 studio.py 의 POST /my/generate, 팬 생성은 POST /r/{code}/generate 로
+# 각각 독립 구현돼 있고 이 경로를 쓰는 클라이언트가 없다.
 
 
 @app.get("/generations/{generation_id}", response_model=GenerationResponse, tags=["generation"])
@@ -676,19 +534,22 @@ def get_generation(
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_user_optional),
 ) -> GenerationResponse:
-    """생성 단건 조회. 공유(is_shared)된 것은 공개, 아니면 소유자(buyer/creator) 또는 관리자만."""
+    """생성 단건 조회. 소유자(buyer/creator) 또는 관리자만.
+
+    예전엔 공유(is_shared)된 생성물을 누구에게나 열어줬지만 공개 갤러리가 없어지면서
+    공개 경로가 사라졌다 — 이제 생성물은 예외 없이 비공개다.
+    """
     generation = db.query(Generation).filter(Generation.id == generation_id).first()
     if not generation:
         raise HTTPException(status_code=404, detail="Generation not found.")
-    if not generation.is_shared:
-        is_owner = current_user is not None and (
-            generation.buyer_id == current_user.id
-            or generation.creator_id == current_user.id
-        )
-        is_admin = current_user is not None and _is_admin_email(current_user.email)
-        if not (is_owner or is_admin):
-            # 존재 여부 노출 방지를 위해 403 대신 404
-            raise HTTPException(status_code=404, detail="Generation not found.")
+    is_owner = current_user is not None and (
+        generation.buyer_id == current_user.id
+        or generation.creator_id == current_user.id
+    )
+    is_admin = current_user is not None and _is_admin_email(current_user.email)
+    if not (is_owner or is_admin):
+        # 존재 여부 노출 방지를 위해 403 대신 404
+        raise HTTPException(status_code=404, detail="Generation not found.")
     data = GenerationResponse.model_validate(generation).model_dump()
     if generation.avatar_id:
         avatar = db.query(Avatar).filter(Avatar.id == generation.avatar_id).first()
@@ -713,61 +574,8 @@ def list_my_generations(
     return [GenerationResponse.model_validate(g) for g in generations]
 
 
-@app.put("/my/generations/{generation_id}/share", response_model=GenerationResponse, tags=["generation"])
-def toggle_generation_share(
-    generation_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-) -> GenerationResponse:
-    """Share 토글: Gallery 노출 여부. 본인 소유이고 status=success인 경우만 가능."""
-    generation = db.query(Generation).filter(Generation.id == generation_id).first()
-    if not generation:
-        raise HTTPException(status_code=404, detail="Generation not found.")
-    if generation.buyer_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not your generation.")
-    if generation.status != GenerationStatus.SUCCESS.value:
-        raise HTTPException(status_code=400, detail="Only successful generations can be shared.")
-    generation.is_shared = not generation.is_shared
-    db.commit()
-    db.refresh(generation)
-    return GenerationResponse.model_validate(generation)
-
-
-@app.get("/gallery/generations", response_model=List[GalleryItemResponse], tags=["gallery"])
-def list_gallery_generations(
-    avatar_id: Optional[int] = None,
-    limit: Optional[int] = None,
-    offset: Optional[int] = None,
-    db: Session = Depends(get_db),
-) -> List[GalleryItemResponse]:
-    """Gallery에 노출되는 공유 생성물 목록 (is_shared=True, status=success). avatar_id 지정 시 해당 아바타로 생성된 것만. limit/offset 있으면 페이지네이션."""
-    query = (
-        db.query(Generation, User)
-        .join(User, Generation.buyer_id == User.id)
-        .filter(
-            Generation.is_shared == True,
-            Generation.status == GenerationStatus.SUCCESS.value,
-            Generation.image_url.isnot(None),
-        )
-    )
-    if avatar_id is not None:
-        query = query.filter(Generation.avatar_id == avatar_id)
-    query = query.order_by(Generation.created_at.desc())
-    if limit is not None and offset is not None:
-        limit = min(max(1, limit), 48)
-        offset = max(0, offset)
-        query = query.offset(offset).limit(limit)
-    rows = query.all()
-    return [
-        GalleryItemResponse(
-            id=g.id,
-            image_url=g.image_url or "",
-            prompt=g.prompt,
-            created_at=g.created_at,
-            creator_nickname=user.nickname,
-        )
-        for g, user in rows
-    ]
+# 공개 갤러리(GET /gallery/generations)와 공유 토글(PUT /my/generations/{id}/share)은
+# 제거됐다. 생성물을 공개 전시하는 개념이 사라졌고, 팬은 리딤 링크로만 들어온다.
 
 
 # Training Requests API

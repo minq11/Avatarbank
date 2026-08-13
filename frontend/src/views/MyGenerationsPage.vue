@@ -38,7 +38,7 @@
         </div>
         <h3 class="empty-title">아직 생성물이 없어요</h3>
         <p class="empty-desc">AI 아바타로 첫 이미지를 만들어보세요.</p>
-        <RouterLink to="/avatars" class="btn-primary-empty">이미지 만들기</RouterLink>
+        <RouterLink to="/studio/create" class="btn-primary-empty">이미지 만들기</RouterLink>
       </div>
 
       <!-- Grid -->
@@ -71,17 +71,6 @@
             <div class="card-footer">
               <span class="card-credits">{{ g.status === 'failed' ? 0 : g.credits_used }}C</span>
               <span class="card-date">{{ formatDate(g.created_at) }}</span>
-              <button
-                v-if="g.image_url && g.status === 'success'"
-                type="button"
-                class="card-share-btn"
-                :class="{ 'is-shared': g.is_shared === true }"
-                :title="g.is_shared ? '갤러리에 공유됨' : '갤러리에 공유'"
-                @click.stop="openShareConfirm(g)"
-              >
-                <img src="@/assets/icons/shareBtn.svg" alt="" class="card-share-icon" />
-                {{ g.is_shared === true ? '공유됨' : '공유' }}
-              </button>
             </div>
           </div>
         </article>
@@ -173,17 +162,6 @@
         <div class="modal-footer">
           <button
             v-if="selectedGeneration.image_url && selectedGeneration.status === 'success'"
-            type="button"
-            class="modal-secondary"
-            :class="{ 'is-shared': selectedGeneration.is_shared === true }"
-            :title="selectedGeneration.is_shared === true ? '갤러리에 공유됨' : '갤러리에 공유'"
-            @click="openShareConfirm(selectedGeneration)"
-          >
-            <img src="@/assets/icons/shareBtn.svg" alt="" class="modal-btn-icon" />
-            {{ selectedGeneration.is_shared === true ? '공유됨' : '공유' }}
-          </button>
-          <button
-            v-if="selectedGeneration.image_url && selectedGeneration.status === 'success'"
             class="modal-secondary modal-btn-download"
             type="button"
             title="다운로드"
@@ -204,25 +182,6 @@
       </div>
     </div>
 
-    <!-- Share 확인 모달 (AI Image Generation과 동일) -->
-    <div v-if="showShareConfirm && shareConfirmTarget" class="confirm-overlay" @click.self="closeShareConfirm">
-      <div class="confirm-modal">
-        <h4 class="confirm-title">
-          {{ shareConfirmTarget.is_shared === true ? '갤러리에서 내릴까요?' : '갤러리에 공유할까요?' }}
-        </h4>
-        <p class="confirm-message">
-          {{ shareConfirmTarget.is_shared === true
-            ? '이 생성물이 공개 갤러리에서 내려가요.'
-            : '이 생성물이 갤러리에서 모두에게 공개돼요.' }}
-        </p>
-        <div class="confirm-actions">
-          <button type="button" class="btn-confirm-cancel" @click="closeShareConfirm">취소</button>
-          <button type="button" class="btn-confirm-ok" @click="confirmShareAction">
-            {{ shareConfirmTarget.is_shared === true ? '삭제' : '공유' }}
-          </button>
-        </div>
-      </div>
-    </div>
   </section>
 </template>
 
@@ -235,8 +194,6 @@ const list = ref<GenerationItem[]>([]);
 const loading = ref(true);
 const authRequired = ref(false);
 const selectedGeneration = ref<GenerationItem | null>(null);
-const showShareConfirm = ref(false);
-const shareConfirmTarget = ref<GenerationItem | null>(null);
 
 onMounted(async () => {
   loading.value = true;
@@ -321,33 +278,6 @@ async function downloadImage(): Promise<void> {
   }
 }
 
-function openShareConfirm(g: GenerationItem): void {
-  if (g.status !== "success" || !g.image_url) return;
-  shareConfirmTarget.value = g;
-  showShareConfirm.value = true;
-}
-
-function closeShareConfirm(): void {
-  showShareConfirm.value = false;
-  shareConfirmTarget.value = null;
-}
-
-async function confirmShareAction(): Promise<void> {
-  const g = shareConfirmTarget.value;
-  closeShareConfirm();
-  if (!g || g.status !== "success" || !g.image_url) return;
-  const prevList = list.value.map((x) => (x.id === g.id ? { ...x } : x));
-  const prevSelected = selectedGeneration.value?.id === g.id ? { ...selectedGeneration.value } : null;
-  try {
-    const updated = await generationsApi.toggleShare(g.id);
-    const idx = list.value.findIndex((x) => x.id === g.id);
-    if (idx !== -1) list.value[idx] = updated;
-    if (selectedGeneration.value?.id === g.id) selectedGeneration.value = updated;
-  } catch {
-    list.value = prevList;
-    if (prevSelected) selectedGeneration.value = prevSelected;
-  }
-}
 </script>
 
 <style scoped>
@@ -382,13 +312,13 @@ async function confirmShareAction(): Promise<void> {
   font-size: 1.875rem;
   font-weight: 600;
   letter-spacing: -0.025em;
-  color: #111827;
+  color: #0d0d0f;
   margin-bottom: 0.5rem;
 }
 
 .section-description {
   font-size: 1rem;
-  color: #6b7280;
+  color: #6e6e77;
 }
 
 /* Loading */
@@ -404,8 +334,8 @@ async function confirmShareAction(): Promise<void> {
 .loading-spinner {
   width: 2.5rem;
   height: 2.5rem;
-  border: 3px solid #e5e7eb;
-  border-top-color: #4f46e5;
+  border: 3px solid #e6e6ea;
+  border-top-color: #e24e12;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -418,7 +348,7 @@ async function confirmShareAction(): Promise<void> {
 
 .loading-text {
   font-size: 0.95rem;
-  color: #6b7280;
+  color: #6e6e77;
 }
 
 /* Empty / Auth */
@@ -428,25 +358,25 @@ async function confirmShareAction(): Promise<void> {
   align-items: center;
   text-align: center;
   padding: 4rem 1.5rem;
-  background: #f9fafb;
+  background: #fafafa;
   border-radius: 1rem;
-  border: 1px dashed #e5e7eb;
+  border: 1px dashed #e6e6ea;
 }
 
 .creations-auth {
-  background: #faf5ff;
-  border-color: #e9d5ff;
+  background: #fdf5f0;
+  border-color: #fbd9c6;
 }
 
 .empty-icon {
   width: 4rem;
   height: 4rem;
   margin-bottom: 1.25rem;
-  color: #9ca3af;
+  color: #9a9aa3;
 }
 
 .creations-auth .empty-icon {
-  color: #7c3aed;
+  color: #e24e12;
 }
 
 .empty-icon svg {
@@ -457,13 +387,13 @@ async function confirmShareAction(): Promise<void> {
 .empty-title {
   font-size: 1.25rem;
   font-weight: 600;
-  color: #111827;
+  color: #0d0d0f;
   margin-bottom: 0.5rem;
 }
 
 .empty-desc {
   font-size: 0.95rem;
-  color: #6b7280;
+  color: #6e6e77;
   margin-bottom: 1.5rem;
   max-width: 20rem;
 }
@@ -476,14 +406,14 @@ async function confirmShareAction(): Promise<void> {
   font-size: 0.95rem;
   font-weight: 500;
   color: white;
-  background: linear-gradient(to right, #4f46e5, #6366f1);
+  background: linear-gradient(to right, #e24e12, #e85f26);
   border-radius: 0.75rem;
   text-decoration: none;
   transition: box-shadow 0.2s, transform 0.2s;
 }
 
 .btn-primary-empty:hover {
-  box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3);
+  box-shadow: 0 10px 15px -3px rgba(226, 78, 18, 0.3);
   transform: translateY(-1px);
 }
 
@@ -509,7 +439,7 @@ async function confirmShareAction(): Promise<void> {
 
 .creation-card {
   border-radius: 1rem;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e6e6ea;
   overflow: hidden;
   background: #ffffff;
   cursor: pointer;
@@ -523,7 +453,7 @@ async function confirmShareAction(): Promise<void> {
 
 .card-thumb-wrap {
   aspect-ratio: 1;
-  background: #f3f4f6;
+  background: #f2f2f4;
 }
 
 .card-thumb {
@@ -537,21 +467,21 @@ async function confirmShareAction(): Promise<void> {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #e0e7ff 0%, #fce7f3 100%);
+  background: linear-gradient(135deg, #fce3d6 0%, #fce3d6 100%);
 }
 
 .card-thumb-failed {
-  background: linear-gradient(135deg, #fee2e2 0%, #fef3c7 100%);
+  background: linear-gradient(135deg, #fee2e2 0%, #f2f2f4 100%);
 }
 
 .placeholder-label {
   font-size: 0.875rem;
   font-weight: 500;
-  color: #6b7280;
+  color: #6e6e77;
 }
 
 .card-thumb-failed .placeholder-label {
-  color: #b45309;
+  color: #52525b;
 }
 
 .card-meta {
@@ -560,7 +490,7 @@ async function confirmShareAction(): Promise<void> {
 
 .card-prompt {
   font-size: 0.95rem;
-  color: #374151;
+  color: #3a3a42;
   line-height: 1.4;
   margin-bottom: 0.5rem;
   display: -webkit-box;
@@ -576,12 +506,12 @@ async function confirmShareAction(): Promise<void> {
   flex-wrap: wrap;
   gap: 0.5rem;
   font-size: 0.8rem;
-  color: #9ca3af;
+  color: #9a9aa3;
 }
 
 .card-credits {
   font-weight: 500;
-  color: #4f46e5;
+  color: #e24e12;
 }
 
 .card-share-btn {
@@ -591,17 +521,17 @@ async function confirmShareAction(): Promise<void> {
   padding: 0.25rem 0.5rem;
   font-size: 0.75rem;
   font-weight: 500;
-  color: #4f46e5;
+  color: #e24e12;
   background: transparent;
-  border: 1px solid #c7d2fe;
+  border: 1px solid #fad3be;
   border-radius: 0.5rem;
   cursor: pointer;
   transition: background 0.2s, border-color 0.2s;
 }
 
 .card-share-btn:hover {
-  background: #eef2ff;
-  border-color: #818cf8;
+  background: #fdede4;
+  border-color: #f08a5d;
 }
 
 .card-share-btn.is-shared {
@@ -636,7 +566,7 @@ async function confirmShareAction(): Promise<void> {
   overflow-y: auto;
   background: #ffffff;
   border-radius: 1rem;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e6e6ea;
   box-shadow: 0 20px 35px -15px rgba(15, 23, 42, 0.25);
 }
 
@@ -645,7 +575,7 @@ async function confirmShareAction(): Promise<void> {
   align-items: center;
   justify-content: space-between;
   padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid #f2f2f4;
   position: sticky;
   top: 0;
   background: white;
@@ -655,7 +585,7 @@ async function confirmShareAction(): Promise<void> {
 .modal-header h3 {
   font-size: 1.125rem;
   font-weight: 600;
-  color: #111827;
+  color: #0d0d0f;
 }
 
 .modal-close {
@@ -663,7 +593,7 @@ async function confirmShareAction(): Promise<void> {
   background: transparent;
   font-size: 1.5rem;
   line-height: 1;
-  color: #6b7280;
+  color: #6e6e77;
   cursor: pointer;
   width: 2rem;
   height: 2rem;
@@ -675,7 +605,7 @@ async function confirmShareAction(): Promise<void> {
 }
 
 .modal-close:hover {
-  background: #f3f4f6;
+  background: #f2f2f4;
 }
 
 .detail-modal-body {
@@ -690,7 +620,7 @@ async function confirmShareAction(): Promise<void> {
   width: 100%;
   border-radius: 0.75rem;
   overflow: hidden;
-  background: #f3f4f6;
+  background: #f2f2f4;
   aspect-ratio: 1;
   display: flex;
   align-items: center;
@@ -710,21 +640,21 @@ async function confirmShareAction(): Promise<void> {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #e0e7ff 0%, #fce7f3 100%);
+  background: linear-gradient(135deg, #fce3d6 0%, #fce3d6 100%);
 }
 
 .detail-image-failed {
-  background: linear-gradient(135deg, #fee2e2 0%, #fef3c7 100%);
+  background: linear-gradient(135deg, #fee2e2 0%, #f2f2f4 100%);
 }
 
 .placeholder-label-large {
   font-size: 1.25rem;
   font-weight: 500;
-  color: #6b7280;
+  color: #6e6e77;
 }
 
 .detail-image-failed .placeholder-label-large {
-  color: #b45309;
+  color: #52525b;
 }
 
 .detail-info {
@@ -742,22 +672,22 @@ async function confirmShareAction(): Promise<void> {
 .detail-label {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #374151;
+  color: #3a3a42;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
 .detail-value {
   font-size: 0.95rem;
-  color: #111827;
+  color: #0d0d0f;
   line-height: 1.5;
 }
 
 .detail-prompt {
-  background: #f9fafb;
+  background: #fafafa;
   padding: 1rem;
   border-radius: 0.5rem;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e6e6ea;
   word-break: break-word;
 }
 
@@ -778,14 +708,14 @@ async function confirmShareAction(): Promise<void> {
   flex-direction: column;
   gap: 0.25rem;
   padding: 0.75rem;
-  background: #f9fafb;
+  background: #fafafa;
   border-radius: 0.5rem;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e6e6ea;
 }
 
 .detail-item-label {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: #6e6e77;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -793,7 +723,7 @@ async function confirmShareAction(): Promise<void> {
 .detail-item-value {
   font-size: 0.95rem;
   font-weight: 500;
-  color: #111827;
+  color: #0d0d0f;
 }
 
 .detail-status {
@@ -809,15 +739,15 @@ async function confirmShareAction(): Promise<void> {
 }
 
 .status-pending {
-  color: #d97706;
+  color: #6e6e77;
 }
 
 .detail-seed {
   font-family: monospace;
-  background: #f9fafb;
+  background: #fafafa;
   padding: 0.5rem 0.75rem;
   border-radius: 0.375rem;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e6e6ea;
   font-size: 0.875rem;
 }
 
@@ -842,7 +772,7 @@ async function confirmShareAction(): Promise<void> {
   display: flex;
   justify-content: flex-end;
   gap: 0.75rem;
-  border-top: 1px solid #f3f4f6;
+  border-top: 1px solid #f2f2f4;
   position: sticky;
   bottom: 0;
   background: white;
@@ -852,20 +782,20 @@ async function confirmShareAction(): Promise<void> {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e6e6ea;
   border-radius: 0.75rem;
   padding: 0.6rem 1.25rem;
   font-size: 0.9rem;
   font-weight: 500;
-  color: #111827;
+  color: #0d0d0f;
   background: #ffffff;
   cursor: pointer;
   transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
 .modal-secondary:hover {
-  background: #f9fafb;
-  border-color: #d1d5db;
+  background: #fafafa;
+  border-color: #d2d2d9;
 }
 
 .modal-secondary.is-shared {
@@ -907,12 +837,12 @@ async function confirmShareAction(): Promise<void> {
 .confirm-title {
   font-size: 1.125rem;
   font-weight: 600;
-  color: #111827;
+  color: #0d0d0f;
   margin: 0 0 0.75rem;
 }
 .confirm-message {
   font-size: 0.9375rem;
-  color: #4b5563;
+  color: #52525b;
   line-height: 1.5;
   margin: 0 0 1.25rem;
 }
@@ -925,29 +855,29 @@ async function confirmShareAction(): Promise<void> {
   padding: 0.5rem 1rem;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #374151;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
+  color: #3a3a42;
+  background: #fafafa;
+  border: 1px solid #e6e6ea;
   border-radius: 0.5rem;
   cursor: pointer;
   transition: background 0.2s, border-color 0.2s;
 }
 .btn-confirm-cancel:hover {
-  background: #f3f4f6;
-  border-color: #d1d5db;
+  background: #f2f2f4;
+  border-color: #d2d2d9;
 }
 .btn-confirm-ok {
   padding: 0.5rem 1rem;
   font-size: 0.875rem;
   font-weight: 500;
   color: white;
-  background: #6366f1;
+  background: #e85f26;
   border: none;
   border-radius: 0.5rem;
   cursor: pointer;
   transition: background 0.2s;
 }
 .btn-confirm-ok:hover {
-  background: #4f46e5;
+  background: #e24e12;
 }
 </style>

@@ -134,6 +134,8 @@ class Generation(Base):
     status = Column(String, nullable=False, default=GenerationStatus.PENDING)
     fail_reason = Column(Text, nullable=True)
     nsfw_flag = Column(Boolean, nullable=False, default=False)
+    # 공개 갤러리가 없어지면서 더 이상 읽지도 쓰지도 않는다. NOT NULL 이라 컬럼을 남겨두고
+    # 스키마·API 에서만 뺐다 (기존 마이그레이션 관행대로 DROP 하지 않고 롤백 여지를 남긴다).
     is_shared = Column(Boolean, nullable=False, default=False)
     image_size = Column(String, nullable=True)
     num_inference_steps = Column(Integer, nullable=True)

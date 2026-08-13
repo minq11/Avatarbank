@@ -333,20 +333,11 @@ export interface GenerationItem {
   status: string;
   fail_reason: string | null;
   nsfw_flag: boolean | null;
-  is_shared?: boolean;
   image_size?: string | null;
   num_inference_steps?: number | null;
   enable_safety_checker?: boolean | null;
   lora_scale?: number | null;
   created_at: string;
-}
-
-export interface GalleryItem {
-  id: number;
-  image_url: string;
-  prompt: string;
-  created_at: string;
-  creator_nickname: string;
 }
 
 export type ImageSizeOption =
@@ -375,32 +366,8 @@ export const generationsApi = {
     const response = await api.get<GenerationItem[]>("/my/generations");
     return response.data;
   },
-  getById: async (id: number): Promise<GenerationItem> => {
-    const response = await api.get<GenerationItem>(`/generations/${id}`);
-    return response.data;
-  },
   create: async (data: GenerationCreatePayload): Promise<GenerationItem> => {
     const response = await api.post<GenerationItem>("/generations", data);
-    return response.data;
-  },
-  toggleShare: async (id: number): Promise<GenerationItem> => {
-    const response = await api.put<GenerationItem>(`/my/generations/${id}/share`);
-    return response.data;
-  },
-};
-
-export const galleryApi = {
-  /** 공유된 생성물 목록. avatarId 지정 시 해당 아바타로 생성된 것만. limit/offset 있으면 페이지네이션(생략 시 전체). */
-  getGenerations: async (
-    avatarId?: number,
-    limit?: number,
-    offset?: number
-  ): Promise<GalleryItem[]> => {
-    const params: Record<string, number> = {};
-    if (avatarId != null) params.avatar_id = avatarId;
-    if (limit != null) params.limit = limit;
-    if (offset != null) params.offset = offset;
-    const response = await api.get<GalleryItem[]>("/gallery/generations", { params });
     return response.data;
   },
 };

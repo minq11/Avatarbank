@@ -92,21 +92,6 @@ LORA_SCALE_FIELD = Field(default=2.0, ge=0.0, le=4.0)
 STEPS_FIELD = Field(default=8, ge=1, le=8)
 
 
-class GenerationCreateRequest(BaseModel):
-    avatar_id: Optional[int] = None
-    prompt: str = Field(..., max_length=2000)
-    option_credits: int = Field(default=0, ge=0, le=100)
-    idempotency_key: str
-    image_size: ImageSizeLiteral = "auto"
-    num_inference_steps: int = STEPS_FIELD
-    output_format: OutputFormatLiteral = "png"
-    seed: Optional[int] = Field(default=None, ge=0)
-    lora_scale: float = LORA_SCALE_FIELD
-    # image-to-image: 비우면 기본 이미지(itoi_example) 사용
-    source_image_url: Optional[str] = Field(default=None, max_length=2000)
-    strength: float = STRENGTH_FIELD
-
-
 class GenerationResponse(BaseModel):
     id: int
     avatar_id: Optional[int] = None
@@ -121,7 +106,6 @@ class GenerationResponse(BaseModel):
     status: str
     fail_reason: Optional[str]
     nsfw_flag: Optional[bool] = None
-    is_shared: bool = False
     image_size: Optional[str] = None
     num_inference_steps: Optional[int] = None
     enable_safety_checker: Optional[bool] = None
@@ -134,17 +118,6 @@ class GenerationResponse(BaseModel):
         from_attributes = True
 
 
-class GalleryItemResponse(BaseModel):
-    """Gallery에 노출되는 공유 생성물 (작성자 닉네임 포함)."""
-
-    id: int
-    image_url: str
-    prompt: str
-    created_at: datetime
-    creator_nickname: str
-
-    class Config:
-        from_attributes = True
 
 
 # TrainingRequest 스키마
