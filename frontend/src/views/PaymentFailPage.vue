@@ -32,7 +32,7 @@ const message = computed(
 <style scoped>
 .pay-page {
   min-height: calc(100vh - 80px);
-  background: #f9fafb;
+  background: #fafafa;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -41,7 +41,7 @@ const message = computed(
 
 .pay-card {
   background: #fff;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e6e6ea;
   border-radius: 1rem;
   padding: 2.5rem 2rem;
   max-width: 26rem;
@@ -52,13 +52,13 @@ const message = computed(
 .pay-card h1 {
   font-size: 1.35rem;
   font-weight: 800;
-  color: #111827;
+  color: #0d0d0f;
   margin: 1rem 0 0.5rem;
   word-break: keep-all;
 }
 
 .muted {
-  color: #6b7280;
+  color: #6e6e77;
   margin: 0 0 0.4rem;
   word-break: keep-all;
 }
@@ -97,13 +97,13 @@ const message = computed(
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #8b5cf6, #6366f1);
+  background: linear-gradient(135deg, #e85f26, #e85f26);
   color: #fff;
 }
 
 .btn-ghost {
-  border: 1px solid #e5e7eb;
-  color: #374151;
+  border: 1px solid #e6e6ea;
+  color: #3a3a42;
   background: #fff;
 }
 </style>

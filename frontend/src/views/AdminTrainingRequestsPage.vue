@@ -540,13 +540,13 @@ async function downloadAllPhotos() {
   font-size: 2rem;
   font-weight: 600;
   letter-spacing: -0.025em;
-  color: #111827;
+  color: #0d0d0f;
 }
 
 .page-subtitle {
   margin-top: 0.5rem;
   font-size: 0.9rem;
-  color: #6b7280;
+  color: #6e6e77;
 }
 
 .main-layout {
@@ -569,7 +569,7 @@ async function downloadAllPhotos() {
 .section-title {
   font-size: 1.25rem;
   font-weight: 600;
-  color: #111827;
+  color: #0d0d0f;
 }
 
 .loading-state,
@@ -580,14 +580,14 @@ async function downloadAllPhotos() {
   justify-content: center;
   padding: 3rem 1rem;
   gap: 1rem;
-  color: #6b7280;
+  color: #6e6e77;
 }
 
 .loading-spinner {
   width: 2rem;
   height: 2rem;
-  border: 3px solid #e5e7eb;
-  border-top-color: #4f46e5;
+  border: 3px solid #e6e6ea;
+  border-top-color: #e24e12;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -601,7 +601,7 @@ async function downloadAllPhotos() {
 .requests-grid {
   display: flex;
   flex-direction: column;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e6e6ea;
   border-radius: 0.75rem;
   overflow-x: auto;
   overflow-y: visible;
@@ -612,10 +612,10 @@ async function downloadAllPhotos() {
   display: grid;
   grid-template-columns: 80px 1fr 1fr 1fr minmax(260px, auto);
   min-width: min-content;
-  background: #f1f5f9;
+  background: #f2f2f4;
   font-weight: 600;
   font-size: 0.8125rem;
-  color: #475569;
+  color: #52525b;
   letter-spacing: 0.02em;
 }
 
@@ -623,23 +623,23 @@ async function downloadAllPhotos() {
   display: grid;
   grid-template-columns: 80px 1fr 1fr 1fr minmax(260px, auto);
   min-width: min-content;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid #e6e6ea;
   cursor: pointer;
   transition: background-color 0.15s ease;
 }
 
 .grid-row:hover {
-  background-color: #f8fafc;
+  background-color: #fafafa;
 }
 
 .grid-row-selected {
-  background-color: #eff6ff;
+  background-color: #fdede4;
 }
 
 .grid-cell {
   padding: 0.75rem 1rem;
   font-size: 0.875rem;
-  color: #374151;
+  color: #3a3a42;
 }
 
 .grid-cell-requester {
@@ -650,12 +650,12 @@ async function downloadAllPhotos() {
 
 .requester-nickname {
   font-weight: 500;
-  color: #111827;
+  color: #0d0d0f;
 }
 
 .requester-email {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: #6e6e77;
 }
 
 .grid-cell-actions {
@@ -687,24 +687,24 @@ async function downloadAllPhotos() {
 /* 기본: Upload가 주 액션 */
 .btn-grid.btn-upload-lora {
   color: white;
-  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-  box-shadow: 0 1px 2px rgba(79, 70, 229, 0.2);
+  background: linear-gradient(135deg, #e85f26 0%, #e24e12 100%);
+  box-shadow: 0 1px 2px rgba(226, 78, 18, 0.2);
 }
 
 .btn-grid.btn-upload-lora:hover {
-  box-shadow: 0 4px 8px -2px rgba(79, 70, 229, 0.35);
+  box-shadow: 0 4px 8px -2px rgba(226, 78, 18, 0.35);
   transform: translateY(-1px);
 }
 
 .btn-grid.btn-download-lora {
-  color: #475569;
-  background: #f1f5f9;
-  border-color: #cbd5e1;
+  color: #52525b;
+  background: #f2f2f4;
+  border-color: #d2d2d9;
 }
 
 .btn-grid.btn-download-lora:hover {
-  background: #e2e8f0;
-  border-color: #94a3b8;
+  background: #e6e6ea;
+  border-color: #9a9aa3;
 }
 
 /* Approved 상태: Download가 주 액션, Upload는 보조 */
@@ -721,15 +721,15 @@ async function downloadAllPhotos() {
 }
 
 .grid-cell-actions.actions-approved .btn-upload-lora {
-  color: #475569;
+  color: #52525b;
   background: #fff;
-  border-color: #cbd5e1;
+  border-color: #d2d2d9;
   box-shadow: none;
 }
 
 .grid-cell-actions.actions-approved .btn-upload-lora:hover {
-  background: #f8fafc;
-  border-color: #94a3b8;
+  background: #fafafa;
+  border-color: #9a9aa3;
   box-shadow: none;
   transform: none;
 }
@@ -737,7 +737,7 @@ async function downloadAllPhotos() {
 .lora-modal-context {
   font-size: 0.9rem;
   font-weight: 500;
-  color: #111827;
+  color: #0d0d0f;
   margin-bottom: 0.5rem;
 }
 
@@ -751,14 +751,14 @@ async function downloadAllPhotos() {
 
 .upload-progress-bar {
   height: 6px;
-  background: #e5e7eb;
+  background: #e6e6ea;
   border-radius: 9999px;
   overflow: hidden;
 }
 
 .upload-progress-fill {
   height: 100%;
-  background: linear-gradient(to right, #4f46e5, #6366f1);
+  background: linear-gradient(to right, #e24e12, #e85f26);
   border-radius: 9999px;
   transition: width 0.2s ease;
 }
@@ -766,7 +766,7 @@ async function downloadAllPhotos() {
 .upload-progress-text {
   display: block;
   font-size: 0.75rem;
-  color: #6b7280;
+  color: #6e6e77;
   margin-top: 0.25rem;
 }
 
@@ -779,8 +779,8 @@ async function downloadAllPhotos() {
 }
 
 .status-requested {
-  background: #dbeafe;
-  color: #1e40af;
+  background: #fce3d6;
+  color: #a8380d;
 }
 
 .status-approved {
@@ -794,8 +794,8 @@ async function downloadAllPhotos() {
 }
 
 .status-cancelled {
-  background: #f3f4f6;
-  color: #6b7280;
+  background: #f2f2f4;
+  color: #6e6e77;
 }
 
 .modal-overlay {
@@ -816,7 +816,7 @@ async function downloadAllPhotos() {
   max-height: 90vh;
   background: #ffffff;
   border-radius: 1rem;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e6e6ea;
   box-shadow: 0 20px 35px -15px rgba(15, 23, 42, 0.25);
   overflow: hidden;
   display: flex;
@@ -828,13 +828,13 @@ async function downloadAllPhotos() {
   align-items: center;
   justify-content: space-between;
   padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid #f2f2f4;
 }
 
 .modal-header h3 {
   font-size: 1.25rem;
   font-weight: 600;
-  color: #111827;
+  color: #0d0d0f;
 }
 
 .modal-close {
@@ -842,7 +842,7 @@ async function downloadAllPhotos() {
   background: transparent;
   font-size: 1.5rem;
   line-height: 1;
-  color: #6b7280;
+  color: #6e6e77;
   cursor: pointer;
   padding: 0;
   width: 2rem;
@@ -853,7 +853,7 @@ async function downloadAllPhotos() {
 }
 
 .modal-close:hover {
-  color: #111827;
+  color: #0d0d0f;
 }
 
 .modal-body {
@@ -864,7 +864,7 @@ async function downloadAllPhotos() {
 
 .modal-footer {
   padding: 1rem 1.5rem;
-  border-top: 1px solid #f3f4f6;
+  border-top: 1px solid #f2f2f4;
   display: flex;
   justify-content: flex-end;
   gap: 0.75rem;
@@ -884,12 +884,12 @@ async function downloadAllPhotos() {
 .form-section-title {
   font-size: 1rem;
   font-weight: 600;
-  color: #111827;
+  color: #0d0d0f;
 }
 
 .form-section-desc {
   font-size: 0.875rem;
-  color: #6b7280;
+  color: #6e6e77;
   margin-bottom: 0.75rem;
 }
 
@@ -914,7 +914,7 @@ async function downloadAllPhotos() {
   display: block;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #374151;
+  color: #3a3a42;
   margin-bottom: 0.5rem;
 }
 
@@ -923,16 +923,16 @@ async function downloadAllPhotos() {
   width: 100%;
   padding: 0.625rem 0.75rem;
   font-size: 0.875rem;
-  color: #111827;
+  color: #0d0d0f;
   background: #ffffff;
-  border: 1px solid #d1d5db;
+  border: 1px solid #d2d2d9;
   border-radius: 0.5rem;
   transition: border-color 0.2s;
 }
 
 .form-input[readonly],
 .form-textarea[readonly] {
-  background-color: #f9fafb;
+  background-color: #fafafa;
 }
 
 .form-textarea {
@@ -947,7 +947,7 @@ async function downloadAllPhotos() {
   height: 150px;
   border-radius: 0.5rem;
   overflow: hidden;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e6e6ea;
 }
 
 .preview-image img {
@@ -962,10 +962,10 @@ async function downloadAllPhotos() {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #9ca3af;
+  color: #9a9aa3;
   border-radius: 0.5rem;
-  border: 1px solid #e5e7eb;
-  background: #f9fafb;
+  border: 1px solid #e6e6ea;
+  background: #fafafa;
 }
 
 .photo-category {
@@ -976,7 +976,7 @@ async function downloadAllPhotos() {
   display: block;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #374151;
+  color: #3a3a42;
   margin-bottom: 0.75rem;
 }
 
@@ -990,8 +990,8 @@ async function downloadAllPhotos() {
   position: relative;
   width: 100%;
   padding-bottom: 100%;
-  background: #f9fafb;
-  border: 2px solid #d1d5db;
+  background: #fafafa;
+  border: 2px solid #d2d2d9;
   border-radius: 0.5rem;
   cursor: default;
   overflow: hidden;
@@ -1015,7 +1015,7 @@ async function downloadAllPhotos() {
   font-size: 0.875rem;
   font-weight: 500;
   color: white;
-  background: linear-gradient(to right, #4f46e5, #6366f1);
+  background: linear-gradient(to right, #e24e12, #e85f26);
   border: none;
   border-radius: 0.5rem;
   cursor: pointer;
@@ -1023,24 +1023,24 @@ async function downloadAllPhotos() {
 }
 
 .btn-primary:hover:not(:disabled) {
-  box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3);
+  box-shadow: 0 10px 15px -3px rgba(226, 78, 18, 0.3);
 }
 
 .btn-secondary {
   padding: 0.625rem 1.25rem;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #374151;
-  background: #f9fafb;
-  border: 1px solid #d1d5db;
+  color: #3a3a42;
+  background: #fafafa;
+  border: 1px solid #d2d2d9;
   border-radius: 0.5rem;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .btn-secondary:hover {
-  background: #f3f4f6;
-  border-color: #9ca3af;
+  background: #f2f2f4;
+  border-color: #9a9aa3;
 }
 
 .btn-download {

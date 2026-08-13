@@ -188,19 +188,19 @@ async function handlePasswordSubmit() {
 .page-title {
   font-size: 1.875rem;
   font-weight: 600;
-  color: #111827;
+  color: #0d0d0f;
   margin-bottom: 0.5rem;
 }
 
 .page-desc {
   font-size: 1rem;
-  color: #6b7280;
+  color: #6e6e77;
   margin-bottom: 2.5rem;
 }
 
 .card {
   background: #ffffff;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e6e6ea;
   border-radius: 1rem;
   padding: 1.5rem 1.75rem;
   margin-bottom: 1.5rem;
@@ -209,7 +209,7 @@ async function handlePasswordSubmit() {
 .card-title {
   font-size: 1.125rem;
   font-weight: 600;
-  color: #111827;
+  color: #0d0d0f;
   margin-bottom: 1.25rem;
 }
 
@@ -221,7 +221,7 @@ async function handlePasswordSubmit() {
   display: block;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #374151;
+  color: #3a3a42;
   margin-bottom: 0.4rem;
 }
 
@@ -229,20 +229,20 @@ async function handlePasswordSubmit() {
   width: 100%;
   padding: 0.6rem 0.75rem;
   font-size: 0.95rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid #d2d2d9;
   border-radius: 0.5rem;
-  color: #111827;
+  color: #0d0d0f;
 }
 
 .form-input:focus {
   outline: none;
-  border-color: #4f46e5;
-  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+  border-color: #e24e12;
+  box-shadow: 0 0 0 2px rgba(226, 78, 18, 0.2);
 }
 
 .form-input:disabled {
-  background: #f9fafb;
-  color: #6b7280;
+  background: #fafafa;
+  color: #6e6e77;
   cursor: not-allowed;
 }
 
@@ -251,7 +251,7 @@ async function handlePasswordSubmit() {
   font-size: 0.95rem;
   font-weight: 500;
   color: white;
-  background: linear-gradient(to right, #4f46e5, #6366f1);
+  background: linear-gradient(to right, #e24e12, #e85f26);
   border: none;
   border-radius: 0.5rem;
   cursor: pointer;
@@ -259,7 +259,7 @@ async function handlePasswordSubmit() {
 }
 
 .btn.primary:hover:not(:disabled) {
-  box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3);
+  box-shadow: 0 10px 15px -3px rgba(226, 78, 18, 0.3);
 }
 
 .btn.primary:disabled {
@@ -289,7 +289,7 @@ async function handlePasswordSubmit() {
 
 .auth-required p {
   font-size: 1rem;
-  color: #6b7280;
+  color: #6e6e77;
   margin-bottom: 1.5rem;
 }
 
@@ -299,13 +299,13 @@ async function handlePasswordSubmit() {
   font-size: 0.95rem;
   font-weight: 500;
   color: white;
-  background: linear-gradient(to right, #4f46e5, #6366f1);
+  background: linear-gradient(to right, #e24e12, #e85f26);
   border-radius: 0.5rem;
   text-decoration: none;
   transition: box-shadow 0.2s;
 }
 
 .auth-required .btn-primary:hover {
-  box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3);
+  box-shadow: 0 10px 15px -3px rgba(226, 78, 18, 0.3);
 }
 </style>

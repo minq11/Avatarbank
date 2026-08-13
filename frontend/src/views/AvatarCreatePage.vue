@@ -736,7 +736,7 @@ watch(
 <style scoped>
 .create-page {
   padding: 2.5rem 0 4rem;
-  background: #f9fafb;
+  background: #fafafa;
   min-height: calc(100vh - 80px);
 }
 
@@ -753,20 +753,20 @@ watch(
 .page-title {
   font-size: 1.75rem;
   font-weight: 700;
-  color: #111827;
+  color: #0d0d0f;
   margin: 0;
 }
 
 .page-subtitle {
   margin: 0.5rem 0 0;
-  color: #6b7280;
+  color: #6e6e77;
   font-size: 0.95rem;
 }
 
 /* 로그인 게이트 */
 .login-gate {
   background: #ffffff;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e6e6ea;
   border-radius: 1rem;
   padding: 3rem 2rem;
   text-align: center;
@@ -775,12 +775,12 @@ watch(
 .login-gate h3 {
   font-size: 1.25rem;
   font-weight: 700;
-  color: #111827;
+  color: #0d0d0f;
   margin: 0 0 0.5rem;
 }
 
 .login-gate p {
-  color: #6b7280;
+  color: #6e6e77;
   margin: 0 0 1.5rem;
 }
 
@@ -793,7 +793,7 @@ watch(
 /* 폼 카드 */
 .form-card {
   background: #ffffff;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e6e6ea;
   border-radius: 1rem;
   overflow: hidden;
 }
@@ -807,14 +807,14 @@ watch(
   justify-content: flex-end;
   gap: 0.75rem;
   padding: 1.25rem 1.75rem;
-  border-top: 1px solid #f3f4f6;
+  border-top: 1px solid #f2f2f4;
   background: #fafafa;
 }
 
 /* Buttons */
 .btn-primary {
   padding: 0.625rem 1.5rem;
-  background: linear-gradient(to right, #4f46e5, #6366f1);
+  background: linear-gradient(to right, #e24e12, #e85f26);
   color: white;
   border: none;
   border-radius: 0.5rem;
@@ -825,7 +825,7 @@ watch(
 }
 
 .btn-primary:hover:not(:disabled) {
-  box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3);
+  box-shadow: 0 10px 15px -3px rgba(226, 78, 18, 0.3);
 }
 
 .btn-primary:disabled {
@@ -836,8 +836,8 @@ watch(
 .btn-secondary {
   padding: 0.625rem 1.5rem;
   background: #ffffff;
-  color: #374151;
-  border: 1px solid #d1d5db;
+  color: #3a3a42;
+  border: 1px solid #d2d2d9;
   border-radius: 0.5rem;
   font-size: 0.875rem;
   font-weight: 600;
@@ -846,7 +846,7 @@ watch(
 }
 
 .btn-secondary:hover {
-  background: #f9fafb;
+  background: #fafafa;
 }
 
 /* Form Styles (MyAvatarsPage 팝업에서 이식) */
@@ -857,7 +857,7 @@ watch(
 .form-section-title {
   font-size: 1rem;
   font-weight: 600;
-  color: #111827;
+  color: #0d0d0f;
   margin-bottom: 1rem;
 }
 
@@ -869,7 +869,7 @@ watch(
   display: block;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #374151;
+  color: #3a3a42;
   margin-bottom: 0.5rem;
 }
 
@@ -878,7 +878,7 @@ watch(
 }
 
 .field-optional {
-  color: #9ca3af;
+  color: #9a9aa3;
   font-weight: 400;
 }
 
@@ -887,9 +887,9 @@ watch(
   width: 100%;
   padding: 0.625rem 0.75rem;
   font-size: 0.875rem;
-  color: #111827;
+  color: #0d0d0f;
   background: #ffffff;
-  border: 1px solid #d1d5db;
+  border: 1px solid #d2d2d9;
   border-radius: 0.5rem;
   transition: border-color 0.2s;
 }
@@ -897,8 +897,8 @@ watch(
 .form-input:focus,
 .form-textarea:focus {
   outline: none;
-  border-color: #4f46e5;
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+  border-color: #e24e12;
+  box-shadow: 0 0 0 3px rgba(226, 78, 18, 0.1);
 }
 
 .form-textarea {
@@ -917,7 +917,7 @@ watch(
   gap: 0.5rem;
   cursor: pointer;
   font-size: 0.875rem;
-  color: #374151;
+  color: #3a3a42;
 }
 
 .radio-input {
@@ -928,20 +928,20 @@ watch(
 
 .info-box {
   padding: 1rem;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
+  background: #fdede4;
+  border: 1px solid #fbd9c6;
   border-radius: 0.5rem;
   margin-top: 1rem;
 }
 
 .info-box p {
   font-size: 0.875rem;
-  color: #1e40af;
+  color: #a8380d;
   margin: 0.25rem 0;
 }
 
 .info-box a {
-  color: #1e40af;
+  color: #a8380d;
   text-decoration: underline;
 }
 
@@ -958,17 +958,17 @@ watch(
   padding: 0.625rem 1rem;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #374151;
-  background: #f9fafb;
-  border: 1px solid #d1d5db;
+  color: #3a3a42;
+  background: #fafafa;
+  border: 1px solid #d2d2d9;
   border-radius: 0.5rem;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .file-upload-btn:hover {
-  background: #f3f4f6;
-  border-color: #9ca3af;
+  background: #f2f2f4;
+  border-color: #9a9aa3;
 }
 
 .preview-image {
@@ -978,7 +978,7 @@ watch(
   height: 150px;
   border-radius: 0.5rem;
   overflow: hidden;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e6e6ea;
 }
 
 .preview-image img {
@@ -1014,7 +1014,7 @@ watch(
   display: block;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #374151;
+  color: #3a3a42;
   margin-bottom: 0.75rem;
 }
 
@@ -1028,8 +1028,8 @@ watch(
   position: relative;
   width: 100%;
   padding-bottom: 100%;
-  background: #f9fafb;
-  border: 2px dashed #d1d5db;
+  background: #fafafa;
+  border: 2px dashed #d2d2d9;
   border-radius: 0.5rem;
   cursor: pointer;
   transition: all 0.2s;
@@ -1037,8 +1037,8 @@ watch(
 }
 
 .photo-slot:hover {
-  border-color: #4f46e5;
-  background: #f3f4f6;
+  border-color: #e24e12;
+  background: #f2f2f4;
 }
 
 .remove-photo-btn {
@@ -1069,9 +1069,9 @@ watch(
   padding: 0.75rem 1rem;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #4f46e5;
-  background: #f9fafb;
-  border: 2px dashed #d1d5db;
+  color: #e24e12;
+  background: #fafafa;
+  border: 2px dashed #d2d2d9;
   border-radius: 0.5rem;
   cursor: pointer;
   transition: all 0.2s;
@@ -1082,9 +1082,9 @@ watch(
 }
 
 .add-photo-btn:hover {
-  border-color: #4f46e5;
-  background: #f3f4f6;
-  color: #4338ca;
+  border-color: #e24e12;
+  background: #f2f2f4;
+  color: #b93b0e;
 }
 
 .slot-image {
@@ -1103,7 +1103,7 @@ watch(
   transform: translate(-50%, -50%);
   width: 2rem;
   height: 2rem;
-  color: #9ca3af;
+  color: #9a9aa3;
 }
 
 .hidden-file-input {

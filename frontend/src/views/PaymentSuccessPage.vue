@@ -92,7 +92,7 @@ onMounted(confirm);
 <style scoped>
 .pay-page {
   min-height: calc(100vh - 80px);
-  background: #f9fafb;
+  background: #fafafa;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -101,7 +101,7 @@ onMounted(confirm);
 
 .pay-card {
   background: #fff;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e6e6ea;
   border-radius: 1rem;
   padding: 2.5rem 2rem;
   max-width: 26rem;
@@ -112,13 +112,13 @@ onMounted(confirm);
 .pay-card h1 {
   font-size: 1.35rem;
   font-weight: 800;
-  color: #111827;
+  color: #0d0d0f;
   margin: 1rem 0 0.5rem;
   word-break: keep-all;
 }
 
 .muted {
-  color: #6b7280;
+  color: #6e6e77;
   margin: 0;
   word-break: keep-all;
 }
@@ -141,7 +141,7 @@ onMounted(confirm);
 }
 
 .icon.ok {
-  background: linear-gradient(135deg, #8b5cf6, #6366f1);
+  background: linear-gradient(135deg, #e85f26, #e85f26);
 }
 
 .icon.err {
@@ -152,8 +152,8 @@ onMounted(confirm);
   width: 2.25rem;
   height: 2.25rem;
   margin: 0 auto;
-  border: 3px solid #ede9fe;
-  border-top-color: #7c3aed;
+  border: 3px solid #fdede4;
+  border-top-color: #e24e12;
   border-radius: 999px;
   animation: spin 0.8s linear infinite;
 }
@@ -174,7 +174,7 @@ onMounted(confirm);
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
-  background: linear-gradient(135deg, #ede9fe, #fae8ff);
+  background: linear-gradient(135deg, #fdede4, #fce3d6);
   border-radius: 0.75rem;
   padding: 1rem;
   margin: 1.25rem 0;
@@ -183,12 +183,12 @@ onMounted(confirm);
 .balance-num {
   font-size: 1.75rem;
   font-weight: 800;
-  color: #111827;
+  color: #0d0d0f;
 }
 
 .balance-label {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: #6e6e77;
 }
 
 .actions {
@@ -208,13 +208,13 @@ onMounted(confirm);
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #8b5cf6, #6366f1);
+  background: linear-gradient(135deg, #e85f26, #e85f26);
   color: #fff;
 }
 
 .btn-ghost {
-  border: 1px solid #e5e7eb;
-  color: #374151;
+  border: 1px solid #e6e6ea;
+  color: #3a3a42;
   background: #fff;
 }
 </style>

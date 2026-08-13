@@ -13,60 +13,16 @@
       </div>
 
       <template v-else>
-        <!-- Onboarding stepper -->
-        <section v-if="!allStepsDone" class="stepper card">
-          <h2>시작하기</h2>
-          <div class="steps">
-            <div class="step" :class="{ done: hasAvatar }">
-              <span class="step-dot">{{ hasAvatar ? "✓" : 1 }}</span>
-              <div>
-                <strong>아바타 만들기</strong>
-                <p class="muted small">
-                  내 AI 얼굴을 학습시키세요 —
-                  <RouterLink to="/my/avatars" class="inline-link">내 아바타</RouterLink>.
-                </p>
-              </div>
-            </div>
-            <div class="step" :class="{ done: hasGeneration }">
-              <span class="step-dot">{{ hasGeneration ? "✓" : 2 }}</span>
-              <div>
-                <strong>직접 만들기</strong>
-                <p class="muted small">
-                  가입 축하 크레딧으로 바로 시작할 수 있어요.
-                </p>
-              </div>
-            </div>
-            <div class="step" :class="{ done: hasCode }">
-              <span class="step-dot">{{ hasCode ? "✓" : 3 }}</span>
-              <div>
-                <strong>팬에게 링크 공유 (선택)</strong>
-                <p class="muted small">원하면 리딤 링크를 발급해 팬에게 나눠주세요.</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- 크레딧 잔액 + 충전 -->
+        <!-- 크레딧 잔액 — 충전 패키지 선택은 팝업에서 -->
         <section class="card">
           <h2>크레딧</h2>
-          <div class="quota-badge">
-            <span class="plan-name">보유 크레딧</span>
-            <span class="quota-num">{{ credits.toLocaleString() }}</span>
-            <span class="quota-label">이미지 1장 = 크레딧 1</span>
-          </div>
-
-          <div class="plan-grid">
-            <div v-for="p in packs" :key="p.id" class="plan-card">
-              <h3>{{ p.name }}</h3>
-              <p class="price">{{ p.price_krw.toLocaleString() }}원</p>
-              <ul>
-                <li>이미지 {{ p.credits.toLocaleString() }}장</li>
-                <li>장당 {{ Math.round(p.price_krw / p.credits) }}원</li>
-              </ul>
-              <button class="btn-primary" :disabled="purchasing" @click="buyPack(p.code)">
-                {{ purchasing ? "여는 중…" : "충전하기" }}
-              </button>
+          <div class="credit-row">
+            <div class="quota-badge">
+              <span class="plan-name">보유 크레딧</span>
+              <span class="quota-num">{{ credits.toLocaleString() }}</span>
+              <span class="quota-label">이미지 1장 = 크레딧 1</span>
             </div>
+            <button class="btn-primary" @click="openTopUp">충전하기</button>
           </div>
           <p class="muted small">
             생성에 실패하거나 안전 필터에 걸린 경우 크레딧은 자동으로 돌려드려요.
@@ -179,6 +135,48 @@
       </template>
     </div>
 
+    <!-- 크레딧 충전 팝업 -->
+    <transition name="modal">
+      <div
+        v-if="topUpOpen"
+        class="modal-overlay"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="topup-title"
+        @click.self="closeTopUp"
+      >
+        <div class="modal-panel">
+          <header class="modal-head">
+            <h2 id="topup-title">크레딧 충전</h2>
+            <button class="modal-close" aria-label="닫기" @click="closeTopUp">×</button>
+          </header>
+
+          <p class="muted small modal-lead">
+            현재 보유 <strong>{{ credits.toLocaleString() }}</strong> 크레딧 · 이미지 1장 = 크레딧 1
+          </p>
+
+          <div v-if="packs.length" class="plan-grid">
+            <div v-for="p in packs" :key="p.id" class="plan-card">
+              <h3>{{ p.name }}</h3>
+              <p class="price">{{ p.price_krw.toLocaleString() }}원</p>
+              <ul>
+                <li>이미지 {{ p.credits.toLocaleString() }}장</li>
+                <li>장당 {{ Math.round(p.price_krw / p.credits) }}원</li>
+              </ul>
+              <button class="btn-primary" :disabled="purchasing" @click="buyPack(p.code)">
+                {{ purchasing ? "여는 중…" : "충전하기" }}
+              </button>
+            </div>
+          </div>
+          <p v-else class="muted">충전 패키지를 불러오지 못했어요. 새로고침해 주세요.</p>
+
+          <p class="muted small modal-foot">
+            결제창은 토스페이먼츠에서 열려요. 결제가 끝나면 크레딧이 바로 반영됩니다.
+          </p>
+        </div>
+      </div>
+    </transition>
+
     <!-- Toast -->
     <transition name="toast">
       <div v-if="toast" class="toast" :class="toast.kind">{{ toast.msg }}</div>
@@ -187,7 +185,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from "vue";
+import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { RouterLink } from "vue-router";
 import { useAuthStore } from "../stores/auth";
 import AvatarPickPreview from "../components/AvatarPickPreview.vue";
@@ -195,7 +193,6 @@ import {
   studioApi,
   avatarsApi,
   creditsApi,
-  generationsApi,
   type CreditPack,
   type CodeItem,
   type AvatarItem,
@@ -294,13 +291,28 @@ const downloadCodesCsv = () => {
   showToast(`${rows.length}개 링크를 내려받았어요`);
 };
 
-// Onboarding
-const hasAvatar = computed(() => avatars.value.length > 0);
-// 생성은 이제 /studio/create 에서 일어난다 — 로컬 플래그로는 알 수 없어 목록으로 판단한다.
-const hasGeneration = ref(false);
-const hasCode = computed(() => codes.value.length > 0);
-// 링크 공유는 선택 단계라 온보딩 완료 조건에서 제외.
-const allStepsDone = computed(() => hasAvatar.value && hasGeneration.value);
+// 크레딧 충전 팝업
+const topUpOpen = ref(false);
+const openTopUp = () => {
+  topUpOpen.value = true;
+};
+const closeTopUp = () => {
+  topUpOpen.value = false;
+};
+
+// 팝업이 열려 있을 때만 ESC 를 듣고, 배경 스크롤을 막는다
+const onTopUpKeydown = (e: KeyboardEvent) => {
+  if (e.key === "Escape") closeTopUp();
+};
+watch(topUpOpen, (open) => {
+  document.body.style.overflow = open ? "hidden" : "";
+  if (open) window.addEventListener("keydown", onTopUpKeydown);
+  else window.removeEventListener("keydown", onTopUpKeydown);
+});
+onUnmounted(() => {
+  document.body.style.overflow = "";
+  window.removeEventListener("keydown", onTopUpKeydown);
+});
 
 const loadAll = async () => {
   if (!authStore.isLoggedIn) return;
@@ -312,15 +324,13 @@ const loadAll = async () => {
     creditsApi.getMyCredits(),
     avatarsApi.getMyAvatars(),
     studioApi.getCodes(),
-    generationsApi.getMyGenerations(),
   ]);
 
-  const [packsRes, creditsRes, avatarsRes, codesRes, gensRes] = results;
+  const [packsRes, creditsRes, avatarsRes, codesRes] = results;
   if (packsRes.status === "fulfilled") packs.value = packsRes.value;
   if (creditsRes.status === "fulfilled") credits.value = creditsRes.value.balance;
   if (avatarsRes.status === "fulfilled") avatars.value = avatarsRes.value;
   if (codesRes.status === "fulfilled") codes.value = codesRes.value;
-  if (gensRes.status === "fulfilled") hasGeneration.value = gensRes.value.length > 0;
 
   const failed = results.filter((r) => r.status === "rejected");
   if (failed.length) {
@@ -401,7 +411,7 @@ watch(
 <style scoped>
 .studio-page {
   min-height: calc(100vh - 80px);
-  background: #f9fafb;
+  background: #fafafa;
   padding: 2.5rem 1rem 4rem;
 }
 
@@ -416,27 +426,27 @@ watch(
 .studio-head h1 {
   font-size: 2rem;
   font-weight: 800;
-  color: #111827;
+  color: #0d0d0f;
   margin: 0;
 }
 
 .lead {
-  color: #6b7280;
+  color: #6e6e77;
   margin: 0.5rem 0 0;
 }
 
 .notice {
   background: #fff;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e6e6ea;
   border-radius: 1rem;
   padding: 2rem;
   text-align: center;
-  color: #6b7280;
+  color: #6e6e77;
 }
 
 .card {
   background: #fff;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e6e6ea;
   border-radius: 1rem;
   padding: 1.5rem;
 }
@@ -444,43 +454,52 @@ watch(
 .card h2 {
   font-size: 1.15rem;
   font-weight: 700;
-  color: #111827;
+  color: #0d0d0f;
   margin: 0 0 0.75rem;
 }
 
 .muted {
-  color: #6b7280;
+  color: #6e6e77;
 }
 
 .small {
   font-size: 0.8rem;
 }
 
+/* 잔액과 충전 버튼을 한 줄에 — 패키지 선택은 팝업으로 넘어갔다 */
+.credit-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
 .quota-badge {
   display: inline-flex;
   flex-direction: column;
   gap: 0.15rem;
-  background: linear-gradient(135deg, #ede9fe, #fae8ff);
+  background: linear-gradient(135deg, #fdede4, #fce3d6);
   border-radius: 0.75rem;
   padding: 0.85rem 1.25rem;
-  margin-bottom: 1rem;
 }
 
 .plan-name {
   font-weight: 700;
-  color: #6d28d9;
+  color: #c24210;
   font-size: 0.85rem;
 }
 
 .quota-num {
   font-size: 1.5rem;
   font-weight: 800;
-  color: #111827;
+  color: #0d0d0f;
 }
 
 .quota-label {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: #6e6e77;
 }
 
 .plan-grid {
@@ -491,7 +510,7 @@ watch(
 }
 
 .plan-card {
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e6e6ea;
   border-radius: 0.85rem;
   padding: 1.1rem;
   text-align: center;
@@ -500,13 +519,13 @@ watch(
 .plan-card h3 {
   margin: 0 0 0.35rem;
   font-size: 1rem;
-  color: #111827;
+  color: #0d0d0f;
 }
 
 .price {
   font-size: 1.4rem;
   font-weight: 800;
-  color: #111827;
+  color: #0d0d0f;
   margin: 0 0 0.6rem;
 }
 
@@ -515,7 +534,7 @@ watch(
   padding: 0;
   margin: 0 0 0.9rem;
   font-size: 0.8rem;
-  color: #4b5563;
+  color: #52525b;
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
@@ -527,7 +546,7 @@ watch(
   gap: 0.75rem;
   margin: 1rem 0 1.25rem;
   padding: 1rem;
-  background: #f9fafb;
+  background: #fafafa;
   border-radius: 0.75rem;
 }
 
@@ -543,7 +562,7 @@ watch(
 }
 
 .shortcut:hover {
-  box-shadow: 0 12px 26px -16px rgba(124, 58, 237, 0.55);
+  box-shadow: 0 12px 26px -16px rgba(226, 78, 18, 0.55);
   transform: translateY(-1px);
 }
 
@@ -562,7 +581,7 @@ watch(
 
 .shortcut-cta {
   flex-shrink: 0;
-  background: linear-gradient(to right, #7c3aed, #9333ea);
+  background: linear-gradient(to right, #e24e12, #f2703a);
   color: #fff;
   border-radius: 0.6rem;
   padding: 0.65rem 1.25rem;
@@ -592,13 +611,13 @@ watch(
 label {
   font-size: 0.8rem;
   font-weight: 600;
-  color: #374151;
+  color: #3a3a42;
 }
 
 input,
 select,
 textarea {
-  border: 1px solid #d1d5db;
+  border: 1px solid #d2d2d9;
   border-radius: 0.5rem;
   padding: 0.55rem 0.7rem;
   font-size: 0.9rem;
@@ -619,7 +638,7 @@ textarea {
   justify-content: space-between;
   gap: 1rem;
   padding: 0.75rem 0;
-  border-top: 1px solid #f3f4f6;
+  border-top: 1px solid #f2f2f4;
 }
 
 
@@ -628,7 +647,7 @@ textarea {
   font-family: ui-monospace, monospace;
   font-size: 0.95rem;
   font-weight: 700;
-  color: #6d28d9;
+  color: #c24210;
   letter-spacing: 0.02em;
 }
 
@@ -640,7 +659,7 @@ textarea {
 
 .btn-primary {
   align-self: flex-start;
-  background: linear-gradient(to right, #7c3aed, #9333ea);
+  background: linear-gradient(to right, #e24e12, #f2703a);
   color: #fff;
   border: none;
   border-radius: 0.6rem;
@@ -658,7 +677,7 @@ textarea {
 .btn-text {
   background: none;
   border: none;
-  color: #6d28d9;
+  color: #c24210;
   font-weight: 600;
   font-size: 0.8rem;
   cursor: pointer;
@@ -671,8 +690,8 @@ textarea {
 .btn-outline {
   flex-shrink: 0;
   background: #fff;
-  border: 1px solid #ddd6fe;
-  color: #6d28d9;
+  border: 1px solid #fbd9c6;
+  color: #c24210;
   border-radius: 0.5rem;
   padding: 0.55rem 0.85rem;
   font-weight: 700;
@@ -682,7 +701,7 @@ textarea {
 }
 
 .btn-outline:hover {
-  background: #f5f3ff;
+  background: #fdf5f0;
 }
 
 .btn-outline:disabled {
@@ -713,18 +732,18 @@ textarea {
   padding: 0.35rem 0.85rem;
   font-size: 0.82rem;
   font-weight: 600;
-  color: #6b7280;
+  color: #6e6e77;
   cursor: pointer;
 }
 
 .code-filter:hover {
-  background: #f9fafb;
+  background: #fafafa;
 }
 
 .code-filter.active {
-  background: #f5f3ff;
-  border-color: #ddd6fe;
-  color: #6d28d9;
+  background: #fdf5f0;
+  border-color: #fbd9c6;
+  color: #c24210;
 }
 
 .filter-count {
@@ -766,47 +785,98 @@ textarea {
 
 
 
-/* Onboarding stepper */
-.stepper .steps {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-  margin-top: 0.5rem;
-}
-
-.step {
-  display: flex;
-  gap: 0.65rem;
-  align-items: flex-start;
-}
-
-.step-dot {
-  flex-shrink: 0;
-  width: 1.6rem;
-  height: 1.6rem;
-  border-radius: 9999px;
-  background: #e5e7eb;
-  color: #6b7280;
+/* 크레딧 충전 팝업 */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: rgba(13, 13, 15, 0.5);
+  backdrop-filter: blur(2px);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.8rem;
-  font-weight: 700;
+  padding: 1.25rem;
+  overflow-y: auto;
 }
 
-.step.done .step-dot {
-  background: #7c3aed;
-  color: #fff;
+.modal-panel {
+  width: 100%;
+  max-width: 40rem;
+  background: #fff;
+  border-radius: 1.25rem;
+  padding: 1.5rem;
+  box-shadow: 0 30px 60px -25px rgba(13, 13, 15, 0.5);
 }
 
-.step strong {
-  font-size: 0.9rem;
-  color: #111827;
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
 }
 
-.inline-link {
-  color: #6d28d9;
-  font-weight: 600;
+.modal-head h2 {
+  margin: 0;
+}
+
+.modal-close {
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: #f2f2f4;
+  color: #52525b;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.modal-close:hover {
+  background: #e6e6ea;
+  color: #0d0d0f;
+}
+
+.modal-lead {
+  margin: 0.35rem 0 0;
+}
+
+.modal-foot {
+  margin: 0.25rem 0 0;
+}
+
+/* 팝업 등장 — 배경은 페이드, 패널은 살짝 떠오른다 */
+.modal-enter-active,
+.modal-leave-active {
+  transition: opacity 0.18s ease;
+}
+
+.modal-enter-active .modal-panel,
+.modal-leave-active .modal-panel {
+  transition: transform 0.18s ease;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+
+.modal-enter-from .modal-panel,
+.modal-leave-to .modal-panel {
+  transform: translateY(0.75rem);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-enter-active,
+  .modal-leave-active,
+  .modal-enter-active .modal-panel,
+  .modal-leave-active .modal-panel {
+    transition: none;
+  }
+  .modal-enter-from .modal-panel,
+  .modal-leave-to .modal-panel {
+    transform: none;
+  }
 }
 
 /* Toast */
@@ -825,7 +895,7 @@ textarea {
 }
 
 .toast.ok {
-  background: #111827;
+  background: #0d0d0f;
 }
 
 .toast.err {

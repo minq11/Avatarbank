@@ -11,7 +11,7 @@
           <div class="section-header">
             <h3 class="section-title">학습 요청</h3>
             <button class="btn-new-request" type="button" @click="goToCreatePage">
-              New Request
+              학습 요청하기
             </button>
           </div>
 
@@ -1143,7 +1143,7 @@ async function deleteAvatar() {
   font-size: 2rem;
   font-weight: 600;
   letter-spacing: -0.025em;
-  color: #111827;
+  color: #0d0d0f;
 }
 
 .main-layout {
@@ -1179,7 +1179,7 @@ async function deleteAvatar() {
 .section-title {
   font-size: 1.25rem;
   font-weight: 600;
-  color: #111827;
+  color: #0d0d0f;
 }
 
 .btn-new-request {
@@ -1187,7 +1187,7 @@ async function deleteAvatar() {
   font-size: 0.875rem;
   font-weight: 500;
   color: white;
-  background: linear-gradient(to right, #4f46e5, #6366f1);
+  background: linear-gradient(to right, #e24e12, #e85f26);
   border: none;
   border-radius: 0.5rem;
   cursor: pointer;
@@ -1195,7 +1195,7 @@ async function deleteAvatar() {
 }
 
 .btn-new-request:hover {
-  box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3);
+  box-shadow: 0 10px 15px -3px rgba(226, 78, 18, 0.3);
 }
 
 /* Requests Grid */
@@ -1203,7 +1203,7 @@ async function deleteAvatar() {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e6e6ea;
   border-radius: 0.5rem;
   overflow: hidden;
 }
@@ -1211,32 +1211,32 @@ async function deleteAvatar() {
 .grid-header {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  background: #f9fafb;
+  background: #fafafa;
   font-weight: 600;
   font-size: 0.875rem;
-  color: #374151;
+  color: #3a3a42;
 }
 
 .grid-row {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid #e6e6ea;
   cursor: pointer;
   transition: background-color 0.2s;
 }
 
 .grid-row:hover {
-  background-color: #f9fafb;
+  background-color: #fafafa;
 }
 
 .grid-row-selected {
-  background-color: #eff6ff;
+  background-color: #fdede4;
 }
 
 .grid-cell {
   padding: 0.75rem 1rem;
   font-size: 0.875rem;
-  color: #374151;
+  color: #3a3a42;
 }
 
 .status-badge {
@@ -1248,8 +1248,8 @@ async function deleteAvatar() {
 }
 
 .status-requested {
-  background: #dbeafe;
-  color: #1e40af;
+  background: #fce3d6;
+  color: #a8380d;
 }
 
 .status-approved {
@@ -1263,8 +1263,8 @@ async function deleteAvatar() {
 }
 
 .status-cancelled {
-  background: #f3f4f6;
-  color: #6b7280;
+  background: #f2f2f4;
+  color: #6e6e77;
 }
 
 /* Avatars Section (2/3) */
@@ -1309,7 +1309,7 @@ async function deleteAvatar() {
   transition: transform 0.2s, box-shadow 0.2s;
   border-radius: 0.75rem;
   overflow: hidden;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e6e6ea;
 }
 
 .avatar-card:hover {
@@ -1321,7 +1321,7 @@ async function deleteAvatar() {
   position: relative;
   width: 100%;
   padding-bottom: 100%;
-  background: #f9fafb;
+  background: #fafafa;
   overflow: hidden;
 }
 
@@ -1341,14 +1341,14 @@ async function deleteAvatar() {
   transform: translate(-50%, -50%);
   width: 3rem;
   height: 3rem;
-  color: #9ca3af;
+  color: #9a9aa3;
 }
 
 .avatar-name {
   padding: 0.75rem 1rem;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #111827;
+  color: #0d0d0f;
   text-align: center;
 }
 
@@ -1366,8 +1366,8 @@ async function deleteAvatar() {
   color: #065f46;
 }
 .avatar-status-badge.status-hidden {
-  background: #fef3c7;
-  color: #92400e;
+  background: #f2f2f4;
+  color: #52525b;
 }
 
 /* Loading & Empty States */
@@ -1379,14 +1379,14 @@ async function deleteAvatar() {
   justify-content: center;
   padding: 3rem 1rem;
   gap: 1rem;
-  color: #6b7280;
+  color: #6e6e77;
 }
 
 .loading-spinner {
   width: 2rem;
   height: 2rem;
-  border: 3px solid #e5e7eb;
-  border-top-color: #4f46e5;
+  border: 3px solid #e6e6ea;
+  border-top-color: #e24e12;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -1416,7 +1416,7 @@ async function deleteAvatar() {
   max-height: 90vh;
   background: #ffffff;
   border-radius: 1rem;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e6e6ea;
   box-shadow: 0 20px 35px -15px rgba(15, 23, 42, 0.25);
   overflow: hidden;
   display: flex;
@@ -1440,13 +1440,13 @@ async function deleteAvatar() {
   align-items: center;
   justify-content: space-between;
   padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid #f2f2f4;
 }
 
 .modal-header h3 {
   font-size: 1.25rem;
   font-weight: 600;
-  color: #111827;
+  color: #0d0d0f;
 }
 
 .modal-close {
@@ -1454,7 +1454,7 @@ async function deleteAvatar() {
   background: transparent;
   font-size: 1.5rem;
   line-height: 1;
-  color: #6b7280;
+  color: #6e6e77;
   cursor: pointer;
   padding: 0;
   width: 2rem;
@@ -1465,7 +1465,7 @@ async function deleteAvatar() {
 }
 
 .modal-close:hover {
-  color: #111827;
+  color: #0d0d0f;
 }
 
 .modal-body {
@@ -1476,7 +1476,7 @@ async function deleteAvatar() {
 
 .modal-footer {
   padding: 1rem 1.5rem;
-  border-top: 1px solid #f3f4f6;
+  border-top: 1px solid #f2f2f4;
   display: flex;
   justify-content: flex-end;
   gap: 0.75rem;
@@ -1490,7 +1490,7 @@ async function deleteAvatar() {
 .form-section-title {
   font-size: 1rem;
   font-weight: 600;
-  color: #111827;
+  color: #0d0d0f;
   margin-bottom: 1rem;
 }
 
@@ -1502,7 +1502,7 @@ async function deleteAvatar() {
   display: block;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #374151;
+  color: #3a3a42;
   margin-bottom: 0.5rem;
 }
 
@@ -1515,9 +1515,9 @@ async function deleteAvatar() {
   width: 100%;
   padding: 0.625rem 0.75rem;
   font-size: 0.875rem;
-  color: #111827;
+  color: #0d0d0f;
   background: #ffffff;
-  border: 1px solid #d1d5db;
+  border: 1px solid #d2d2d9;
   border-radius: 0.5rem;
   transition: border-color 0.2s;
 }
@@ -1525,19 +1525,19 @@ async function deleteAvatar() {
 .form-input:focus,
 .form-textarea:focus {
   outline: none;
-  border-color: #4f46e5;
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+  border-color: #e24e12;
+  box-shadow: 0 0 0 3px rgba(226, 78, 18, 0.1);
 }
 
 .form-input[readonly],
 .form-textarea[readonly] {
-  background-color: #f9fafb;
+  background-color: #fafafa;
   cursor: default;
 }
 
 .form-input[readonly]:focus,
 .form-textarea[readonly]:focus {
-  border-color: #d1d5db;
+  border-color: #d2d2d9;
   box-shadow: none;
 }
 
@@ -1557,7 +1557,7 @@ async function deleteAvatar() {
   gap: 0.5rem;
   cursor: pointer;
   font-size: 0.875rem;
-  color: #374151;
+  color: #3a3a42;
 }
 
 .radio-input {
@@ -1572,7 +1572,7 @@ async function deleteAvatar() {
   gap: 0.5rem;
   cursor: pointer;
   font-size: 0.875rem;
-  color: #374151;
+  color: #3a3a42;
 }
 
 .checkbox-input {
@@ -1583,20 +1583,20 @@ async function deleteAvatar() {
 
 .info-box {
   padding: 1rem;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
+  background: #fdede4;
+  border: 1px solid #fbd9c6;
   border-radius: 0.5rem;
   margin-top: 1rem;
 }
 
 .info-box p {
   font-size: 0.875rem;
-  color: #1e40af;
+  color: #a8380d;
   margin: 0.25rem 0;
 }
 
 .info-box a {
-  color: #1e40af;
+  color: #a8380d;
   text-decoration: underline;
 }
 
@@ -1613,17 +1613,17 @@ async function deleteAvatar() {
   padding: 0.625rem 1rem;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #374151;
-  background: #f9fafb;
-  border: 1px solid #d1d5db;
+  color: #3a3a42;
+  background: #fafafa;
+  border: 1px solid #d2d2d9;
   border-radius: 0.5rem;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .file-upload-btn:hover {
-  background: #f3f4f6;
-  border-color: #9ca3af;
+  background: #f2f2f4;
+  border-color: #9a9aa3;
 }
 
 .preview-image {
@@ -1633,7 +1633,7 @@ async function deleteAvatar() {
   height: 150px;
   border-radius: 0.5rem;
   overflow: hidden;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e6e6ea;
 }
 
 .preview-image img {
@@ -1669,7 +1669,7 @@ async function deleteAvatar() {
   display: block;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #374151;
+  color: #3a3a42;
   margin-bottom: 0.75rem;
 }
 
@@ -1683,8 +1683,8 @@ async function deleteAvatar() {
   position: relative;
   width: 100%;
   padding-bottom: 100%;
-  background: #f9fafb;
-  border: 2px dashed #d1d5db;
+  background: #fafafa;
+  border: 2px dashed #d2d2d9;
   border-radius: 0.5rem;
   cursor: pointer;
   transition: all 0.2s;
@@ -1692,8 +1692,8 @@ async function deleteAvatar() {
 }
 
 .photo-slot:hover:not(.readonly) {
-  border-color: #4f46e5;
-  background: #f3f4f6;
+  border-color: #e24e12;
+  background: #f2f2f4;
 }
 
 .photo-slot.readonly {
@@ -1729,9 +1729,9 @@ async function deleteAvatar() {
   padding: 0.75rem 1rem;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #4f46e5;
-  background: #f9fafb;
-  border: 2px dashed #d1d5db;
+  color: #e24e12;
+  background: #fafafa;
+  border: 2px dashed #d2d2d9;
   border-radius: 0.5rem;
   cursor: pointer;
   transition: all 0.2s;
@@ -1742,9 +1742,9 @@ async function deleteAvatar() {
 }
 
 .add-photo-btn:hover {
-  border-color: #4f46e5;
-  background: #f3f4f6;
-  color: #4338ca;
+  border-color: #e24e12;
+  background: #f2f2f4;
+  color: #b93b0e;
 }
 
 .slot-image {
@@ -1763,7 +1763,7 @@ async function deleteAvatar() {
   transform: translate(-50%, -50%);
   width: 2rem;
   height: 2rem;
-  color: #9ca3af;
+  color: #9a9aa3;
 }
 
 .hidden-file-input {
@@ -1778,7 +1778,7 @@ async function deleteAvatar() {
 .detail-section-title {
   font-size: 1rem;
   font-weight: 600;
-  color: #111827;
+  color: #0d0d0f;
   margin-bottom: 1rem;
 }
 
@@ -1802,8 +1802,8 @@ async function deleteAvatar() {
   height: 400px;
   border-radius: 0.5rem;
   overflow: hidden;
-  border: 1px solid #e5e7eb;
-  background: #f9fafb;
+  border: 1px solid #e6e6ea;
+  background: #fafafa;
   margin-bottom: 1rem;
 }
 .preview-image-large img {
@@ -1818,7 +1818,7 @@ async function deleteAvatar() {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #9ca3af;
+  color: #9a9aa3;
 }
 
 .detail-grid {
@@ -1836,17 +1836,17 @@ async function deleteAvatar() {
 .detail-label {
   font-size: 0.75rem;
   font-weight: 650;
-  color: #6b7280;
+  color: #6e6e77;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
 .detail-value {
   font-size: 0.875rem;
-  color: #111827;
+  color: #0d0d0f;
 }
 .detail-instagram-link {
-  color: #6366f1;
+  color: #e85f26;
   text-decoration: none;
 }
 .detail-instagram-link:hover {
@@ -1856,14 +1856,14 @@ async function deleteAvatar() {
 .edit-section {
   margin-top: 2rem;
   padding-top: 2rem;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid #e6e6ea;
 }
 
 .form-group-block.visibility-block {
   padding: 1rem 1.25rem;
   margin-bottom: 1.25rem;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background: #fafafa;
+  border: 1px solid #e6e6ea;
   border-radius: 0.5rem;
 }
 .visibility-block-top {
@@ -1880,31 +1880,31 @@ async function deleteAvatar() {
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1rem;
-  border: 2px solid #e5e7eb;
+  border: 2px solid #e6e6ea;
   border-radius: 0.5rem;
   cursor: pointer;
   transition: border-color 0.2s, background 0.2s;
 }
 .visibility-option.visibility-option-selected {
-  border-color: #4f46e5;
-  background: #eef2ff;
+  border-color: #e24e12;
+  background: #fdede4;
 }
 .visibility-option:hover {
-  border-color: #a5b4fc;
+  border-color: #f7b394;
 }
 .visibility-radio {
   margin: 0;
   width: 1rem;
   height: 1rem;
-  accent-color: #4f46e5;
+  accent-color: #e24e12;
 }
 .visibility-label {
   font-weight: 600;
-  color: #111827;
+  color: #0d0d0f;
 }
 .visibility-desc {
   font-size: 0.8rem;
-  color: #6b7280;
+  color: #6e6e77;
 }
 
 .preview-image-edit-group {
@@ -1931,7 +1931,7 @@ async function deleteAvatar() {
   height: 120px;
   border-radius: 0.5rem;
   overflow: hidden;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e6e6ea;
 }
 .preview-image-edit-thumb img {
   width: 100%;
@@ -1945,7 +1945,7 @@ async function deleteAvatar() {
   font-size: 0.875rem;
   font-weight: 500;
   color: white;
-  background: linear-gradient(to right, #4f46e5, #6366f1);
+  background: linear-gradient(to right, #e24e12, #e85f26);
   border: none;
   border-radius: 0.5rem;
   cursor: pointer;
@@ -1953,7 +1953,7 @@ async function deleteAvatar() {
 }
 
 .btn-primary:hover:not(:disabled) {
-  box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3);
+  box-shadow: 0 10px 15px -3px rgba(226, 78, 18, 0.3);
 }
 
 .btn-primary:disabled {
@@ -1965,17 +1965,17 @@ async function deleteAvatar() {
   padding: 0.625rem 1.25rem;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #374151;
-  background: #f9fafb;
-  border: 1px solid #d1d5db;
+  color: #3a3a42;
+  background: #fafafa;
+  border: 1px solid #d2d2d9;
   border-radius: 0.5rem;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .btn-secondary:hover {
-  background: #f3f4f6;
-  border-color: #9ca3af;
+  background: #f2f2f4;
+  border-color: #9a9aa3;
 }
 
 .btn-danger {
@@ -2008,14 +2008,14 @@ async function deleteAvatar() {
 
 .upload-progress-bar {
   height: 6px;
-  background: #e5e7eb;
+  background: #e6e6ea;
   border-radius: 9999px;
   overflow: hidden;
 }
 
 .upload-progress-fill {
   height: 100%;
-  background: linear-gradient(to right, #4f46e5, #6366f1);
+  background: linear-gradient(to right, #e24e12, #e85f26);
   border-radius: 9999px;
   transition: width 0.2s ease;
 }
@@ -2023,7 +2023,7 @@ async function deleteAvatar() {
 .upload-progress-text {
   display: block;
   font-size: 0.75rem;
-  color: #6b7280;
+  color: #6e6e77;
   margin-top: 0.25rem;
 }
 

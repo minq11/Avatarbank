@@ -337,8 +337,8 @@ const handleRegister = async () => {
   height: 2rem;
   border-radius: 0.5rem;
   border: none;
-  background: #f3f4f6;
-  color: #6b7280;
+  background: #f2f2f4;
+  color: #6e6e77;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -348,8 +348,8 @@ const handleRegister = async () => {
 }
 
 .modal-close:hover {
-  background: #e5e7eb;
-  color: #111827;
+  background: #e6e6ea;
+  color: #0d0d0f;
 }
 
 .modal-close svg {
@@ -364,13 +364,13 @@ const handleRegister = async () => {
 .form-title {
   font-size: 1.875rem;
   font-weight: 700;
-  color: #111827;
+  color: #0d0d0f;
   margin-bottom: 0.5rem;
 }
 
 .form-subtitle {
   font-size: 0.875rem;
-  color: #6b7280;
+  color: #6e6e77;
   margin-bottom: 2rem;
 }
 
@@ -389,31 +389,31 @@ const handleRegister = async () => {
 .form-group label {
   font-size: 0.875rem;
   font-weight: 500;
-  color: #374151;
+  color: #3a3a42;
 }
 
 .form-input {
   padding: 0.75rem 1rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid #d2d2d9;
   border-radius: 0.5rem;
   font-size: 0.875rem;
-  color: #111827;
+  color: #0d0d0f;
   transition: all 0.2s;
 }
 
 .form-input:focus {
   outline: none;
-  border-color: #4f46e5;
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+  border-color: #e24e12;
+  box-shadow: 0 0 0 3px rgba(226, 78, 18, 0.1);
 }
 
 .form-input::placeholder {
-  color: #9ca3af;
+  color: #9a9aa3;
 }
 
 .btn-primary {
   padding: 0.75rem 1.5rem;
-  background: linear-gradient(to right, #4f46e5, #6366f1);
+  background: linear-gradient(to right, #e24e12, #e85f26);
   color: white;
   border: none;
   border-radius: 0.5rem;
@@ -425,7 +425,7 @@ const handleRegister = async () => {
 }
 
 .btn-primary:hover:not(:disabled) {
-  box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3);
+  box-shadow: 0 10px 15px -3px rgba(226, 78, 18, 0.3);
 }
 
 .btn-primary:disabled {
@@ -446,7 +446,7 @@ const handleRegister = async () => {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  color: #9ca3af;
+  color: #9a9aa3;
   font-size: 0.8rem;
 }
 
@@ -455,7 +455,7 @@ const handleRegister = async () => {
   content: "";
   flex: 1;
   height: 1px;
-  background: #e5e7eb;
+  background: #e6e6ea;
 }
 
 .google-btn-slot {
@@ -467,14 +467,14 @@ const handleRegister = async () => {
 .form-footer {
   text-align: center;
   font-size: 0.875rem;
-  color: #6b7280;
+  color: #6e6e77;
   margin-top: 1rem;
 }
 
 .link-button {
   background: none;
   border: none;
-  color: #4f46e5;
+  color: #e24e12;
   font-weight: 500;
   cursor: pointer;
   text-decoration: underline;
@@ -483,6 +483,6 @@ const handleRegister = async () => {
 }
 
 .link-button:hover {
-  color: #6366f1;
+  color: #e85f26;
 }
 </style>

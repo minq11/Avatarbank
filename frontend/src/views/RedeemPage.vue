@@ -355,7 +355,7 @@ onMounted(loadInfo);
 <style scoped>
 .redeem-page {
   min-height: calc(100vh - 80px);
-  background: linear-gradient(180deg, #faf5ff 0%, #ffffff 40%);
+  background: linear-gradient(180deg, #fdf5f0 0%, #ffffff 40%);
   padding: 2rem 1.5rem 4rem;
 }
 
@@ -368,11 +368,11 @@ onMounted(loadInfo);
 .state-box {
   text-align: center;
   padding: 4rem 1rem;
-  color: #6b7280;
+  color: #6e6e77;
 }
 
 .state-box.error h2 {
-  color: #111827;
+  color: #0d0d0f;
   margin-bottom: 0.5rem;
 }
 
@@ -398,19 +398,19 @@ onMounted(loadInfo);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #7c3aed;
+  color: #e24e12;
   margin: 0 0 0.25rem;
 }
 
 .title {
   font-size: 1.9rem;
   font-weight: 800;
-  color: #111827;
+  color: #0d0d0f;
   margin: 0;
 }
 
 .subtitle {
-  color: #4b5563;
+  color: #52525b;
   margin: 0.35rem 0 0;
   font-size: 0.95rem;
 }
@@ -419,7 +419,7 @@ onMounted(loadInfo);
   display: inline-flex;
   align-items: baseline;
   gap: 0.25rem;
-  background: linear-gradient(135deg, #ede9fe, #fae8ff);
+  background: linear-gradient(135deg, #fdede4, #fce3d6);
   border-radius: 0.75rem;
   padding: 0.75rem 1.15rem;
   flex-shrink: 0;
@@ -428,14 +428,14 @@ onMounted(loadInfo);
 .uses-num {
   font-size: 1.5rem;
   font-weight: 800;
-  color: #6d28d9;
+  color: #c24210;
   font-variant-numeric: tabular-nums;
 }
 
 .uses-label {
   font-size: 0.8rem;
   font-weight: 600;
-  color: #6b7280;
+  color: #6e6e77;
 }
 
 /* 왼쪽 컨트롤 고정폭 / 오른쪽 결과가 남는 폭을 전부 */
@@ -448,7 +448,7 @@ onMounted(loadInfo);
 
 .controls {
   background: #fff;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e6e6ea;
   border-radius: 1rem;
   padding: 1.5rem;
   display: flex;
@@ -467,7 +467,7 @@ onMounted(loadInfo);
 label {
   font-size: 0.82rem;
   font-weight: 700;
-  color: #374151;
+  color: #3a3a42;
 }
 
 textarea,
@@ -478,7 +478,7 @@ input[type="range"] {
 }
 
 textarea {
-  border: 1px solid #d1d5db;
+  border: 1px solid #d2d2d9;
   border-radius: 0.6rem;
   padding: 0.75rem 0.9rem;
   font-size: 0.95rem;
@@ -488,11 +488,11 @@ textarea {
 
 input[type="range"] {
   padding: 0;
-  accent-color: #7c3aed;
+  accent-color: #e24e12;
 }
 
 .muted {
-  color: #6b7280;
+  color: #6e6e77;
 }
 
 .small {
@@ -506,13 +506,13 @@ input[type="range"] {
 }
 
 .ref-note strong {
-  color: #6d28d9;
+  color: #c24210;
 }
 
 .slider-value {
   float: right;
   font-weight: 700;
-  color: #6d28d9;
+  color: #c24210;
   font-variant-numeric: tabular-nums;
 }
 
@@ -535,7 +535,7 @@ input[type="range"] {
   margin: 0;
   font-size: 1rem;
   font-weight: 700;
-  color: #111827;
+  color: #0d0d0f;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -553,8 +553,8 @@ input[type="range"] {
   width: 140px;
   height: 176px;
   border-radius: 0.7rem;
-  border: 1px solid #e5e7eb;
-  background: #f9fafb;
+  border: 1px solid #e6e6ea;
+  background: #fafafa;
   overflow: hidden;
   padding: 0;
   cursor: pointer;
@@ -591,7 +591,7 @@ input[type="range"] {
   background: rgba(255, 255, 255, 0.85);
   font-size: 0.72rem;
   font-weight: 600;
-  color: #6d28d9;
+  color: #c24210;
 }
 
 .source-actions {
@@ -605,7 +605,7 @@ input[type="range"] {
 /* 오른쪽: 결과 캔버스 */
 .canvas {
   background: #fff;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e6e6ea;
   border-radius: 1rem;
   padding: 1.5rem;
   min-height: 620px;
@@ -643,7 +643,7 @@ input[type="range"] {
 .canvas-state,
 .canvas-empty {
   text-align: center;
-  color: #9ca3af;
+  color: #9a9aa3;
   padding: 2rem;
 }
 
@@ -661,19 +661,19 @@ input[type="range"] {
 }
 
 .canvas-empty strong {
-  color: #6d28d9;
+  color: #c24210;
 }
 
 .state-msg {
   font-size: 1rem;
   font-weight: 600;
-  color: #374151;
+  color: #3a3a42;
   margin: 0.75rem 0 0.25rem;
 }
 
 .state-sub {
   font-size: 0.85rem;
-  color: #9ca3af;
+  color: #9a9aa3;
   margin: 0;
 }
 
@@ -684,7 +684,7 @@ input[type="range"] {
   flex-wrap: wrap;
   width: 100%;
   padding-top: 0.5rem;
-  border-top: 1px solid #f3f4f6;
+  border-top: 1px solid #f2f2f4;
 }
 
 .strip-thumb {
@@ -695,11 +695,11 @@ input[type="range"] {
   border: 2px solid transparent;
   padding: 0;
   cursor: pointer;
-  background: #f3f4f6;
+  background: #f2f2f4;
 }
 
 .strip-thumb.active {
-  border-color: #7c3aed;
+  border-color: #e24e12;
 }
 
 .strip-thumb img {
@@ -714,7 +714,7 @@ input[type="range"] {
   align-items: center;
   justify-content: center;
   gap: 0.4rem;
-  background: linear-gradient(to right, #7c3aed, #9333ea);
+  background: linear-gradient(to right, #e24e12, #f2703a);
   color: #fff;
   border: none;
   border-radius: 0.7rem;
@@ -728,7 +728,7 @@ input[type="range"] {
 }
 
 .btn-primary:hover:not(:disabled) {
-  box-shadow: 0 12px 22px -12px rgba(124, 58, 237, 0.7);
+  box-shadow: 0 12px 22px -12px rgba(226, 78, 18, 0.7);
 }
 
 .btn-primary:disabled {
@@ -745,21 +745,21 @@ input[type="range"] {
   align-items: center;
   justify-content: center;
   background: #fff;
-  border: 1px solid #d1d5db;
+  border: 1px solid #d2d2d9;
   border-radius: 0.7rem;
   padding: 0.8rem 1.4rem;
   font-weight: 600;
   font-size: 0.9rem;
   font-family: inherit;
-  color: #374151;
+  color: #3a3a42;
   cursor: pointer;
   text-decoration: none;
 }
 
 .btn-outline {
   background: #fff;
-  border: 1px solid #ddd6fe;
-  color: #6d28d9;
+  border: 1px solid #fbd9c6;
+  color: #c24210;
   border-radius: 0.5rem;
   padding: 0.55rem 0.85rem;
   font-weight: 700;
@@ -770,14 +770,14 @@ input[type="range"] {
 }
 
 .btn-outline:hover {
-  background: #f5f3ff;
+  background: #fdf5f0;
 }
 
 .btn-text {
   background: none;
   border: none;
   padding: 0;
-  color: #6d28d9;
+  color: #c24210;
   font-size: 0.78rem;
   font-weight: 600;
   font-family: inherit;
@@ -792,7 +792,7 @@ input[type="range"] {
 
 .disclaimer {
   font-size: 0.75rem;
-  color: #9ca3af;
+  color: #9a9aa3;
   margin: 0;
   line-height: 1.6;
 }
@@ -801,8 +801,8 @@ input[type="range"] {
 .spinner {
   width: 32px;
   height: 32px;
-  border: 3px solid #e9d5ff;
-  border-top-color: #7c3aed;
+  border: 3px solid #fbd9c6;
+  border-top-color: #e24e12;
   border-radius: 50%;
   margin: 0 auto;
   animation: spin 0.8s linear infinite;

@@ -323,7 +323,7 @@ onUnmounted(() => {
   background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid #f2f2f4;
 }
 
 .header-container {
@@ -367,7 +367,7 @@ onUnmounted(() => {
   font-size: 1.5rem;
   font-weight: 700;
   letter-spacing: -0.025em;
-  color: #4f46e5;
+  color: #e24e12;
   cursor: pointer;
   transition: opacity 0.2s;
 }
@@ -391,18 +391,18 @@ onUnmounted(() => {
 
 .nav-link {
   text-decoration: none;
-  color: #4b5563;
+  color: #52525b;
   font-size: 0.875rem;
   font-weight: 500;
   transition: color 0.2s;
 }
 
 .nav-link:hover {
-  color: #111827;
+  color: #0d0d0f;
 }
 
 .nav-link.router-link-active {
-  color: #111827;
+  color: #0d0d0f;
 }
 
 .right-nav {
@@ -426,7 +426,7 @@ onUnmounted(() => {
   background: transparent;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #374151;
+  color: #3a3a42;
   cursor: pointer;
   transition: background-color 0.2s;
 }
@@ -439,8 +439,8 @@ onUnmounted(() => {
 }
 
 .language-btn:hover {
-  background: #f9fafb;
-  color: #111827;
+  background: #fafafa;
+  color: #0d0d0f;
 }
 
 .chevron-icon {
@@ -457,7 +457,7 @@ onUnmounted(() => {
   background: white;
   border-radius: 0.75rem;
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
-  border: 1px solid #f3f4f6;
+  border: 1px solid #f2f2f4;
   padding: 0.5rem 0;
   overflow: hidden;
 }
@@ -467,7 +467,7 @@ onUnmounted(() => {
   padding: 0.5rem 1rem;
   text-align: left;
   font-size: 0.875rem;
-  color: #374151;
+  color: #3a3a42;
   background: transparent;
   border: none;
   cursor: pointer;
@@ -478,7 +478,7 @@ onUnmounted(() => {
 }
 
 .language-option:hover {
-  background: #f9fafb;
+  background: #fafafa;
 }
 
 /* Auth Buttons */
@@ -492,7 +492,7 @@ onUnmounted(() => {
   padding: 0.625rem 1.25rem;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #374151;
+  color: #3a3a42;
   background: transparent;
   border: none;
   cursor: pointer;
@@ -500,7 +500,7 @@ onUnmounted(() => {
 }
 
 .btn-login:hover {
-  color: #111827;
+  color: #0d0d0f;
 }
 
 .btn-signup {
@@ -508,7 +508,7 @@ onUnmounted(() => {
   font-size: 0.875rem;
   font-weight: 500;
   color: white;
-  background: linear-gradient(to right, #4f46e5, #6366f1);
+  background: linear-gradient(to right, #e24e12, #e85f26);
   border: none;
   border-radius: 0.5rem;
   cursor: pointer;
@@ -516,7 +516,7 @@ onUnmounted(() => {
 }
 
 .btn-signup:hover {
-  box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3);
+  box-shadow: 0 10px 15px -3px rgba(226, 78, 18, 0.3);
 }
 
 /* User Info */
@@ -543,7 +543,7 @@ onUnmounted(() => {
   max-width: 520px;
   background: #ffffff;
   border-radius: 1rem;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e6e6ea;
   box-shadow: 0 20px 35px -15px rgba(15, 23, 42, 0.25);
   overflow: hidden;
 }
@@ -553,13 +553,13 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid #f2f2f4;
 }
 
 .modal-header h3 {
   font-size: 1.125rem;
   font-weight: 600;
-  color: #111827;
+  color: #0d0d0f;
 }
 
 .modal-close {
@@ -567,7 +567,7 @@ onUnmounted(() => {
   background: transparent;
   font-size: 1.5rem;
   line-height: 1;
-  color: #6b7280;
+  color: #6e6e77;
   cursor: pointer;
 }
 
@@ -580,7 +580,7 @@ onUnmounted(() => {
 
 .modal-lead {
   font-size: 0.95rem;
-  color: #374151;
+  color: #3a3a42;
 }
 
 .modal-step {
@@ -592,28 +592,28 @@ onUnmounted(() => {
 .modal-label {
   font-size: 0.85rem;
   font-weight: 600;
-  color: #111827;
+  color: #0d0d0f;
 }
 
 .modal-box {
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
+  background: #fafafa;
+  border: 1px solid #e6e6ea;
   border-radius: 0.75rem;
   padding: 0.75rem 1rem;
   font-size: 0.9rem;
-  color: #111827;
+  color: #0d0d0f;
 }
 
 .modal-note {
   font-size: 0.85rem;
-  color: #6b7280;
+  color: #6e6e77;
 }
 
 .modal-list {
   margin: 0;
   padding-left: 1.25rem;
   font-size: 0.85rem;
-  color: #6b7280;
+  color: #6e6e77;
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
@@ -630,12 +630,12 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e6e6ea;
   border-radius: 0.75rem;
   padding: 0.6rem 1.25rem;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #111827;
+  color: #0d0d0f;
   background: #ffffff;
   text-decoration: none;
   cursor: pointer;
@@ -644,8 +644,8 @@ onUnmounted(() => {
 }
 
 .modal-secondary:hover {
-  background: #f9fafb;
-  border-color: #d1d5db;
+  background: #fafafa;
+  border-color: #d2d2d9;
 }
 
 .instagram-icon {
@@ -661,14 +661,14 @@ onUnmounted(() => {
   font-size: 0.9rem;
   font-weight: 600;
   color: #ffffff;
-  background: #4f46e5;
+  background: #e24e12;
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .modal-primary:hover {
   transform: translateY(-1px);
-  box-shadow: 0 10px 15px -10px rgba(79, 70, 229, 0.6);
+  box-shadow: 0 10px 15px -10px rgba(226, 78, 18, 0.6);
 }
 
 /* Mobile Responsive */
@@ -678,20 +678,20 @@ onUnmounted(() => {
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
-  background: #f9fafb;
+  background: #fafafa;
   border-radius: 0.5rem;
 }
 
 .diamond-icon {
   width: 1rem;
   height: 1rem;
-  color: #4f46e5;
+  color: #e24e12;
 }
 
 .credit-badge span {
   font-size: 0.875rem;
   font-weight: 500;
-  color: #111827;
+  color: #0d0d0f;
 }
 
 .user-badge {
@@ -700,8 +700,8 @@ onUnmounted(() => {
   gap: 0.5rem;
   padding: 0.25rem 0.75rem;
   border-radius: 9999px;
-  background: #f3f4f6;
-  color: #111827;
+  background: #f2f2f4;
+  color: #0d0d0f;
   font-size: 0.875rem;
   font-weight: 500;
   white-space: nowrap;
@@ -712,7 +712,7 @@ onUnmounted(() => {
 }
 
 .badge-separator {
-  color: #9ca3af;
+  color: #9a9aa3;
 }
 
 .credit-amount {
@@ -727,7 +727,7 @@ onUnmounted(() => {
   width: 2.5rem;
   height: 2.5rem;
   border-radius: 9999px;
-  background: linear-gradient(to bottom right, #6366f1, #9333ea);
+  background: linear-gradient(to bottom right, #e85f26, #f2703a);
   border: none;
   display: flex;
   align-items: center;
@@ -755,7 +755,7 @@ onUnmounted(() => {
   background: white;
   border-radius: 0.75rem;
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
-  border: 1px solid #f3f4f6;
+  border: 1px solid #f2f2f4;
   padding: 0.5rem 0;
   overflow: hidden;
 }
@@ -764,7 +764,7 @@ onUnmounted(() => {
   display: block;
   padding: 0.5rem 1rem;
   font-size: 0.875rem;
-  color: #374151;
+  color: #3a3a42;
   text-decoration: none;
   transition: background-color 0.2s;
 }
@@ -782,11 +782,11 @@ onUnmounted(() => {
 }
 
 .dropdown-item:hover {
-  background: #f9fafb;
+  background: #fafafa;
 }
 
 .dropdown-divider {
-  border-top: 1px solid #f3f4f6;
+  border-top: 1px solid #f2f2f4;
   margin: 0.5rem 0;
 }
 
@@ -799,7 +799,7 @@ onUnmounted(() => {
 
 /* Footer */
 .app-footer {
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid #e6e6ea;
   background: white;
 }
 
@@ -847,20 +847,20 @@ onUnmounted(() => {
 .footer-brand-title {
   font-size: 1.25rem;
   font-weight: 600;
-  color: #111827;
+  color: #0d0d0f;
   margin-bottom: 1rem;
 }
 
 .footer-brand-description {
   font-size: 0.875rem;
-  color: #4b5563;
+  color: #52525b;
   line-height: 1.625;
 }
 
 .footer-column-title {
   font-size: 0.875rem;
   font-weight: 500;
-  color: #111827;
+  color: #0d0d0f;
   margin-bottom: 1rem;
 }
 
@@ -875,18 +875,18 @@ onUnmounted(() => {
 
 .footer-link {
   font-size: 0.875rem;
-  color: #4b5563;
+  color: #52525b;
   text-decoration: none;
   transition: color 0.2s;
 }
 
 .footer-link:hover {
-  color: #111827;
+  color: #0d0d0f;
 }
 
 .footer-bottom {
   padding-top: 2rem;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid #e6e6ea;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -908,12 +908,12 @@ onUnmounted(() => {
 
 .footer-copyright {
   font-size: 0.875rem;
-  color: #4b5563;
+  color: #52525b;
 }
 
 .footer-note {
   font-size: 0.78rem;
-  color: #9ca3af;
+  color: #9a9aa3;
   max-width: 640px;
   line-height: 1.5;
 }
@@ -925,12 +925,12 @@ onUnmounted(() => {
 }
 
 .social-icon {
-  color: #9ca3af;
+  color: #9a9aa3;
   transition: color 0.2s;
 }
 
 .social-icon:hover {
-  color: #4b5563;
+  color: #52525b;
 }
 
 .social-icon svg {

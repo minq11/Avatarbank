@@ -280,13 +280,13 @@ const resetForm = () => {
 label {
   font-size: 0.8rem;
   font-weight: 600;
-  color: #374151;
+  color: #3a3a42;
 }
 
 input,
 select,
 textarea {
-  border: 1px solid #d1d5db;
+  border: 1px solid #d2d2d9;
   border-radius: 0.5rem;
   padding: 0.6rem 0.75rem;
   font-size: 0.9rem;
@@ -305,7 +305,7 @@ textarea {
 }
 
 .muted {
-  color: #9ca3af;
+  color: #9a9aa3;
 }
 
 .small {
@@ -316,13 +316,13 @@ textarea {
   display: flex;
   gap: 0.6rem;
   align-items: flex-start;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
+  background: #fafafa;
+  border: 1px solid #e6e6ea;
   border-radius: 0.6rem;
   padding: 0.85rem 1rem;
   font-size: 0.82rem;
   font-weight: 400;
-  color: #4b5563;
+  color: #52525b;
   line-height: 1.6;
   cursor: pointer;
 }
@@ -350,7 +350,7 @@ textarea {
 
 .btn-primary {
   align-self: flex-start;
-  background: linear-gradient(to right, #7c3aed, #9333ea);
+  background: linear-gradient(to right, #e24e12, #f2703a);
   color: #fff;
   border: none;
   border-radius: 0.6rem;
@@ -393,8 +393,8 @@ textarea {
   height: 3rem;
   margin: 0 auto 0.75rem;
   border-radius: 9999px;
-  background: #ede9fe;
-  color: #6d28d9;
+  background: #fdede4;
+  color: #c24210;
   font-size: 1.5rem;
   font-weight: 800;
   display: flex;

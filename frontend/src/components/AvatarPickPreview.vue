@@ -38,8 +38,8 @@ const initial = computed(() => props.title?.trim().charAt(0) || "?");
   width: 140px;
   height: 176px;
   border-radius: 0.7rem;
-  border: 1px solid #e5e7eb;
-  background: #f9fafb;
+  border: 1px solid #e6e6ea;
+  background: #fafafa;
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -62,7 +62,7 @@ const initial = computed(() => props.title?.trim().charAt(0) || "?");
 .pick-initial {
   font-size: 2.8rem;
   font-weight: 800;
-  color: #6d28d9;
+  color: #c24210;
 }
 
 .pick-placeholder {

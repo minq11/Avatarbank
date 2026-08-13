@@ -1,12 +1,12 @@
 /*
  * 정책·안내 문서 페이지 공통 스타일.
  * 약관 / 개인정보처리방침 / 콘텐츠 정책 / 가이드에서 <style scoped> 로 @import 해 사용.
- * 톤은 CreatorStudioPage 와 동일 (#f9fafb 배경 + 흰 카드 + 보라 액센트).
+ * 톤은 CreatorStudioPage 와 동일 (#fafafa 배경 + 흰 카드 + 보라 액센트).
  */
 
 .doc-page {
   min-height: calc(100vh - 80px);
-  background: #f9fafb;
+  background: #fafafa;
   padding: 2.5rem 1rem 4rem;
 }
 
@@ -21,25 +21,25 @@
 .doc-head h1 {
   font-size: 2rem;
   font-weight: 800;
-  color: #111827;
+  color: #0d0d0f;
   margin: 0;
 }
 
 .doc-meta {
   font-size: 0.8rem;
-  color: #9ca3af;
+  color: #9a9aa3;
   margin: 0.5rem 0 0;
 }
 
 .doc-lead {
-  color: #4b5563;
+  color: #52525b;
   line-height: 1.7;
   margin: 0.85rem 0 0;
 }
 
 .card {
   background: #fff;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e6e6ea;
   border-radius: 1rem;
   padding: 1.5rem;
 }
@@ -47,19 +47,19 @@
 .card h2 {
   font-size: 1.1rem;
   font-weight: 700;
-  color: #111827;
+  color: #0d0d0f;
   margin: 0 0 0.85rem;
 }
 
 .card h3 {
   font-size: 0.95rem;
   font-weight: 700;
-  color: #111827;
+  color: #0d0d0f;
   margin: 1.25rem 0 0.5rem;
 }
 
 .doc-p {
-  color: #4b5563;
+  color: #52525b;
   line-height: 1.75;
   margin: 0 0 0.85rem;
 }
@@ -69,7 +69,7 @@
 }
 
 .doc-list {
-  color: #4b5563;
+  color: #52525b;
   line-height: 1.75;
   margin: 0;
   padding-left: 1.25rem;
@@ -79,13 +79,13 @@
 }
 
 .doc-list strong {
-  color: #111827;
+  color: #0d0d0f;
 }
 
 /* 특히 눈에 띄어야 하는 고지 (예: 결제 미연동) */
 .doc-callout {
-  background: #fefce8;
-  border: 1px solid #fef08a;
+  background: #fafafa;
+  border: 1px solid #e6e6ea;
   border-radius: 0.6rem;
   padding: 0.85rem 1rem;
   list-style-position: inside;
@@ -93,18 +93,18 @@
 }
 
 .doc-note {
-  background: #f5f3ff;
-  border: 1px solid #ddd6fe;
+  background: #fdf5f0;
+  border: 1px solid #fbd9c6;
   border-radius: 0.6rem;
   padding: 0.85rem 1rem;
-  color: #4b5563;
+  color: #52525b;
   font-size: 0.875rem;
   line-height: 1.7;
   margin: 0.85rem 0 0;
 }
 
 .doc-link {
-  color: #6d28d9;
+  color: #c24210;
   font-weight: 600;
   text-decoration: none;
 }
@@ -119,7 +119,7 @@
   padding-left: 1.25rem;
   columns: 2;
   column-gap: 2rem;
-  color: #4b5563;
+  color: #52525b;
   line-height: 1.9;
   font-size: 0.9rem;
 }
@@ -131,12 +131,12 @@
 }
 
 .doc-toc a {
-  color: #4b5563;
+  color: #52525b;
   text-decoration: none;
 }
 
 .doc-toc a:hover {
-  color: #6d28d9;
+  color: #c24210;
 }
 
 /* 표 (개인정보 수집 항목 등) */
@@ -153,17 +153,17 @@
 
 .doc-table th,
 .doc-table td {
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e6e6ea;
   padding: 0.6rem 0.75rem;
   text-align: left;
   vertical-align: top;
-  color: #4b5563;
+  color: #52525b;
   line-height: 1.6;
 }
 
 .doc-table th {
-  background: #f9fafb;
-  color: #111827;
+  background: #fafafa;
+  color: #0d0d0f;
   font-weight: 700;
   white-space: nowrap;
 }
@@ -191,7 +191,7 @@
   width: 1.8rem;
   height: 1.8rem;
   border-radius: 9999px;
-  background: #7c3aed;
+  background: #e24e12;
   color: #fff;
   display: flex;
   align-items: center;
@@ -206,7 +206,7 @@
 
 .doc-step-body p {
   margin: 0;
-  color: #4b5563;
+  color: #52525b;
   line-height: 1.7;
   font-size: 0.9rem;
 }

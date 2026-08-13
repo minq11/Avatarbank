@@ -1,11 +1,23 @@
 <!doctype html>
-<html lang="en">
+<html lang="ko">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <title>AvatarBank</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--
+      Pretendard — 한글 본문용 가변 폰트. 시스템 스택엔 한글 폰트가 없어
+      Windows 에서 맑은 고딕으로 떨어지는데, 굵은 제목에서 획이 뭉개진다.
+      swap: 폰트가 늦어도 시스템 폰트로 먼저 그린다 (텍스트가 사라지지 않음).
+    -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+    <link
+      rel="stylesheet"
+      as="style"
+      crossorigin
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
+    />
     <!-- 토스페이먼츠 결제위젯 SDK. 전역 TossPayments 로 노출된다 (크레딧 결제에서 사용). -->
     <script src="https://js.tosspayments.com/v2/standard"></script>
     <!-- 구글 로그인 (Google Identity Services). 전역 google.accounts 로 노출된다. -->

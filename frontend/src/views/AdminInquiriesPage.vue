@@ -325,7 +325,7 @@ watch(
 
 .notice {
   text-align: center;
-  color: #6b7280;
+  color: #6e6e77;
   padding: 2.5rem;
 }
 
@@ -351,20 +351,20 @@ watch(
   padding: 0.4rem 0.9rem;
   font-size: 0.85rem;
   font-weight: 600;
-  color: #6b7280;
+  color: #6e6e77;
   cursor: pointer;
 }
 
 .filter-tab.active {
-  background: #f5f3ff;
-  border-color: #ddd6fe;
-  color: #6d28d9;
+  background: #fdf5f0;
+  border-color: #fbd9c6;
+  color: #c24210;
 }
 
 .tab-badge {
   display: inline-block;
   margin-left: 0.35rem;
-  background: #7c3aed;
+  background: #e24e12;
   color: #fff;
   border-radius: 9999px;
   padding: 0 0.4rem;
@@ -373,7 +373,7 @@ watch(
 
 .empty {
   text-align: center;
-  color: #9ca3af;
+  color: #9a9aa3;
   padding: 2rem 0;
   font-size: 0.9rem;
 }
@@ -400,29 +400,29 @@ watch(
 .table-head {
   font-size: 0.75rem;
   font-weight: 700;
-  color: #9ca3af;
+  color: #9a9aa3;
   padding: 0 0.5rem 0.6rem;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid #e6e6ea;
 }
 
 .table-row {
   background: none;
   border: none;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid #f2f2f4;
   padding: 0.8rem 0.5rem;
   font-size: 0.85rem;
-  color: #4b5563;
+  color: #52525b;
   cursor: pointer;
   font-family: inherit;
   width: 100%;
 }
 
 .table-row:hover {
-  background: #f9fafb;
+  background: #fafafa;
 }
 
 .col-id {
-  color: #9ca3af;
+  color: #9a9aa3;
   font-variant-numeric: tabular-nums;
 }
 
@@ -434,7 +434,7 @@ watch(
 }
 
 .subject-text {
-  color: #111827;
+  color: #0d0d0f;
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -443,7 +443,7 @@ watch(
 
 .preview-text {
   font-size: 0.78rem;
-  color: #9ca3af;
+  color: #9a9aa3;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -457,14 +457,14 @@ watch(
 }
 
 .from-name {
-  color: #374151;
+  color: #3a3a42;
   font-weight: 600;
 }
 
 .from-email,
 .col-date {
   font-size: 0.75rem;
-  color: #9ca3af;
+  color: #9a9aa3;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -513,8 +513,8 @@ watch(
 }
 
 .status-badge.open {
-  background: #fef3c7;
-  color: #92400e;
+  background: #f2f2f4;
+  color: #52525b;
 }
 
 .status-badge.answered {
@@ -523,8 +523,8 @@ watch(
 }
 
 .status-badge.closed {
-  background: #f3f4f6;
-  color: #6b7280;
+  background: #f2f2f4;
+  color: #6e6e77;
 }
 
 /* 상세 모달 */
@@ -554,21 +554,21 @@ watch(
   justify-content: space-between;
   align-items: flex-start;
   gap: 1rem;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid #f2f2f4;
   padding-bottom: 1rem;
 }
 
 .modal-head h3 {
   margin: 0.5rem 0 0.35rem;
   font-size: 1.05rem;
-  color: #111827;
+  color: #0d0d0f;
 }
 
 .modal-cat {
   display: inline-block;
   margin-left: 0.4rem;
   font-size: 0.75rem;
-  color: #6b7280;
+  color: #6e6e77;
 }
 
 .modal-body {
@@ -579,12 +579,12 @@ watch(
 }
 
 .message-block {
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
+  background: #fafafa;
+  border: 1px solid #e6e6ea;
   border-radius: 0.6rem;
   padding: 0.9rem 1rem;
   font-size: 0.875rem;
-  color: #374151;
+  color: #3a3a42;
   line-height: 1.7;
   white-space: pre-wrap;
   word-break: break-word;
@@ -605,11 +605,11 @@ watch(
 .reply-form label {
   font-size: 0.8rem;
   font-weight: 600;
-  color: #374151;
+  color: #3a3a42;
 }
 
 textarea {
-  border: 1px solid #d1d5db;
+  border: 1px solid #d2d2d9;
   border-radius: 0.5rem;
   padding: 0.6rem 0.75rem;
   font-size: 0.9rem;
@@ -620,7 +620,7 @@ textarea {
 }
 
 .muted {
-  color: #9ca3af;
+  color: #9a9aa3;
 }
 
 .small {
@@ -645,7 +645,7 @@ textarea {
 }
 
 .btn-primary {
-  background: linear-gradient(to right, #7c3aed, #9333ea);
+  background: linear-gradient(to right, #e24e12, #f2703a);
   color: #fff;
   border: none;
   border-radius: 0.6rem;
@@ -663,7 +663,7 @@ textarea {
 .btn-text {
   background: none;
   border: none;
-  color: #6d28d9;
+  color: #c24210;
   font-weight: 600;
   font-size: 0.8rem;
   cursor: pointer;
@@ -712,7 +712,7 @@ textarea {
 }
 
 .toast.ok {
-  background: #111827;
+  background: #0d0d0f;
 }
 
 .toast.err {

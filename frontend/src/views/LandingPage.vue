@@ -15,39 +15,16 @@
           <!-- Headline -->
           <h1 class="hero-title">
             사진 몇 장이 아바타가 되고,<br class="wide-only" />
-            아바타는 무한한 콘텐츠가 됩니다
+            무한한 콘텐츠가 된다.
           </h1>
 
-          <!-- CTAs -->
-          <div class="hero-actions">
-            <button type="button" class="btn-primary-hero" @click="goCreateAvatar">
-              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
-              </svg>
-              아바타 생성 요청하기
-            </button>
-            <a href="#how" class="btn-secondary-hero">
-              작동 방식 보기
-              <svg class="arrow-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M5 12h14M12 5l7 7-7 7"/>
-              </svg>
-            </a>
-          </div>
         </div>
       </div>
     </section>
 
-    <!-- Showcase: 실제 학습 사진 → AI 결과 -->
+    <!-- Showcase: 실제 학습 사진 → AI 결과. 히어로 제목이 곧 이 섹션의 설명이라 별도 헤더 없음 -->
     <section class="showcase-section">
       <div class="container">
-        <div class="section-header">
-          <h2 class="section-title">평소 찍은 사진이 이렇게 바뀝니다</h2>
-          <p class="section-description">
-            일상 사진 몇 장으로 아바타를 학습시키면<br class="wide-only" />
-            직접 찍지 않은 장면도 내 얼굴로 만들어져요
-          </p>
-        </div>
-
         <div class="showcase-grid">
           <figure class="showcase-item">
             <div class="showcase-frame">
@@ -70,19 +47,19 @@
             <svg class="forge-svg" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
               <defs>
                 <radialGradient id="fg-halo" cx="50%" cy="50%" r="50%">
-                  <stop offset="0%" stop-color="#a78bfa" stop-opacity="0.38" />
-                  <stop offset="55%" stop-color="#818cf8" stop-opacity="0.14" />
-                  <stop offset="100%" stop-color="#818cf8" stop-opacity="0" />
+                  <stop offset="0%" stop-color="#f5a57f" stop-opacity="0.38" />
+                  <stop offset="55%" stop-color="#f08a5d" stop-opacity="0.14" />
+                  <stop offset="100%" stop-color="#f08a5d" stop-opacity="0" />
                 </radialGradient>
                 <radialGradient id="fg-core" cx="38%" cy="32%" r="72%">
                   <stop offset="0%" stop-color="#ffffff" />
-                  <stop offset="45%" stop-color="#c4b5fd" />
-                  <stop offset="100%" stop-color="#6d28d9" />
+                  <stop offset="45%" stop-color="#f9c4a8" />
+                  <stop offset="100%" stop-color="#c24210" />
                 </radialGradient>
                 <linearGradient id="fg-ring" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0%" stop-color="#9333ea" stop-opacity="0.15" />
-                  <stop offset="50%" stop-color="#818cf8" stop-opacity="0.95" />
-                  <stop offset="100%" stop-color="#9333ea" stop-opacity="0.15" />
+                  <stop offset="0%" stop-color="#f2703a" stop-opacity="0.15" />
+                  <stop offset="50%" stop-color="#f08a5d" stop-opacity="0.95" />
+                  <stop offset="100%" stop-color="#f2703a" stop-opacity="0.15" />
                 </linearGradient>
               </defs>
 
@@ -90,7 +67,7 @@
               <path
                 class="forge-flow"
                 d="M0 80h160"
-                stroke="#c4b5fd"
+                stroke="#f9c4a8"
                 stroke-width="2"
                 stroke-linecap="round"
                 stroke-dasharray="5 11"
@@ -107,7 +84,7 @@
                        stroke="url(#fg-ring)" stroke-width="1.6" />
 
               <!-- 코어로 모여드는 입자들 -->
-              <g class="forge-motes" fill="#a5b4fc">
+              <g class="forge-motes" fill="#f7b394">
                 <circle class="mote m1" cx="30" cy="58" r="2.4" />
                 <circle class="mote m2" cx="128" cy="62" r="2" />
                 <circle class="mote m3" cx="42" cy="112" r="1.8" />
@@ -118,7 +95,7 @@
 
               <!-- 코어 -->
               <circle class="forge-core" cx="80" cy="80" r="17" fill="url(#fg-core)" />
-              <circle class="forge-pulse" cx="80" cy="80" r="17" stroke="#a78bfa" stroke-width="1.5" />
+              <circle class="forge-pulse" cx="80" cy="80" r="17" stroke="#f5a57f" stroke-width="1.5" />
 
               <!-- 홀로그램 스캔 라인 -->
               <g class="forge-scan" stroke="#ffffff" stroke-opacity="0.5" stroke-width="1">
@@ -196,11 +173,21 @@
         </div>
       </div>
     </section>
+
+    <!-- 고정형 CTA — 스크롤 위치와 무관하게 항상 화면 하단에 떠 있는 유일한 전환 지점 -->
+    <div class="sticky-cta">
+      <button type="button" class="btn-cta" @click="goCreateAvatar">
+        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+        </svg>
+        아바타 생성 요청하기
+      </button>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, watch } from "vue";
+import { onMounted, onUnmounted, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 // 쇼케이스 이미지 — Vite 가 해시를 붙여 번들·캐싱한다.
@@ -218,6 +205,16 @@ function redirectIfLoggedIn() {
 }
 onMounted(redirectIfLoggedIn);
 watch(() => authStore.isInitialized, redirectIfLoggedIn);
+
+// 고정 CTA 가 푸터 마지막 줄을 가리지 않도록 문서 아래에 그만큼 자리를 비운다.
+// 푸터는 App.vue 에 있어 scoped 스타일로는 닿지 않으므로 body 에 직접 준다.
+const STICKY_CTA_CLEARANCE = "6.5rem";
+onMounted(() => {
+  document.body.style.paddingBottom = STICKY_CTA_CLEARANCE;
+});
+onUnmounted(() => {
+  document.body.style.paddingBottom = "";
+});
 
 // 메인 CTA: 아바타 생성으로 유인.
 // 로그인 상태면 바로 생성 페이지로, 아니면 회원가입 모달 → 성공 시 생성 페이지로 리다이렉트.
@@ -286,30 +283,43 @@ const steps = [
 
 /* Hero Section */
 .hero-section {
-  padding: 8rem 0 6rem;
-  background: white;
+  position: relative;
+  /* 제목 바로 아래에 쇼케이스 사진이 붙는다 — 아래 여백을 최소로 */
+  padding: 6rem 0 2rem;
+  /* 흰 배경 위에 아주 옅은 주황 광원 두 개 — 평평한 흰 화면보다 깊이가 생긴다 */
+  background:
+    radial-gradient(60rem 30rem at 18% -10%, rgba(242, 112, 58, 0.08), transparent 60%),
+    radial-gradient(52rem 28rem at 88% 8%, rgba(226, 78, 18, 0.06), transparent 60%),
+    #ffffff;
+  overflow: hidden;
+}
+
+/* 히어로 하단을 다음 섹션(흰색)으로 부드럽게 녹인다 */
+.hero-section::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 4rem;
+  background: linear-gradient(to bottom, transparent, #ffffff);
+  pointer-events: none;
 }
 
 .hero-container {
-  max-width: 1440px;
+  max-width: 1120px;
   margin: 0 auto;
-  padding: 0 2rem;
-}
-
-@media (min-width: 1024px) {
-  .hero-container {
-    padding: 0 4rem;
-  }
+  padding: 0 1.5rem;
 }
 
 @media (min-width: 768px) {
   .hero-section {
-    padding: 8rem 0 6rem;
+    padding: 7.5rem 0 2.5rem;
   }
 }
 
 .hero-content {
-  max-width: 56rem;
+  position: relative;
+  z-index: 1;
+  max-width: 52rem;
   margin: 0 auto;
   text-align: center;
 }
@@ -317,146 +327,95 @@ const steps = [
 .hero-badge {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  background: #eef2ff;
+  gap: 0.4rem;
+  padding: 0.375rem 0.875rem;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid #fce3d6;
   border-radius: 9999px;
-  margin-bottom: 2rem;
+  box-shadow: 0 1px 2px rgba(13, 13, 15, 0.04);
+  backdrop-filter: blur(6px);
+  margin-bottom: 1.5rem;
 }
 
 .badge-icon {
-  width: 1rem;
-  height: 1rem;
-  color: #4f46e5;
+  width: 0.875rem;
+  height: 0.875rem;
+  color: #e24e12;
   flex-shrink: 0;
 }
 
 .hero-badge span {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #4f46e5;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  /* 한글은 라틴만큼 조이면 글자가 붙어 보인다 — 자간은 얕게 */
+  letter-spacing: -0.005em;
+  color: #b93b0e;
 }
 
 .hero-title {
   /* 좁은 화면에서 한 어절이 통째로 넘쳐 줄이 지저분해지지 않도록 화면 폭에 맞춰 줄인다 */
-  font-size: clamp(2.125rem, 8.5vw, 3rem);
-  line-height: 1.15;
-  font-weight: 600;
-  letter-spacing: -0.025em;
-  color: #111827;
-  /* 서브카피가 없으므로 제목이 직접 CTA 와의 간격을 갖는다 */
-  margin-bottom: 3rem;
-}
-
-.hero-actions {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-}
-
-.btn-primary-hero {
-  padding: 1rem 2rem;
-  font-size: 1rem;
-  font-weight: 600;
-  color: white;
-  background: linear-gradient(to right, #9333ea, #4f46e5);
-  border-radius: 0.75rem;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  transition: all 0.2s;
-  border: none;
-  cursor: pointer;
-}
-
-.btn-primary-hero:hover {
-  box-shadow: 0 20px 25px -5px rgba(147, 51, 234, 0.3);
-}
-
-.btn-secondary-hero {
-  padding: 1rem 2rem;
-  font-size: 1rem;
-  font-weight: 500;
-  color: #374151;
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 0.75rem;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  transition: all 0.2s;
-}
-
-.btn-secondary-hero:hover {
-  border-color: #d1d5db;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  font-size: clamp(2.125rem, 7.5vw, 3.5rem);
+  /* 한글 제목은 라틴보다 행간이 조금 더 필요하다 (받침·초성이 위아래로 길다) */
+  line-height: 1.28;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #0d0d0f;
+  margin: 0;
 }
 
 .btn-icon {
   width: 1.25rem;
   height: 1.25rem;
+  flex-shrink: 0;
 }
 
-.arrow-icon {
-  width: 1.25rem;
-  height: 1.25rem;
-  transition: transform 0.2s;
-}
-
-.btn-secondary-hero:hover .arrow-icon {
-  transform: translateX(0.25rem);
-}
-
-/* Section shared */
+/*
+ * Section shared
+ * 본문 폭을 1120px 로 좁혔다 — 1440px 에서는 4단 카드가 한 줄에 늘어지고
+ * 쇼케이스(992px)와 폭이 어긋나 페이지가 두 개의 그리드처럼 보였다.
+ */
 .container {
-  max-width: 1440px;
+  max-width: 1120px;
   margin: 0 auto;
-  padding: 0 2rem;
-}
-
-@media (min-width: 1024px) {
-  .container {
-    padding: 0 4rem;
-  }
+  padding: 0 1.5rem;
 }
 
 .section-header {
   text-align: center;
-  margin-bottom: 4rem;
+  margin-bottom: 3rem;
 }
 
 .section-title {
-  font-size: clamp(1.5rem, 5.5vw, 1.875rem);
-  line-height: 1.2;
-  font-weight: 600;
-  letter-spacing: -0.025em;
-  color: #111827;
-  margin-bottom: 1rem;
+  font-size: clamp(1.5rem, 5vw, 2.125rem);
+  line-height: 1.35;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #0d0d0f;
+  margin-bottom: 0.75rem;
 }
 
 .section-description {
-  font-size: 1.125rem;
-  color: #4b5563;
-  max-width: 36rem;
+  font-size: 1.0625rem;
+  line-height: 1.75;
+  letter-spacing: -0.005em;
+  color: #52525b;
+  max-width: 34rem;
   margin: 0 auto;
 }
 
 /* Showcase: 학습 사진 → AI 결과 */
 .showcase-section {
-  padding: 6rem 0;
+  /* 섹션 헤더가 없어 히어로 제목이 그대로 이어진다 — 위 여백은 거의 두지 않는다 */
+  padding: 0 0 6rem;
   background: white;
 }
 
 .showcase-grid {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
-  gap: 1.5rem;
+  gap: 2rem;
   align-items: center;
-  max-width: 62rem;
+  max-width: 58rem;
   margin: 0 auto;
 }
 
@@ -466,11 +425,21 @@ const steps = [
 }
 
 .showcase-frame {
-  border-radius: 1rem;
+  border-radius: 1.25rem;
   overflow: hidden;
-  border: 1px solid #e5e7eb;
-  background: #f9fafb;
-  box-shadow: 0 18px 40px -24px rgba(17, 24, 39, 0.45);
+  border: 1px solid #e6e6ea;
+  background: #fafafa;
+  box-shadow:
+    0 1px 2px rgba(17, 24, 39, 0.04),
+    0 24px 48px -28px rgba(17, 24, 39, 0.4);
+  transition: box-shadow 0.25s ease, transform 0.25s ease;
+}
+
+.showcase-item:hover .showcase-frame {
+  transform: translateY(-3px);
+  box-shadow:
+    0 1px 2px rgba(17, 24, 39, 0.04),
+    0 32px 60px -30px rgba(194, 66, 16, 0.45);
 }
 
 .showcase-frame img {
@@ -480,29 +449,31 @@ const steps = [
 }
 
 .showcase-item figcaption {
-  margin-top: 1rem;
+  margin-top: 1.125rem;
 }
 
 .showcase-tag {
   display: inline-block;
   font-size: 0.75rem;
   font-weight: 700;
-  color: #6b7280;
-  background: #f3f4f6;
+  letter-spacing: -0.005em;
+  color: #6e6e77;
+  background: #f2f2f4;
   border-radius: 9999px;
   padding: 0.25rem 0.7rem;
   margin-bottom: 0.5rem;
 }
 
 .showcase-tag.accent {
-  color: #6d28d9;
-  background: #f5f3ff;
+  color: #c24210;
+  background: #fdf5f0;
 }
 
 .showcase-item figcaption p {
-  font-size: 0.9rem;
-  color: #4b5563;
-  line-height: 1.6;
+  font-size: 0.9375rem;
+  color: #52525b;
+  line-height: 1.75;
+  letter-spacing: -0.005em;
   margin: 0;
 }
 
@@ -524,7 +495,7 @@ const steps = [
 .forge-label {
   font-size: 0.75rem;
   font-weight: 700;
-  color: #6d28d9;
+  color: #c24210;
   white-space: nowrap;
 }
 
@@ -632,7 +603,7 @@ const steps = [
 
 @media (max-width: 768px) {
   .showcase-section {
-    padding: 4rem 0;
+    padding: 0 0 4rem;
   }
 
   /* 좁은 화면에서는 위아래로 쌓고, 흐름도 아래 방향으로 돌린다 */
@@ -661,419 +632,215 @@ const steps = [
 /* How It Works Section */
 .how-section {
   padding: 6rem 0;
-  background: #f9fafb;
+  background: #fafafa;
+  border-top: 1px solid #f0f0f3;
+  border-bottom: 1px solid #f0f0f3;
 }
 
 .steps-grid {
   display: grid;
   grid-template-columns: repeat(1, minmax(0, 1fr));
-  gap: 1.5rem;
+  gap: 1rem;
 }
 
 .step-card {
   background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 1rem;
-  padding: 2rem;
-  transition: box-shadow 0.2s, transform 0.2s;
+  border: 1px solid #e6e6ea;
+  border-radius: 1.125rem;
+  padding: 1.625rem 1.5rem;
+  transition: box-shadow 0.25s ease, transform 0.25s ease, border-color 0.25s ease;
 }
 
 .step-card:hover {
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-  transform: translateY(-2px);
+  border-color: #fbd9c6;
+  box-shadow: 0 22px 44px -28px rgba(168, 56, 13, 0.45);
+  transform: translateY(-3px);
 }
 
 .step-number {
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: 0.75rem;
-  background: linear-gradient(to bottom right, #6366f1, #9333ea);
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.625rem;
+  background: linear-gradient(135deg, #e85f26, #f2703a);
   color: white;
   font-weight: 700;
-  font-size: 1.125rem;
+  font-size: 0.9375rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 1.25rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 6px 14px -6px rgba(232, 95, 38, 0.7);
 }
 
 .step-title {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: #111827;
-  margin-bottom: 0.5rem;
+  font-size: 1.0625rem;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  color: #0d0d0f;
+  margin-bottom: 0.4rem;
 }
 
 .step-description {
   font-size: 0.9375rem;
-  color: #4b5563;
-  line-height: 1.6;
+  color: #52525b;
+  line-height: 1.75;
+  letter-spacing: -0.005em;
 }
 
 .notice-stack {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  margin-top: 2rem;
+  gap: 0.625rem;
+  margin-top: 2.25rem;
 }
 
 .review-notice {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.875rem;
   padding: 1rem 1.25rem;
-  background: #eef2ff;
-  border: 1px solid #c7d2fe;
-  border-radius: 0.75rem;
+  background: #fdf5f0;
+  border: 1px solid #fce3d6;
+  border-radius: 0.875rem;
 }
 
-/* 안전 정책 안내 — 심사 안내와 구분되도록 초록 계열 */
+/*
+ * 안전 정책 — 성공 메시지가 아니라 금지 규정이라 초록을 쓰지 않는다.
+ * 심사 안내(Soft 오렌지)와 구분되도록 중성 면으로 두고, 문장 무게로 강조한다.
+ */
 .review-notice--safety {
-  background: #ecfdf5;
-  border-color: #a7f3d0;
+  background: #fafafa;
+  border-color: #e6e6ea;
 }
 
 .review-notice--safety .review-notice-icon {
-  color: #059669;
+  color: #52525b;
 }
 
 .review-notice--safety .review-notice-text {
-  color: #065f46;
+  color: #3a3a42;
+}
+
+.review-notice--safety .review-notice-text strong {
+  color: #0d0d0f;
+  font-weight: 700;
 }
 
 .review-notice-icon {
-  width: 1.5rem;
-  height: 1.5rem;
-  color: #4f46e5;
+  width: 1.375rem;
+  height: 1.375rem;
+  color: #e24e12;
   flex-shrink: 0;
 }
 
 .review-notice-text {
-  font-size: 0.9375rem;
-  color: #3730a3;
-  line-height: 1.6;
+  font-size: 0.9062rem;
+  color: #a8380d;
+  line-height: 1.7;
+  letter-spacing: -0.005em;
 }
 
 .review-notice-text strong {
-  font-weight: 600;
+  font-weight: 700;
 }
 
-/* Link Dashboard Preview Section */
-.links-section {
-  padding: 6rem 0;
-  background: white;
-}
-
-.links-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 4rem;
-  align-items: center;
-}
-
-@media (min-width: 1024px) {
-  .links-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-
-.links-title {
-  font-size: clamp(1.75rem, 6.5vw, 2.25rem);
-  line-height: 1.15;
-  font-weight: 600;
-  letter-spacing: -0.025em;
-  color: #111827;
-  margin-bottom: 1.5rem;
-}
-
-.links-description {
-  font-size: 1.125rem;
-  color: #4b5563;
-  line-height: 1.625;
-  margin-bottom: 2rem;
-}
-
-.links-visual {
-  position: relative;
-}
-
-.link-panel {
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 1rem;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-}
-
-.link-panel-header {
+/* 고정형 CTA — 스크롤과 무관하게 화면 하단에 항상 떠 있다 */
+.sticky-cta {
+  position: fixed;
+  /* 홈 화면 제스처 바가 있는 기기에서 버튼이 가려지지 않도록 안전영역만큼 더 띄운다 */
+  bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
+  left: 0;
+  right: 0;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid #f3f4f6;
-  background: #f9fafb;
-}
-
-.link-panel-title {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #111827;
-}
-
-.link-panel-count {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #6b7280;
-}
-
-.link-list {
-  display: flex;
-  flex-direction: column;
-}
-
-.link-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1rem 1.5rem;
-  border-bottom: 1px solid #f3f4f6;
-}
-
-.link-item:last-child {
-  border-bottom: none;
-}
-
-.link-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.link-code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.9375rem;
-  font-weight: 600;
-  color: #111827;
-}
-
-.link-meta {
-  font-size: 0.8125rem;
-  color: #9ca3af;
-}
-
-.link-status {
-  padding: 0.25rem 0.75rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-
-.status-used {
-  background: #f3f4f6;
-  color: #6b7280;
-}
-
-.status-unused {
-  background: #d1fae5;
-  color: #065f46;
-}
-
-/* Gallery Section */
-.gallery-section {
-  padding: 6rem 0;
-  background: #f9fafb;
-}
-
-.gallery-grid {
-  display: grid;
-  grid-template-columns: repeat(1, minmax(0, 1fr));
-  gap: 1.5rem;
-}
-
-.gallery-card {
-  position: relative;
-  aspect-ratio: 3 / 4;
-  overflow: hidden;
-  border-radius: 1rem;
-  background: white;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  cursor: pointer;
-  transition: box-shadow 0.2s;
-}
-
-.gallery-card:hover {
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-}
-
-.gallery-image-wrapper {
-  position: relative;
-  width: 100%;
-  height: 100%;
-}
-
-.gallery-image-placeholder {
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
-  display: flex;
-  align-items: center;
   justify-content: center;
-  color: #6366f1;
-  font-weight: 600;
-  transition: transform 0.5s;
-}
-
-.gallery-card:hover .gallery-image-placeholder {
-  transform: scale(1.05);
-}
-
-.gallery-overlay {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.6), transparent);
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-
-.gallery-card:hover .gallery-overlay {
-  opacity: 1;
-}
-
-.instagram-badge {
-  position: absolute;
-  bottom: 1rem;
-  left: 1rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(8px);
-  border-radius: 0.5rem;
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-
-.gallery-card:hover .instagram-badge {
-  opacity: 1;
-}
-
-.instagram-badge:hover {
-  background: white;
-}
-
-.instagram-icon {
-  width: 1rem;
-  height: 1rem;
-  object-fit: contain;
-}
-
-.instagram-badge span {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #111827;
-}
-
-.view-more {
-  text-align: center;
-  margin-top: 3rem;
-}
-
-.btn-view-all {
-  padding: 0.75rem 2rem;
-  font-size: 1rem;
-  font-weight: 500;
-  color: #374151;
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 0.75rem;
-  text-decoration: none;
-  display: inline-block;
-  transition: all 0.2s;
-}
-
-.btn-view-all:hover {
-  border-color: #d1d5db;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-}
-
-/* Final CTA Section */
-.cta-section {
-  padding: 6rem 0;
-  background: white;
-}
-
-.cta-card {
-  background: linear-gradient(135deg, #4f46e5 0%, #9333ea 100%);
-  border-radius: 1.5rem;
-  padding: 4rem 2rem;
-  text-align: center;
-}
-
-.cta-title {
-  font-size: clamp(1.625rem, 6vw, 2rem);
-  font-weight: 600;
-  letter-spacing: -0.025em;
-  color: white;
-  margin-bottom: 1rem;
-}
-
-.cta-description {
-  font-size: 1.125rem;
-  color: rgba(255, 255, 255, 0.85);
-  max-width: 32rem;
-  margin: 0 auto 2rem;
-  line-height: 1.625;
+  padding: 0 1.25rem;
+  /* 헤더(50)·인증 모달(1000) 아래, 본문 위 */
+  z-index: 40;
+  /* 바 영역은 클릭을 통과시키고 버튼만 받는다 */
+  pointer-events: none;
 }
 
 .btn-cta {
-  background: white;
-  color: #4f46e5;
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1.0625rem 2.5rem;
+  font-size: 1.0625rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: white;
+  background: linear-gradient(135deg, #e24e12 0%, #e24e12 55%, #f2703a 100%);
+  border: none;
+  border-radius: 9999px;
+  cursor: pointer;
+  box-shadow:
+    0 2px 6px rgba(15, 23, 42, 0.12),
+    0 18px 36px -12px rgba(226, 78, 18, 0.75);
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
 }
 
 .btn-cta:hover {
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.25);
+  transform: translateY(-2px);
+  box-shadow:
+    0 2px 6px rgba(15, 23, 42, 0.12),
+    0 26px 48px -14px rgba(226, 78, 18, 0.85);
+}
+
+.btn-cta:active {
+  transform: translateY(0);
+}
+
+.btn-cta:focus-visible {
+  outline: 3px solid #f9c4a8;
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-cta,
+  .step-card,
+  .showcase-frame {
+    transition: none;
+  }
+  .btn-cta:hover,
+  .step-card:hover,
+  .showcase-item:hover .showcase-frame {
+    transform: none;
+  }
 }
 
 /* Responsive */
-@media (min-width: 640px) {
-  .gallery-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+@media (max-width: 640px) {
+  .hero-section {
+    padding: 5rem 0 4rem;
   }
 
+  .how-section {
+    padding: 4rem 0;
+  }
+
+  /* 좁은 화면에서는 화면 폭을 꽉 채우는 바 형태로 */
+  .sticky-cta {
+    bottom: calc(0.875rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .btn-cta {
+    width: 100%;
+    padding: 1rem 1.5rem;
+    font-size: 1rem;
+  }
+}
+
+@media (min-width: 640px) {
   .steps-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .hero-actions {
-    flex-direction: row;
-    justify-content: center;
   }
 }
 
 @media (min-width: 1024px) {
-  .hero-title {
-    font-size: 3.75rem;
-  }
-
-  .section-title {
-    font-size: 2.25rem;
-  }
-
-  .gallery-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
   .steps-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
-  .links-title {
-    font-size: 3rem;
-  }
-
-  .cta-title {
-    font-size: 2.5rem;
   }
 }
 </style>
