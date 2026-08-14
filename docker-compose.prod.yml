@@ -1,33 +1,36 @@
-# 운영 환경용 Docker Compose
+# 운영 환경용 Docker Compose — AWS Lightsail + Cloudflare 구성.
+#
+#   인터넷 → Cloudflare(프록시) → Lightsail:443 → frontend(nginx) ┬→ 정적 SPA
+#                                                                 └→ /api/* → backend:8000
+#
+# 백엔드 포트는 호스트에 노출하지 않는다. 같은 도메인 /api 로만 들어오므로
+# 8000 을 외부에 열 이유가 없고, 열면 Cloudflare 를 우회하는 경로가 생긴다.
+#
+# 실행 전 준비물 (DEPLOY.md 참고):
+#   - 프로젝트 루트에 .env  (.env.example 복사 후 값 채우기)
+#   - ./certs/origin.pem, ./certs/origin.key  (Cloudflare Origin CA 인증서)
+#
+# 실행: docker compose -f docker-compose.prod.yml up -d --build
+
 services:
-  # 백엔드 API
+  # 백엔드 API (FastAPI)
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: avatarbank-backend-prod
+    container_name: avatarclub-backend-prod
     restart: unless-stopped
+    # 설정은 전부 .env 한 곳에서 온다.
+    # 예전처럼 environment: 로 변수를 하나씩 재선언하면 .env 에 키를 추가할 때마다
+    # 여기도 같이 고쳐야 하고, 빠뜨리면 조용히 기본값으로 뜬다. 실제로 그렇게 어긋나 있었다.
     env_file:
       - .env
     environment:
-      - DATABASE_URL=${DATABASE_URL}
-      - REDIS_URL=${REDIS_URL}
-      - ENV=production
-      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
-      - JWT_ALGORITHM=${JWT_ALGORITHM:-HS256}
-      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES:-60}
-      - REFRESH_TOKEN_EXPIRE_DAYS=${REFRESH_TOKEN_EXPIRE_DAYS:-7}
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-      - AWS_REGION=${AWS_REGION:-ap-northeast-2}
-      - S3_BUCKET=${S3_BUCKET}
-      - COMFYUI_BASE_URL=${COMFYUI_BASE_URL}
-      - RUNPODS_HMAC_SECRET=${RUNPODS_HMAC_SECRET}
-      - PAYPAL_CLIENT_ID=${PAYPAL_CLIENT_ID}
-      - PAYPAL_CLIENT_SECRET=${PAYPAL_CLIENT_SECRET}
-      - PAYPAL_WEBHOOK_SECRET=${PAYPAL_WEBHOOK_SECRET}
-    ports:
-      - "8000:8000"
+      # .env 값을 덮어쓰는 유일한 항목. ENV=production 이면 main.py 가
+      # 기본 JWT_SECRET_KEY 로는 기동을 거부한다 (안전장치).
+      ENV: production
+    expose:
+      - "8000"
     volumes:
       - preview_image:/app/preview_image
     healthcheck:
@@ -35,32 +38,42 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 10s
+      start_period: 20s
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
 
-  # 프론트엔드
+  # 프론트엔드 (Vite 빌드 산출물 + nginx, /api 리버스 프록시 겸함)
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        - VITE_API_BASE_URL=${VITE_API_BASE_URL:-http://localhost:8000}
-    container_name: avatarbank-frontend-prod
+        # 같은 오리진 구성이라 절대 URL 이 아니라 경로다.
+        # 이 값은 빌드 시점에 번들에 구워지므로, 바꾸려면 반드시 --build 로 다시 빌드해야 한다.
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api}
+    container_name: avatarclub-frontend-prod
     restart: unless-stopped
     ports:
       - "80:80"
       - "443:443"
+    volumes:
+      # TLS 를 받는 운영용 server 블록으로 교체 (이미지 기본값은 HTTP 전용).
+      - ./frontend/nginx.prod.conf:/etc/nginx/conf.d/default.conf:ro
+      # Cloudflare Origin CA 인증서. 없으면 nginx 가 기동에 실패한다.
+      - ./certs:/etc/nginx/certs:ro
     depends_on:
       - backend
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      # 80 포트의 /healthz 는 리다이렉트도 TLS 도 타지 않고 200 을 준다.
+      # (Origin 인증서는 공인 CA 체인이 아니라 https 로 재면 검증 문제가 생긴다)
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/healthz"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 10s
     logging:
       driver: "json-file"
       options:
@@ -72,4 +85,4 @@ volumes:
 
 networks:
   default:
-    name: avatarbank-network-prod
+    name: avatarclub-network-prod

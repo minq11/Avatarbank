@@ -6,11 +6,12 @@
 import axios, { AxiosInstance, AxiosError } from "axios";
 
 // API base URL
-// Development: Use Vite proxy (/api)
-// Production: Environment variable or default value
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ||
-  (import.meta.env.DEV ? "/api" : "http://localhost:8000");
+// 개발: Vite 프록시(/api) — vite.config.ts 가 백엔드로 rewrite 한다.
+// 운영: 프론트와 같은 오리진에 nginx 가 /api 를 백엔드로 프록시한다.
+//
+// 기본값이 절대 URL 이면 안 된다. 예전 기본값 "http://localhost:8000" 은
+// 배포본이 사용자 PC 를 호출하게 만들어 전부 실패한다.
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
 
 /** 정적/이미지 엔드포인트 절대 URL 조립용 (예: 기본 소스 이미지) */
 export const apiBaseUrl = API_BASE_URL;

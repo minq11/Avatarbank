@@ -2,9 +2,8 @@
  * Avatar preview image: 1) frontend assets/preview_image/{id}.* 2) API /static/preview_image/{id}.png 3) S3
  */
 
-const API_BASE =
-  import.meta.env.VITE_API_BASE_URL ||
-  (import.meta.env.DEV ? "/api" : "http://localhost:8000");
+// 개발·운영 모두 같은 오리진의 /api 를 거친다 (services/api.ts 주석 참고).
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "/api";
 
 // Build-time: avatar id -> asset URL (from frontend/src/assets/preview_image/*)
 const assetMap: Record<number, string> = {};
