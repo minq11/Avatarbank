@@ -63,7 +63,9 @@ services:
       # TLS 를 받는 운영용 server 블록으로 교체 (이미지 기본값은 HTTP 전용).
       - ./frontend/nginx.prod.conf:/etc/nginx/conf.d/default.conf:ro
       # Cloudflare Origin CA 인증서. 없으면 nginx 가 기동에 실패한다.
-      - ./certs:/etc/nginx/certs:ro
+      # 기본은 리포 옆의 ./certs (compose 바인드 마운트의 관례적 위치). .gitignore 로 막아뒀다.
+      # 개인키를 git 작업 트리 밖에 두고 싶으면 .env 에 CERTS_DIR=/etc/avatarclub/certs 처럼 지정.
+      - ${CERTS_DIR:-./certs}:/etc/nginx/certs:ro
     depends_on:
       - backend
     healthcheck:

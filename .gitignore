@@ -5,6 +5,17 @@
 *.env
 # .env.example은 버전 관리에 포함 (예시 파일)
 
+# TLS 인증서 / 개인키
+# 운영 배포 시 Cloudflare Origin CA 인증서를 ./certs 에 두고 컨테이너로 마운트한다
+# (docker-compose.prod.yml). 이 리포는 공개돼 있으므로 git add . 한 번에
+# 개인키가 공개되지 않도록 확실히 막아둔다.
+certs/
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
 # Python
 __pycache__/
 *.py[cod]

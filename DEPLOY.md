@@ -157,6 +157,14 @@ nano ~/avatarclub/certs/origin.key   # Private Key 붙여넣기
 chmod 600 ~/avatarclub/certs/origin.key
 ```
 
+인증서는 리포 옆의 `./certs/` 에 두면 된다 — compose 바인드 마운트의 관례적인 위치다.
+이 리포는 공개돼 있으므로 `certs/`, `*.pem`, `*.key` 는 `.gitignore` 로 막아뒀다.
+그래도 개인키를 git 작업 트리 밖에 두고 싶으면 `.env` 에 절대경로를 지정하면 된다:
+
+```
+CERTS_DIR=/etc/avatarclub/certs
+```
+
 ## 5. 코드 배포
 
 ```bash
