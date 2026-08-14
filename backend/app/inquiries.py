@@ -94,7 +94,7 @@ def create_inquiry(
 
     category_label = CATEGORY_LABELS_KO.get(inquiry.category, inquiry.category)
     body = (
-        f"[AvatarBank] 새 문의가 접수됐습니다.\n\n"
+        f"[AvatarClub] 새 문의가 접수됐습니다.\n\n"
         f"문의번호: #{inquiry.id}\n"
         f"분류: {category_label}\n"
         f"이름: {inquiry.name}\n"
@@ -149,7 +149,7 @@ def admin_reply_inquiry(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="문의를 찾을 수 없어요.")
 
     body = (
-        f"{inquiry.name}님, 안녕하세요. AvatarBank 고객지원입니다.\n\n"
+        f"{inquiry.name}님, 안녕하세요. AvatarClub 고객지원입니다.\n\n"
         f"{payload.reply_body}\n\n"
         f"────────────────────\n"
         f"[문의 #{inquiry.id}] {inquiry.subject}\n"
@@ -159,7 +159,7 @@ def admin_reply_inquiry(
     )
     sent = send_email(
         to=inquiry.email,
-        subject=f"[AvatarBank] 문의 #{inquiry.id} 답변드립니다 — {inquiry.subject}",
+        subject=f"[AvatarClub] 문의 #{inquiry.id} 답변드립니다 — {inquiry.subject}",
         body=body,
         reply_to=settings.INQUIRY_NOTIFY_EMAIL,
     )

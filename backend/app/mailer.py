@@ -33,7 +33,7 @@ def send_email(
     subject: str,
     body: str,
     reply_to: Optional[str] = None,
-    from_name: str = "AvatarBank",
+    from_name: str = "AvatarClub",
 ) -> bool:
     """평문 메일 1통 발송. 성공 시 True, 미설정/실패 시 False."""
     if not mail_configured():

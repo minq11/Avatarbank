@@ -157,7 +157,7 @@ def prepare_payment(
 
     return CreditOrderResponse(
         order_id=order.order_id,
-        order_name=f"아바타뱅크 크레딧 {pack.name}",
+        order_name=f"아바타클럽 크레딧 {pack.name}",
         amount_krw=order.amount_krw,
         credits=order.credits,
         status=order.status,
@@ -241,6 +241,23 @@ def confirm_payment(
         raise HTTPException(status_code=400, detail=f"결제 승인 실패: {detail}")
 
     data = response.json()
+
+    # 승인이 200 이어도 결제가 끝난 게 아닐 수 있다. 가상계좌는 계좌만 발급된
+    # WAITING_FOR_DEPOSIT 상태로 200 을 돌려주므로, DONE 을 확인하지 않으면
+    # 입금 전에 크레딧이 나간다 (돈은 안 들어오고 크레딧만 나가는 상태).
+    # 완료가 아니면 pending 으로 두고, 나중에 웹훅이 DONE 을 확인해 적립하게 맡긴다.
+    # 지금은 프론트가 method: "CARD" 로 고정이라 실제로 걸릴 일이 없지만,
+    # 결제수단을 늘리는 순간 이 검사가 유일한 방어선이 된다.
+    # (가상계좌를 정식 지원할 땐 프론트에 "입금 대기" 화면을 따로 만들 것)
+    if data.get("status") != "DONE":
+        order.payment_key = payload.payment_key
+        order.method = data.get("method")
+        order.raw_response = data
+        db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="결제가 아직 완료되지 않았어요. 입금이 확인되면 크레딧이 자동으로 들어와요.",
+        )
 
     # 멱등 적립: pending 인 행만 paid 로 바꾼다. 1행이 바뀌었을 때만 크레딧을 넣는다.
     # 동시에 confirm 이 두 번 들어와도 UPDATE 는 한 번만 성공하므로 이중 적립이 없다.

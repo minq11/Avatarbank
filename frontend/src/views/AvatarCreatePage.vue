@@ -76,10 +76,10 @@
               <div class="info-box">
                 <p>
                   본인 요청임을 DM으로 확인해 주세요 (<a
-                    href="https://www.instagram.com/avatarbank_official/"
+                    href="https://www.instagram.com/avatarclub_official/"
                     target="_blank"
                     rel="noopener noreferrer"
-                  >@avatarbank_official</a>).
+                  >@avatarclub_official</a>).
                 </p>
                 <p>본인 요청이 아니면 학습을 진행하지 않아요.</p>
               </div>

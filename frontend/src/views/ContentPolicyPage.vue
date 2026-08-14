@@ -5,7 +5,7 @@
         <h1>콘텐츠·초상권 정책</h1>
         <p class="doc-meta">시행일 2026년 8월 5일</p>
         <p class="doc-lead">
-          AvatarBank는 두 가지 원칙 위에서 운영됩니다.
+          AvatarClub은 두 가지 원칙 위에서 운영됩니다.
           <strong>하나, 내 얼굴만 등록한다.</strong>
           <strong>둘, 전 연령이 볼 수 있는 이미지만 만든다.</strong>
           이 문서는 그 원칙이 실제로 어떻게 지켜지는지 설명합니다.

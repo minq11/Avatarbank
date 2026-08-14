@@ -6,8 +6,8 @@
           <!-- Logo -->
           <div class="logo-wrapper">
             <RouterLink to="/" class="logo-link">
-              <img :src="logoCart" alt="AvatarBank" class="logo-img" />
-              <h1 class="logo">AvatarBank</h1>
+              <img :src="logoCart" alt="AvatarClub" class="logo-img" />
+              <h1 class="logo">AvatarClub</h1>
             </RouterLink>
           </div>
 
@@ -139,7 +139,7 @@
         <div class="footer-grid">
           <!-- Brand -->
           <div class="footer-brand">
-            <h4 class="footer-brand-title">AvatarBank</h4>
+            <h4 class="footer-brand-title">AvatarClub</h4>
             <p class="footer-brand-description">
               내 얼굴로 만드는 AI 아바타 스튜디오. 크리에이터가 직접 생성하고,
               원할 땐 팬에게 리딤 링크를 나눠 함께 만듭니다.
@@ -180,7 +180,7 @@
               </li>
               <li>
                 <a
-                  href="https://www.instagram.com/avatarbank_official/"
+                  href="https://www.instagram.com/avatarclub_official/"
                   target="_blank"
                   rel="noopener noreferrer"
                   class="footer-link"
@@ -195,19 +195,19 @@
         <!-- Bottom Bar -->
         <div class="footer-bottom">
           <div class="footer-legal-bottom">
-            <p class="footer-copyright">© {{ currentYear }} AvatarBank. All rights reserved.</p>
+            <p class="footer-copyright">© {{ currentYear }} AvatarClub. All rights reserved.</p>
             <p class="footer-note">
-              AvatarBank는 전 연령 이용 가능한(SFW) 이미지만 생성합니다.
+              AvatarClub은 전 연령 이용 가능한(SFW) 이미지만 생성합니다.
               타인의 얼굴을 무단으로 등록하는 행위는 금지되며, 적발 시 계정이 정지됩니다.
             </p>
           </div>
           <div class="footer-social">
             <a
-              href="https://www.instagram.com/avatarbank_official/"
+              href="https://www.instagram.com/avatarclub_official/"
               target="_blank"
               rel="noopener noreferrer"
               class="social-icon"
-              aria-label="AvatarBank 인스타그램"
+              aria-label="AvatarClub 인스타그램"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <rect x="2" y="2" width="20" height="20" rx="5" />
