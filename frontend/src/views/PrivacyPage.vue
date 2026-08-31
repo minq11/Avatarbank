@@ -266,9 +266,44 @@
           접수된 문의는 담당자가 확인 후 회신 이메일로 답변드립니다.
         </p>
         <!--
-          TODO(나중에할일.md): 사업자 등록 후 상호·대표자·사업자등록번호·통신판매업신고번호·주소와
-          개인정보 보호책임자 성명·직위·연락처를 여기에 기재할 것.
+          사업자 정보와 보호책임자. 값은 src/config/business.ts 한 곳에서 온다.
+          아직 채우지 않은 항목은 렌더링되지 않으므로 빈 표가 노출되지 않는다.
         -->
+        <dl v-if="hasBusinessInfo" class="doc-defs">
+          <div><dt>상호</dt><dd>{{ business.companyName }}</dd></div>
+          <div v-if="business.ceoName"><dt>대표자</dt><dd>{{ business.ceoName }}</dd></div>
+          <div><dt>사업자등록번호</dt><dd>{{ business.registrationNumber }}</dd></div>
+          <div v-if="business.mailOrderNumber">
+            <dt>통신판매업신고번호</dt><dd>{{ business.mailOrderNumber }}</dd>
+          </div>
+          <div v-if="business.address"><dt>사업장 주소</dt><dd>{{ business.address }}</dd></div>
+          <div v-if="business.phone">
+            <dt>고객센터</dt>
+            <dd><a :href="`tel:${business.phone}`" class="doc-link">{{ business.phone }}</a></dd>
+          </div>
+          <div v-if="business.email">
+            <dt>이메일</dt>
+            <dd><a :href="`mailto:${business.email}`" class="doc-link">{{ business.email }}</a></dd>
+          </div>
+        </dl>
+
+        <template v-if="hasPrivacyOfficer">
+          <h3 class="doc-h3">개인정보 보호책임자</h3>
+          <dl class="doc-defs">
+            <div><dt>성명</dt><dd>{{ business.privacyOfficer.name }}</dd></div>
+            <div v-if="business.privacyOfficer.title">
+              <dt>직위</dt><dd>{{ business.privacyOfficer.title }}</dd>
+            </div>
+            <div v-if="business.privacyOfficer.email">
+              <dt>연락처</dt>
+              <dd>
+                <a :href="`mailto:${business.privacyOfficer.email}`" class="doc-link">
+                  {{ business.privacyOfficer.email }}
+                </a>
+              </dd>
+            </div>
+          </dl>
+        </template>
         <p class="doc-p">
           본 방침이 변경되는 경우 시행 7일 전부터 서비스 내 공지하며, 이용자에게 불리한 중대한
           변경은 30일 전에 공지합니다.
@@ -294,6 +329,7 @@
 
 <script setup lang="ts">
 import { RouterLink } from "vue-router";
+import { business, hasBusinessInfo, hasPrivacyOfficer } from "@/config/business";
 </script>
 
 <style scoped>

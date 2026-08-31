@@ -210,3 +210,46 @@
   line-height: 1.7;
   font-size: 0.9rem;
 }
+
+/*
+ * 정의형 목록 — 사업자 정보처럼 "항목명: 값" 쌍을 나열할 때 쓴다.
+ * 좁은 화면에서는 라벨과 값이 위아래로 쌓이도록 한다.
+ */
+.doc-defs {
+  margin: 0.75rem 0 0;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.doc-defs > div {
+  display: grid;
+  grid-template-columns: 9.5rem 1fr;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.doc-defs dt {
+  color: #71717a;
+}
+
+.doc-defs dd {
+  margin: 0;
+  color: #27272a;
+}
+
+.doc-h3 {
+  margin: 1.5rem 0 0;
+  font-size: 1rem;
+}
+
+@media (max-width: 560px) {
+  .doc-defs > div {
+    grid-template-columns: 1fr;
+    gap: 0.1rem;
+  }
+
+  .doc-defs dt {
+    font-size: 0.82rem;
+  }
+}

@@ -195,6 +195,25 @@
         <!-- Bottom Bar -->
         <div class="footer-bottom">
           <div class="footer-legal-bottom">
+            <!--
+              전자상거래법상 표시 의무 항목. 값은 src/config/business.ts 한 곳에서 온다.
+              아직 안 채운 항목은 렌더링되지 않으므로 자리표시자가 노출되지 않는다.
+            -->
+            <p v-if="hasBusinessInfo" class="footer-business">
+              <span>상호 {{ business.companyName }}</span>
+              <span v-if="business.ceoName">대표 {{ business.ceoName }}</span>
+              <span>사업자등록번호 {{ business.registrationNumber }}</span>
+              <span v-if="business.mailOrderNumber">
+                통신판매업신고 {{ business.mailOrderNumber }}
+              </span>
+              <span v-if="business.address">{{ business.address }}</span>
+              <span v-if="business.phone">
+                고객센터 <a :href="`tel:${business.phone}`" class="footer-link">{{ business.phone }}</a>
+              </span>
+              <span v-if="business.email">
+                <a :href="`mailto:${business.email}`" class="footer-link">{{ business.email }}</a>
+              </span>
+            </p>
             <p class="footer-copyright">© {{ currentYear }} AvatarClub. All rights reserved.</p>
             <p class="footer-note">
               AvatarClub은 전 연령 이용 가능한(SFW) 이미지만 생성합니다.
@@ -235,6 +254,7 @@ import { useAuthStore } from "./stores/auth";
 import AuthModal from "./components/AuthModal.vue";
 import diamondIcon from "./assets/icons/diamond_credit_icon.svg";
 import logoCart from "./assets/icons/logo3D.png";
+import { business, hasBusinessInfo } from "./config/business";
 
 const authStore = useAuthStore();
 
@@ -904,6 +924,27 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
+}
+
+/*
+ * 사업자 정보 — 항목을 가운뎃점으로 구분해 한 문단처럼 흐르게 둔다.
+ * 항목 수가 유동적(통신판매업신고번호는 신고 전까지 없음)이라
+ * 고정 구분자를 하드코딩하지 않고 flex + ::after 로 처리한다.
+ */
+.footer-business {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem 0.5rem;
+  font-size: 0.78rem;
+  color: #9a9aa3;
+  line-height: 1.6;
+  max-width: 720px;
+}
+
+.footer-business > span:not(:last-child)::after {
+  content: "·";
+  margin-left: 0.5rem;
+  color: #c8c8cf;
 }
 
 .footer-copyright {
