@@ -33,9 +33,9 @@ export const business = {
    * 1인 사업자면 대표자가 겸임하는 것이 일반적이다.
    */
   privacyOfficer: {
-    name: "",
-    title: "",
-    email: "",
+    name: "윤은희",
+    title: "대표",
+    email: "gooddonutsyh@gmail.com",
   },
 } as const;
 
