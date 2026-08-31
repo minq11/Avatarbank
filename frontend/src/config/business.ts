@@ -14,17 +14,17 @@
  */
 export const business = {
   /** 상호명 (사업자등록증상 명칭) */
-  companyName: "",
+  companyName: "패밀리포차",
   /** 대표자명 */
-  ceoName: "",
+  ceoName: "윤은희",
   /** 사업자등록번호 (예: 123-45-67890) */
-  registrationNumber: "",
+  registrationNumber: "202-26-98342",
   /** 통신판매업신고번호 (예: 제2026-서울강남-01234호) */
   mailOrderNumber: "",
   /** 사업장 주소 */
-  address: "",
+  address: "경기도 시흥시 하상로 13, 1층",
   /** 고객센터 전화번호 — 전자상거래법상 표시 의무 */
-  phone: "",
+  phone: "070-2394-1329",
   /** 고객 문의 이메일 */
   email: "gooddonutsyh@gmail.com",
 
