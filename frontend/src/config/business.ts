@@ -24,7 +24,7 @@ export const business = {
   /** 사업장 주소 */
   address: "경기도 시흥시 하상로 13, 1층",
   /** 고객센터 전화번호 — 전자상거래법상 표시 의무 */
-  phone: "070-2394-1329",
+  phone: "070-7938-5499",
   /** 고객 문의 이메일 */
   email: "gooddonutsyh@gmail.com",
 
