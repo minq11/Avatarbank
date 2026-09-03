@@ -12,6 +12,7 @@ import TermsPage from "./views/TermsPage.vue";
 import PrivacyPage from "./views/PrivacyPage.vue";
 import ContentPolicyPage from "./views/ContentPolicyPage.vue";
 import GuidePage from "./views/GuidePage.vue";
+import PricingPage from "./views/PricingPage.vue";
 import SupportPage from "./views/SupportPage.vue";
 import AdminInquiriesPage from "./views/AdminInquiriesPage.vue";
 import PaymentSuccessPage from "./views/PaymentSuccessPage.vue";
@@ -42,6 +43,10 @@ const routes: RouteRecordRaw[] = [
   { path: "/privacy", name: "privacy", component: PrivacyPage },
   { path: "/content-policy", name: "content-policy", component: ContentPolicyPage },
   { path: "/guide", name: "guide", component: GuidePage },
+  // 판매 상품·가격·환불 규정을 로그인 없이 볼 수 있는 공개 페이지.
+  // 그동안 상품은 스튜디오의 충전 팝업 안에만 있어서 비로그인 방문자와
+  // PG 심사자가 무엇을 파는지 확인할 방법이 없었다.
+  { path: "/pricing", name: "pricing", component: PricingPage },
   { path: "/support", name: "support", component: SupportPage },
   {
     path: "/admin/training-requests",

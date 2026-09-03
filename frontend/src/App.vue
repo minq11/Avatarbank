@@ -14,6 +14,7 @@
           <!-- Center Navigation -->
           <nav class="center-nav">
             <RouterLink to="/studio" class="nav-link">크리에이터 스튜디오</RouterLink>
+            <RouterLink to="/pricing" class="nav-link">크레딧 안내</RouterLink>
           </nav>
 
           <!-- Right Side - Language + Auth -->
@@ -151,6 +152,7 @@
             <h5 class="footer-column-title">서비스</h5>
             <ul class="footer-links-list">
               <li><RouterLink to="/studio" class="footer-link">크리에이터 스튜디오</RouterLink></li>
+              <li><RouterLink to="/pricing" class="footer-link">크레딧 안내</RouterLink></li>
               <li><RouterLink to="/my/avatars" class="footer-link">내 아바타</RouterLink></li>
               <li><RouterLink to="/guide" class="footer-link">크리에이터 가이드</RouterLink></li>
             </ul>
