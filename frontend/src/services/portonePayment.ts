@@ -62,14 +62,14 @@ export async function openPortOnePayment(order: CreditOrder): Promise<void> {
 
     // 리다이렉트로 처리된 경우 여기 도달하지 않는다 (페이지가 이미 떠났다).
     // 반환값 방식일 때만 아래가 실행된다.
+    // 실패를 예외로 바꿔 아래 catch 가 대기 주문 정리를 한 곳에서 처리하게 한다.
     if (response?.code !== undefined) {
-      // 사용자가 취소했거나 PG 가 거절했다. 대기 주문을 정리한다.
-      void creditsApi.cancelOrder(order.order_id).catch(() => undefined);
       throw new Error(response.message || "결제가 취소되었어요.");
     }
   } catch (e) {
-    // 결제창을 닫거나 SDK 가 던진 경우. 대기 중인 주문을 정리해 두지 않으면
-    // pending 주문이 계속 쌓인다. 정리 실패는 치명적이지 않으므로 삼킨다.
+    // 사용자가 결제창을 닫았거나 PG 가 거절했거나 SDK 가 던진 경우.
+    // 대기 중인 주문을 정리해 두지 않으면 pending 주문이 계속 쌓인다.
+    // 정리 실패는 치명적이지 않으므로 삼킨다.
     void creditsApi.cancelOrder(order.order_id).catch(() => undefined);
     throw e;
   }
