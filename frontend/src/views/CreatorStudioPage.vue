@@ -171,7 +171,7 @@
           <p v-else class="muted">충전 패키지를 불러오지 못했어요. 새로고침해 주세요.</p>
 
           <p class="muted small modal-foot">
-            결제창은 토스페이먼츠에서 열려요. 결제가 끝나면 크레딧이 바로 반영됩니다.
+            결제창은 포트원을 통해 열려요. 결제가 끝나면 크레딧이 바로 반영됩니다.
           </p>
         </div>
       </div>
@@ -197,7 +197,7 @@ import {
   type CodeItem,
   type AvatarItem,
 } from "../services/api";
-import { openTossPayment } from "../services/tossPayment";
+import { openPortOnePayment } from "../services/portonePayment";
 
 const authStore = useAuthStore();
 
@@ -344,14 +344,15 @@ const loadAll = async () => {
 };
 
 /**
- * 크레딧 충전. 서버에서 주문(금액 확정)을 받은 뒤 토스 결제창을 연다.
- * 결제 성공 시 토스가 /payments/success 로 리다이렉트하고, 거기서 승인이 일어난다.
+ * 크레딧 충전. 서버에서 주문(금액 확정)을 받은 뒤 포트원 결제창을 연다.
+ * 결제가 끝나면 /payments/success 로 돌아오고, 거기서 서버가 포트원에 조회해
+ * 금액·상태를 검증한 뒤 크레딧을 적립한다.
  */
 const buyPack = async (packCode: string) => {
   purchasing.value = true;
   try {
     const order = await creditsApi.prepare(packCode);
-    await openTossPayment(order);
+    await openPortOnePayment(order);
   } catch (e: any) {
     showToast(errMsg(e, "결제창을 열지 못했어요."), "err");
   } finally {

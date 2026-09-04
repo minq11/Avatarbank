@@ -58,23 +58,31 @@ const balance = ref(0);
 const errorMessage = ref("");
 
 /**
- * 토스는 결제창을 통과하면 이 주소로 리다이렉트만 시킨다. 승인(confirm)을 호출해야
- * 실제로 결제가 완료되며, 호출하지 않으면 자동으로 취소된다.
- * 금액 검증은 서버가 주문에 박아둔 값으로 하므로 여기서 넘기는 amount 는 참고값이다.
+ * 포트원은 성공·실패를 각각 다른 주소로 보내지 않는다. 둘 다 이 페이지로 오고,
+ * 실패일 때만 쿼리에 code/message 가 붙는다. 그래서 code 부터 확인해야 한다.
+ *
+ * 결제 자체는 이 화면에 도달한 시점에 이미 승인돼 있다. 여기서 부르는 complete 는
+ * 승인이 아니라 서버가 포트원에 직접 조회해 금액·상태를 검증하고 크레딧을 적립하는
+ * 단계다. 금액은 넘기지 않는다 — 검증 기준은 서버가 주문에 박아둔 값이다.
  */
 const confirm = async () => {
-  const paymentKey = String(route.query.paymentKey ?? "");
-  const orderId = String(route.query.orderId ?? "");
-  const amount = Number(route.query.amount ?? 0);
+  const failCode = route.query.code ? String(route.query.code) : "";
+  if (failCode) {
+    state.value = "failed";
+    errorMessage.value =
+      String(route.query.message ?? "") || "결제가 취소되었거나 승인되지 않았어요.";
+    return;
+  }
 
-  if (!paymentKey || !orderId) {
+  const paymentId = String(route.query.paymentId ?? "");
+  if (!paymentId) {
     state.value = "failed";
     errorMessage.value = "결제 정보가 올바르지 않아요.";
     return;
   }
 
   try {
-    const result = await creditsApi.confirm({ paymentKey, orderId, amount });
+    const result = await creditsApi.complete(paymentId);
     balance.value = result.balance;
     state.value = "done";
     // 헤더 등에서 쓰는 user.credit_balance 도 갱신한다.

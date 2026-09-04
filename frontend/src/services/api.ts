@@ -688,14 +688,17 @@ export interface MyCredits {
 
 /** 결제창을 띄우는 데 필요한 값 일체. 금액은 서버가 확정한 것이다. */
 export interface CreditOrder {
+  /** 포트원 paymentId 로 그대로 쓴다. */
   order_id: string;
   order_name: string;
   amount_krw: number;
   credits: number;
   status: string;
-  client_key: string;
-  success_url: string;
-  fail_url: string;
+  /** 공개 값. API Secret 은 서버에만 있고 여기 내려오지 않는다. */
+  store_id: string;
+  channel_key: string;
+  /** 포트원은 성공·실패를 하나의 주소로 돌려보낸다 (실패 시 code 쿼리가 붙는다). */
+  redirect_url: string;
 }
 
 export const creditsApi = {
@@ -709,30 +712,25 @@ export const creditsApi = {
   },
   /** 결제창을 띄우기 전에 서버에 주문을 만든다 (금액 확정 = 위변조 방지의 기준). */
   prepare: async (packCode: string): Promise<CreditOrder> => {
-    const response = await api.post<CreditOrder>("/payments/toss/prepare", {
+    const response = await api.post<CreditOrder>("/payments/portone/prepare", {
       pack_code: packCode,
     });
     return response.data;
   },
   /**
-   * 결제 승인. 이걸 호출해야 실제로 결제가 완료된다 — 승인하지 않으면 토스가 자동 취소한다.
-   * 갱신된 잔액을 돌려준다.
+   * 결제 완료 처리. 서버가 포트원에 직접 조회해 금액과 상태를 검증한 뒤 크레딧을 적립한다.
+   * 금액만 넘기지 않는 게 아니라 아예 받지 않는다 — 클라이언트가 말하는 금액은
+   * 검증 근거가 될 수 없기 때문이다. 갱신된 잔액을 돌려준다.
    */
-  confirm: async (params: {
-    paymentKey: string;
-    orderId: string;
-    amount: number;
-  }): Promise<MyCredits> => {
-    const response = await api.post<MyCredits>("/payments/toss/confirm", {
-      payment_key: params.paymentKey,
-      order_id: params.orderId,
-      amount: params.amount,
+  complete: async (paymentId: string): Promise<MyCredits> => {
+    const response = await api.post<MyCredits>("/payments/portone/complete", {
+      payment_id: paymentId,
     });
     return response.data;
   },
   /** 사용자가 결제창을 닫았을 때 대기 중인 주문을 정리한다. */
   cancelOrder: async (orderId: string): Promise<void> => {
-    await api.post("/payments/toss/cancel-order", { order_id: orderId });
+    await api.post("/payments/portone/cancel-order", { order_id: orderId });
   },
 };
 

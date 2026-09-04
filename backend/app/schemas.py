@@ -291,7 +291,7 @@ class MyCreditsResponse(BaseModel):
     transactions: List[TransactionResponse] = []
 
 
-class TossPrepareRequest(BaseModel):
+class PaymentPrepareRequest(BaseModel):
     pack_code: str = Field(..., min_length=1, max_length=50)
 
 
@@ -300,24 +300,33 @@ class OrderIdRequest(BaseModel):
 
 
 class CreditOrderResponse(BaseModel):
-    """결제창에 넘길 주문 정보. 금액은 서버가 확정한 값이다."""
+    """
+    결제창에 넘길 주문 정보. 금액은 서버가 확정한 값이며 프론트는 그대로 전달만 한다.
 
-    order_id: str
+    store_id / channel_key 는 공개 값이라 내려보내도 안전하다.
+    API Secret 은 여기 담기지 않는다 — 서버에서만 쓴다.
+    """
+
+    order_id: str  # 포트원 paymentId 로 그대로 쓴다
     order_name: str
     amount_krw: int
     credits: int
     status: str
-    client_key: str
-    success_url: str
-    fail_url: str
+    store_id: str
+    channel_key: str
+    redirect_url: str
 
 
-class TossConfirmRequest(BaseModel):
-    """결제 성공 리다이렉트로 받은 값. amount 는 검증용이며 신뢰하지 않는다."""
+class PaymentCompleteRequest(BaseModel):
+    """
+    결제창이 끝난 뒤 프론트가 알려주는 결제 건 ID.
 
-    payment_key: str = Field(..., min_length=1, max_length=200)
-    order_id: str = Field(..., min_length=6, max_length=64)
-    amount: int = Field(..., ge=0)
+    금액은 받지 않는다. 포트원 조회 API 응답의 금액을 주문 금액과 대조하므로
+    클라이언트가 보내는 금액은 애초에 신뢰 대상이 아니고, 받아두면 실수로
+    그 값을 검증에 쓰게 될 여지만 생긴다.
+    """
+
+    payment_id: str = Field(..., min_length=6, max_length=64)
 
 
 class CodeCreateRequest(BaseModel):

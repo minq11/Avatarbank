@@ -63,12 +63,21 @@ class Settings(BaseSettings):
     # 크리에이터가 동시에 활성화할 수 있는 리딤 코드 수 (플랜 한도를 대체하는 고정값).
     MAX_ACTIVE_REDEEM_CODES: int = 500
 
-    # 토스페이먼츠. 테스트 키(test_ck_*, test_sk_*)로 심사 전에도 개발 가능.
-    # 시크릿 키는 절대 프론트로 내보내지 말 것 — 승인 API 는 서버에서만 호출한다.
-    TOSS_CLIENT_KEY: str = ""
-    TOSS_SECRET_KEY: str = ""
-    TOSS_API_BASE_URL: str = "https://api.tosspayments.com"
-    # 결제 완료/실패 후 돌아올 프론트 주소 (결제창에 넘긴다)
+    # 포트원(PortOne) V2. 결제는 포트원을 거쳐 PG(카카오페이 등)로 나간다.
+    # PG 계약 전에도 콘솔에서 테스트 채널을 만들어 전 구간을 검증할 수 있고,
+    # 계약이 승인되면 CHANNEL_KEY 만 실채널로 바꾸면 된다 (코드 변경 없음).
+    #
+    # STORE_ID 와 CHANNEL_KEY 는 공개돼도 되는 값이라 프론트에 그대로 내려간다.
+    # API_SECRET 은 서버 전용 — 결제 조회·취소가 이 값으로 인증되므로 절대 노출 금지.
+    PORTONE_STORE_ID: str = ""
+    PORTONE_CHANNEL_KEY: str = ""
+    PORTONE_API_SECRET: str = ""
+    PORTONE_API_BASE_URL: str = "https://api.portone.io"
+
+    # 결제창이 끝난 뒤 돌아올 프론트 주소.
+    # 포트원은 성공·실패를 URL 로 나누지 않고 하나의 redirectUrl 로 돌려보내며,
+    # 실패일 때만 쿼리에 code/message 가 붙는다. 그래서 결제창에 넘기는 값은
+    # SUCCESS_URL 하나이고, FAIL_URL 은 프론트가 실패를 감지했을 때 이동할 주소다.
     PAYMENT_SUCCESS_URL: str = "http://localhost:5173/payments/success"
     PAYMENT_FAIL_URL: str = "http://localhost:5173/payments/fail"
 
