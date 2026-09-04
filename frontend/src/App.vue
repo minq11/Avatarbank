@@ -44,6 +44,22 @@
               </div>
             </div>
 
+            <!--
+              모바일 메뉴 버튼. 좁은 화면에서는 center-nav 가 숨겨져서
+              스튜디오·크레딧 안내로 갈 방법이 푸터밖에 없었다.
+            -->
+            <button
+              class="mobile-menu-btn"
+              :aria-expanded="showMobileMenu"
+              aria-label="메뉴 열기"
+              @click.stop="showMobileMenu = !showMobileMenu"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path v-if="!showMobileMenu" d="M3 6h18M3 12h18M3 18h18" />
+                <path v-else d="M6 6l12 12M18 6L6 18" />
+              </svg>
+            </button>
+
             <!-- Auth Buttons -->
             <div v-if="authStore.isInitialized && !authStore.isLoggedIn" class="auth-buttons">
               <button @click="openLoginModal" class="btn-login">로그인</button>
@@ -120,6 +136,22 @@
             </div>
           </div>
         </div>
+
+        <!-- 모바일 전용 드롭다운. 데스크톱에서는 center-nav 가 같은 역할을 한다. -->
+        <nav v-if="showMobileMenu" class="mobile-menu">
+          <RouterLink to="/studio" class="mobile-menu-item" @click="closeMobileMenu">
+            크리에이터 스튜디오
+          </RouterLink>
+          <RouterLink to="/pricing" class="mobile-menu-item" @click="closeMobileMenu">
+            크레딧 안내
+          </RouterLink>
+          <RouterLink to="/guide" class="mobile-menu-item" @click="closeMobileMenu">
+            크리에이터 가이드
+          </RouterLink>
+          <RouterLink to="/support" class="mobile-menu-item" @click="closeMobileMenu">
+            문의하기
+          </RouterLink>
+        </nav>
       </div>
     </header>
 
@@ -268,6 +300,11 @@ const router = useRouter();
 const locale = ref<"en" | "ko" | "ja">("en");
 const showLanguageMenu = ref(false);
 const showProfileMenu = ref(false);
+const showMobileMenu = ref(false);
+
+const closeMobileMenu = () => {
+  showMobileMenu.value = false;
+};
 
 const languages = [
   { value: "en", label: "EN", flagCode: "gb" },
@@ -313,6 +350,10 @@ const handleClickOutside = (event: MouseEvent) => {
   }
   if (!target.closest(".profile-wrapper")) {
     showProfileMenu.value = false;
+  }
+  // 메뉴 안을 눌렀을 때는 각 링크의 @click 이 닫으므로 여기서 제외한다.
+  if (!target.closest(".mobile-menu") && !target.closest(".mobile-menu-btn")) {
+    showMobileMenu.value = false;
   }
 };
 
@@ -369,6 +410,8 @@ onUnmounted(() => {
 
 .logo-wrapper {
   flex-shrink: 0;
+  /* 로고가 줄바꿈되지 않게 한다. 좁은 화면에서 "Avatar / Club" 으로 쪼개졌다. */
+  white-space: nowrap;
 }
 
 .logo-link {
@@ -431,6 +474,73 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 1rem;
+  /* 넘칠 때 로고가 아니라 이쪽이 줄어들도록 한다. min-width:0 이 없으면
+     flex 항목이 콘텐츠 크기 아래로 줄지 않아 헤더 밖으로 밀려난다. */
+  min-width: 0;
+}
+
+/* ------------------------------------------------------------------
+ * 모바일 메뉴
+ * 데스크톱에서는 center-nav 가 같은 링크를 보여주므로 숨긴다.
+ * ------------------------------------------------------------------ */
+.mobile-menu-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex-shrink: 0;
+  border: 1px solid #e6e6ea;
+  border-radius: 0.625rem;
+  background: #ffffff;
+  color: #3a3a42;
+  cursor: pointer;
+  padding: 0;
+}
+
+.mobile-menu-btn svg {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+@media (min-width: 768px) {
+  .mobile-menu-btn {
+    display: none;
+  }
+}
+
+.mobile-menu {
+  display: flex;
+  flex-direction: column;
+  /* 헤더가 반투명(rgba + backdrop-filter)이라 그대로 두면 아래 페이지 내용이
+     비쳐 글자를 읽을 수 없다. 메뉴는 불투명 배경을 직접 깐다. */
+  background: #ffffff;
+  /* header-container 의 좌우 패딩(모바일 1rem)을 상쇄해 화면 끝까지 채운다. */
+  margin: 0 -1rem;
+  padding: 0.25rem 1rem 0.75rem;
+  border-top: 1px solid #f2f2f4;
+  box-shadow: 0 12px 16px -12px rgba(0, 0, 0, 0.18);
+}
+
+.mobile-menu-item {
+  padding: 0.875rem 0.25rem;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: #3a3a42;
+  text-decoration: none;
+  border-radius: 0.5rem;
+  /* 상위에서 내려온 가운데 정렬을 끊는다. 목록형 내비게이션은 좌측이 읽기 쉽다. */
+  text-align: left;
+}
+
+.mobile-menu-item:active {
+  background: #fafafa;
+}
+
+@media (min-width: 768px) {
+  .mobile-menu {
+    display: none;
+  }
 }
 
 /* Language Switcher */
@@ -986,17 +1096,60 @@ onUnmounted(() => {
     padding: 0 1rem;
   }
 
+  /* 좁은 화면에서는 로고·언어·닉네임·프로필이 한 줄에 다 들어가지 않아
+     글자가 줄바꿈되고 프로필 버튼이 화면 밖으로 밀려났다. 아래에서
+     차지하는 폭을 순서대로 줄인다. */
+
+  .logo {
+    font-size: 1.125rem;
+  }
+
+  .logo-img {
+    height: 1.125rem;
+  }
+
+  /* 언어 스위처는 UI 만 있고 i18n 이 적용돼 있지 않다(전 페이지 한국어 고정).
+     동작하지 않는 요소가 좁은 화면에서 가장 넓은 자리를 차지하고 있었으므로
+     모바일에서는 숨긴다. i18n 을 실제로 붙이면 이 규칙을 지울 것. */
+  .language-wrapper {
+    display: none;
+  }
+
   .right-nav {
     gap: 0.5rem;
   }
 
   .user-info {
     gap: 0.5rem;
+    min-width: 0;
   }
 
   .user-badge {
     padding: 0.2rem 0.6rem;
     font-size: 0.8125rem;
+    min-width: 0;
+  }
+
+  /*
+   * 닉네임은 모바일에서 숨긴다. 최대 20자까지 가능해 폭을 제한해 봤지만,
+   * flex 가 남은 공간만큼만 주다 보니 0폭까지 찌그러져 구분선만 남고
+   * 로고와 메뉴 버튼이 맞붙는 결과가 됐다. 프로필 메뉴에 들어가면 계정을
+   * 확인할 수 있으므로, 좁은 화면에서는 잔액만 보여주는 편이 낫다.
+   */
+  .nickname-label,
+  .badge-separator {
+    display: none;
+  }
+
+  .auth-buttons {
+    gap: 0.375rem;
+  }
+
+  .btn-login,
+  .btn-signup {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8125rem;
+    white-space: nowrap;
   }
 
   .diamond-icon {
