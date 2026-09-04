@@ -254,13 +254,43 @@ localhost 로 남아 있으면 결제는 승인되는데 사용자가 돌아올 
 ## 9. 배포 / 업데이트
 
 ```bash
-cd ~/avatarclub-src
+cd ~/Avatarbank
+make deploy
+```
+
+`make deploy` 가 하는 일: `git pull` → 이미지 재빌드 → 기동 → 20초 대기 →
+컨테이너 상태와 헬스체크 출력. 매번 확인까지 한 번에 끝난다.
+
+`make` 가 없으면 `sudo apt-get install -y make` 한 번만 하면 된다.
+
+자주 쓰는 나머지:
+
+```bash
+make status      # 컨테이너 상태 + 헬스체크
+make prod-logs   # 로그 따라보기
+make prod-down   # 정지
+make help        # 전체 타깃 목록
+```
+
+더 짧게 치고 싶으면 셸 별칭을 걸어둔다:
+
+```bash
+echo "alias deploy='cd ~/Avatarbank && make deploy'" >> ~/.bashrc
+source ~/.bashrc
+# 이제 어느 디렉터리에서든 deploy 한 단어로 배포된다
+```
+
+수동으로 할 때는:
+
+```bash
+cd ~/Avatarbank
 git pull
 docker compose -f docker-compose.prod.yml up -d --build
 ```
 
-프론트의 `VITE_API_BASE_URL` 은 **빌드 시점에 번들에 구워진다.** 값을 바꿨다면
-`--build` 없이는 반영되지 않는다.
+프론트의 `VITE_API_BASE_URL` 과 사업자 정보(`src/config/business.ts`)는
+**빌드 시점에 번들에 구워진다.** `--build` 없이는 `git pull` 을 해도 화면이
+그대로다. `make deploy` 는 항상 `--build` 를 붙인다.
 
 롤백:
 
