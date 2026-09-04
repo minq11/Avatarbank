@@ -44,22 +44,6 @@
               </div>
             </div>
 
-            <!--
-              모바일 메뉴 버튼. 좁은 화면에서는 center-nav 가 숨겨져서
-              스튜디오·크레딧 안내로 갈 방법이 푸터밖에 없었다.
-            -->
-            <button
-              class="mobile-menu-btn"
-              :aria-expanded="showMobileMenu"
-              aria-label="메뉴 열기"
-              @click.stop="showMobileMenu = !showMobileMenu"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path v-if="!showMobileMenu" d="M3 6h18M3 12h18M3 18h18" />
-                <path v-else d="M6 6l12 12M18 6L6 18" />
-              </svg>
-            </button>
-
             <!-- Auth Buttons -->
             <div v-if="authStore.isInitialized && !authStore.isLoggedIn" class="auth-buttons">
               <button @click="openLoginModal" class="btn-login">로그인</button>
@@ -134,6 +118,23 @@
                 </div>
               </div>
             </div>
+
+            <!--
+              모바일 메뉴 버튼. 좁은 화면에서는 center-nav 가 숨겨져서
+              스튜디오·크레딧 안내로 갈 방법이 푸터밖에 없었다.
+              right-nav 의 마지막에 두어 화면 오른쪽 끝에 오게 한다 (모바일 관례).
+            -->
+            <button
+              class="mobile-menu-btn"
+              :aria-expanded="showMobileMenu"
+              aria-label="메뉴 열기"
+              @click.stop="showMobileMenu = !showMobileMenu"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path v-if="!showMobileMenu" d="M3 6h18M3 12h18M3 18h18" />
+                <path v-else d="M6 6l12 12M18 6L6 18" />
+              </svg>
+            </button>
           </div>
         </div>
 
@@ -512,6 +513,10 @@ onUnmounted(() => {
 .mobile-menu {
   display: flex;
   flex-direction: column;
+  /* 상위에서 내려온 align-items:center 를 끊는다. 이게 없으면 항목 박스가
+     글자 폭(148px)만큼만 잡혀 가운데 놓이고, 안의 text-align:left 는
+     아무 효과가 없어 보인다. 터치 영역도 그만큼 좁아진다. */
+  align-items: stretch;
   /* 헤더가 반투명(rgba + backdrop-filter)이라 그대로 두면 아래 페이지 내용이
      비쳐 글자를 읽을 수 없다. 메뉴는 불투명 배경을 직접 깐다. */
   background: #ffffff;
