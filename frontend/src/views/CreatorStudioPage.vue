@@ -794,19 +794,59 @@ textarea {
   background: rgba(13, 13, 15, 0.5);
   backdrop-filter: blur(2px);
   display: flex;
-  align-items: center;
+  /*
+   * align-items:center 를 쓰면 안 된다. 내용이 화면보다 길 때 위아래로
+   * 똑같이 넘치는데, 스크롤은 음수로 갈 수 없어서 위로 넘친 부분(제목·닫기 버튼)에
+   * 영원히 닿지 못한다. 모바일에서 팩 카드가 세로로 쌓이면 바로 이 상태가 됐다.
+   * 대신 패널에 margin:auto 를 준다 — 공간이 남으면 가운데로 오고,
+   * 모자라면 마진이 0 으로 접히며 잘리지 않는다.
+   */
   justify-content: center;
   padding: 1.25rem;
   overflow-y: auto;
+  /* iOS 에서 오버레이 뒤 페이지가 같이 밀리는 것을 줄인다 */
+  overscroll-behavior: contain;
 }
 
 .modal-panel {
   width: 100%;
   max-width: 40rem;
+  margin: auto;
   background: #fff;
   border-radius: 1.25rem;
   padding: 1.5rem;
   box-shadow: 0 30px 60px -25px rgba(13, 13, 15, 0.5);
+}
+
+@media (max-width: 640px) {
+  .modal-overlay {
+    /* 좁은 화면에서는 여백을 줄여 내용이 들어갈 자리를 넓힌다 */
+    padding: 0.75rem;
+  }
+
+  .modal-panel {
+    padding: 1.25rem 1rem;
+    border-radius: 1rem;
+  }
+
+  /*
+   * 팩을 2열로 세운다. minmax(160px,1fr) 로는 폭이 2px 모자라 1열로 떨어졌고,
+   * 그 결과 모달이 1071px(뷰포트 667px)까지 길어져 결제하려면 한참 스크롤해야 했다.
+   * 결제 직전 화면에서 스크롤이 길수록 이탈이 는다.
+   */
+  .plan-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.625rem;
+    margin: 0.85rem 0;
+  }
+
+  .plan-card {
+    padding: 0.85rem 0.6rem;
+  }
+
+  .price {
+    font-size: 1.2rem;
+  }
 }
 
 .modal-head {
