@@ -63,6 +63,12 @@ health: ## nginx / 백엔드 응답 확인
 	@printf 'backend : '; curl -sfk -m 10 https://localhost/api/health || echo '✗ 응답 없음'
 	@echo ""
 
+translate-test: ## 번역 동작 확인 (크레딧 소모 없음). 예: make translate-test P="노을 지는 바닷가"
+	@$(PROD) exec -T backend python -m app.translate $(if $(P),"$(P)",)
+
+translate-logs: ## 번역 로그만 추려 보기
+	@$(PROD) logs backend --tail 200 | grep -i "번역" || echo "번역 로그가 아직 없습니다 (생성을 한 번 해보세요)"
+
 prod-build: ## Build production images
 	$(PROD) build
 

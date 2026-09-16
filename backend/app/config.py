@@ -7,6 +7,13 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "AvatarClub API"
     ENV: str = "local"
 
+    # 로그 레벨. basicConfig 를 호출한 적이 없어서 그동안 INFO 로그가 전부
+    # 출력되지 않았다(파이썬 기본 루트 로거가 WARNING 이라 경고만 보였다).
+    # DEBUG 로 내리면 요청 단위 추적이 늘고, WARNING 으로 올리면 조용해진다.
+    # 프롬프트처럼 이용자가 입력한 내용이 INFO 로 남으므로, 남기고 싶지 않으면
+    # WARNING 으로 올릴 것.
+    LOG_LEVEL: str = "INFO"
+
     # 데이터베이스 (NeonDB / PostgreSQL)
     DATABASE_URL: AnyUrl = "postgresql://user:password@localhost:5432/avatarbank"
 

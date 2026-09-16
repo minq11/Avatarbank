@@ -78,10 +78,22 @@ def to_english_prompt(text: str) -> str:
         return text
 
     try:
-        return _translate_cached(text.strip())
+        translated = _translate_cached(text.strip())
     except Exception as exc:  # noqa: BLE001 - 어떤 실패든 원문으로 폴백한다
         logger.warning("프롬프트 번역 실패, 원문으로 진행합니다: %s", exc)
         return text
+
+    # 번역이 의도대로 됐는지는 로그로만 확인할 수 있다 (생성 결과만 봐서는
+    # 프롬프트가 어떻게 나갔는지 알 수 없다). 이용자 입력이 남는 지점이므로,
+    # 남기고 싶지 않으면 .env 의 LOG_LEVEL 을 WARNING 으로 올리면 된다.
+    logger.info("프롬프트 번역: %s → %s", _clip(text), _clip(translated))
+    return translated
+
+
+def _clip(text: str, limit: int = 120) -> str:
+    """로그 한 줄이 길어지지 않게 자른다."""
+    one_line = " ".join(text.split())
+    return one_line if len(one_line) <= limit else one_line[:limit] + "…"
 
 
 @lru_cache(maxsize=512)
@@ -137,3 +149,33 @@ def _call_gemini(text: str) -> Optional[str]:
 
     out = _PREAMBLE.sub("", out).strip().strip('"').strip()
     return out or None
+
+
+if __name__ == "__main__":
+    # 크레딧을 쓰지 않고 번역만 확인하는 진단용 진입점.
+    #   docker compose -f docker-compose.prod.yml exec backend \
+    #     python -m app.translate "노을 지는 바닷가에서 흰 원피스 입고"
+    # 설정이 맞는지(키·모델·네트워크) 이미지 생성 전에 가려낼 수 있다.
+    import sys
+
+    sample = " ".join(sys.argv[1:]) or "노을 지는 바닷가에서 흰 원피스 입고"
+
+    print(f"provider : {settings.TRANSLATE_PROVIDER}")
+    print(f"model    : {settings.GEMINI_MODEL}")
+    print(f"key      : {'설정됨' if settings.GEMINI_API_KEY else '(비어 있음)'}")
+    print(f"한글 포함 : {contains_korean(sample)}")
+    print(f"입력     : {sample}")
+
+    result = to_english_prompt(sample)
+    print(f"출력     : {result}")
+
+    if result == sample:
+        print(
+            "\n원문이 그대로 나왔습니다. 위의 provider/key/한글 포함 값을 보세요.\n"
+            "  - provider 가 none  → .env 에 TRANSLATE_PROVIDER=gemini\n"
+            "  - key 가 비어 있음   → .env 에 GEMINI_API_KEY\n"
+            "  - 한글 포함 False    → 영어 입력이라 번역 대상이 아님 (정상)\n"
+            "  - 셋 다 정상인데 같다 → 위에 찍힌 경고 로그에서 실패 사유 확인"
+        )
+    else:
+        print("\n번역이 동작합니다.")

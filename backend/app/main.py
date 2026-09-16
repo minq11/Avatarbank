@@ -76,6 +76,14 @@ from .schemas import (
     UserBase,
 )
 
+# 앱 로거 설정. 이걸 호출하지 않으면 파이썬 루트 로거가 WARNING 이라
+# 앱이 남기는 INFO 로그가 전부 사라진다 (uvicorn 은 자기 로거만 설정한다).
+# 컨테이너 로그로 바로 보이도록 stderr 로 내보낸다: docker compose logs backend
+logging.basicConfig(
+    level=getattr(logging, settings.LOG_LEVEL.strip().upper(), logging.INFO),
+    format="%(asctime)s %(levelname)-7s %(name)s | %(message)s",
+)
+
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title=settings.PROJECT_NAME)
