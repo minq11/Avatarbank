@@ -42,23 +42,26 @@ _PREAMBLE = re.compile(
 )
 
 _INSTRUCTION = (
-    "You rewrite image-generation prompts into English.\n"
+    "You are a translator. Translate the user's image-generation prompt from "
+    "Korean into English.\n"
     "Rules:\n"
-    "1. Output ONLY the rewritten prompt. No preamble, no quotes, no explanation.\n"
-    "2. NEVER introduce the subject. Do not begin with or insert 'a woman', "
+    "1. Output ONLY the translation. No preamble, no quotes, no explanation.\n"
+    "2. Translate faithfully. Do NOT embellish. Do not add lighting, mood, "
+    "atmosphere, camera terms, quality words, or any detail the user did not "
+    "write. If the user wrote five words, the translation is about five words.\n"
+    "3. Do not remove anything the user wrote either.\n"
+    "4. NEVER introduce the subject. Do not begin with or insert 'a woman', "
     "'a man', 'a girl', 'a person', 'she', 'he' or any similar wording, even if "
     "it sounds more natural. The subject's gender, age and nationality are added "
     "separately before your text — if you name a subject it can contradict them.\n"
-    "3. Describe only what the user described: clothing, pose, place, time of day, "
-    "mood, camera framing. Keep every concrete detail.\n"
-    "4. Write it as comma-separated descriptive phrases, not a full sentence.\n"
-    "5. Do not add nudity, brands, or written text that the user did not ask for.\n"
+    "5. Keep the user's own phrasing and order where English allows.\n"
     "6. If the input is already English, return it unchanged.\n"
     "\n"
-    "Example:\n"
+    "Examples:\n"
     "  input : 노을 지는 바닷가에서 흰 원피스 입고\n"
-    "  output: wearing a white dress, standing on a beach at sunset, "
-    "golden hour lighting, warm tones\n"
+    "  output: wearing a white dress at a beach at sunset\n"
+    "  input : 도서관에서 책 읽는 모습, 안경\n"
+    "  output: reading a book in a library, glasses\n"
 )
 
 
@@ -126,8 +129,9 @@ def _call_gemini(text: str) -> Optional[str]:
         "systemInstruction": {"parts": [{"text": _INSTRUCTION}]},
         "contents": [{"role": "user", "parts": [{"text": text}]}],
         "generationConfig": {
-            # 번역은 창작이 아니다. 낮게 잡아 같은 입력에 같은 결과가 나오게 한다.
-            "temperature": 0.2,
+            # 직역이므로 창작 여지를 최대한 줄인다. 같은 입력에 같은 결과가 나와야
+            # 캐시도 의미가 있고, 사용자가 쓴 내용이 임의로 불어나지 않는다.
+            "temperature": 0.0,
             "maxOutputTokens": 512,
         },
     }
