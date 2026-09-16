@@ -25,6 +25,7 @@ from .db import get_db
 from .dependencies import get_current_user
 from .fal_client import run_generation_sync
 from .moderation import assert_sfw_prompt
+from .translate import to_english_prompt
 from .rate_limit import rate_limit_redeem_generate, rate_limit_redeem_info
 from .models import (
     Avatar,
@@ -86,7 +87,18 @@ def _generate_unique_code(db: Session, length: int = 8) -> str:
 
 
 def _build_prompt_for_fal(avatar: Avatar, prompt: str) -> str:
-    """아바타 국적/성별/나이를 프롬프트 prefix 로 합성 (main.py 와 동일)."""
+    """
+    아바타 국적/성별/나이를 프롬프트 prefix 로 합성하고, 한국어면 영어로 옮긴다.
+
+    모든 생성(크리에이터 직접·팬 리딤)이 이 함수를 지나므로 번역도 여기 한 곳에만
+    두면 된다. 번역이 실패하면 원문이 그대로 돌아오므로 생성은 계속된다.
+
+    prefix 는 번역 뒤에 붙인다. prefix 자체가 이미 영어("Korean", "female",
+    "25 years old")라 번역기를 통과시킬 이유가 없고, 통과시키면 모델이 그 부분까지
+    고쳐 쓸 수 있다.
+    """
+    user_part = to_english_prompt(prompt)
+
     prefix_parts: list[str] = []
     if getattr(avatar, "nationality", None) and str(avatar.nationality).strip():
         code = str(avatar.nationality).strip().upper()
@@ -97,8 +109,8 @@ def _build_prompt_for_fal(avatar: Avatar, prompt: str) -> str:
     if getattr(avatar, "age", None) is not None:
         prefix_parts.append(f"{avatar.age} years old")
     if prefix_parts:
-        return ", ".join(prefix_parts) + ". " + prompt
-    return prompt
+        return ", ".join(prefix_parts) + ". " + user_part
+    return user_part
 
 
 def _run_generation(
