@@ -80,10 +80,12 @@ prod-up: ## Start production services
 prod-down: ## Stop production services
 	$(PROD) down
 
-prod-restart: ## 컨테이너만 재시작 (이미지는 그대로 — 코드를 바꿨다면 deploy 를 쓸 것)
-	@# 코드는 Dockerfile 의 COPY 로 이미지에 구워진다. 재시작만으로는 새 코드가
-	@# 들어가지 않으니, .env 만 바꿨을 때 쓰는 명령이다.
-	$(PROD) restart
+prod-restart: ## .env 변경 반영 (컨테이너 재생성, 이미지는 그대로 — 코드를 바꿨다면 deploy)
+	@# docker compose restart 는 .env 를 다시 읽지 않는다. 같은 환경변수로
+	@# 컨테이너를 껐다 켤 뿐이라 바뀐 값이 반영되지 않는다.
+	@# up -d 는 설정이 달라진 컨테이너를 재생성하므로 새 .env 가 들어간다.
+	@# 코드는 이미지에 구워지니 코드 변경은 여전히 deploy(--build) 가 필요하다.
+	$(PROD) up -d
 
 prod-logs: ## Show production logs
 	$(PROD) logs -f
