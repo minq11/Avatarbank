@@ -74,8 +74,10 @@ class Settings(BaseSettings):
     # Google AI Studio 에서 발급 (aistudio.google.com/apikey). 무료 한도가 있다.
     GEMINI_API_KEY: str = ""
     GEMINI_API_BASE_URL: str = "https://generativelanguage.googleapis.com"
-    # 모델 이름은 구글이 주기적으로 바꾼다. 404 가 나면 여기부터 확인할 것.
-    GEMINI_MODEL: str = "gemini-2.0-flash"
+    # 모델 이름은 구글이 주기적으로 바꾼다. gemini-2.0-flash 는 2026-09 기준
+    # 폐기됐다("no longer available"). 404 가 나면 여기부터 확인할 것 —
+    # 구글의 404 응답 본문이 대체 모델 이름을 알려준다.
+    GEMINI_MODEL: str = "gemini-3.6-flash"
 
     # ------------------------------------------------------------------
     # 크레딧 / 결제 (포트원)
