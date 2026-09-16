@@ -5,7 +5,7 @@
 #   make status   — 컨테이너 상태 + 헬스체크
 #   make prod-logs — 로그 따라보기
 
-.PHONY: help build up down restart logs clean migrate deploy status health
+.PHONY: help build up down restart logs clean migrate deploy status health prod-restart translate-test translate-logs
 
 PROD := docker compose -f docker-compose.prod.yml
 
@@ -16,7 +16,9 @@ help: ## Show this help message
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  %-15s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
 # 로컬 개발 환경
-build: ## Build Docker images
+# 주의: 아래 build/up/down/restart/logs/ps 는 기본 docker-compose.yml 을 본다.
+# 운영 서버(프로덕션 스택만 떠 있는 곳)에서는 prod-* 나 deploy 를 쓸 것.
+build: ## Build Docker images (로컬)
 	docker compose build
 
 up: ## Start all services
@@ -77,6 +79,11 @@ prod-up: ## Start production services
 
 prod-down: ## Stop production services
 	$(PROD) down
+
+prod-restart: ## 컨테이너만 재시작 (이미지는 그대로 — 코드를 바꿨다면 deploy 를 쓸 것)
+	@# 코드는 Dockerfile 의 COPY 로 이미지에 구워진다. 재시작만으로는 새 코드가
+	@# 들어가지 않으니, .env 만 바꿨을 때 쓰는 명령이다.
+	$(PROD) restart
 
 prod-logs: ## Show production logs
 	$(PROD) logs -f
