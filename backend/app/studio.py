@@ -96,6 +96,11 @@ def _build_prompt_for_fal(avatar: Avatar, prompt: str) -> str:
     prefix 는 번역 뒤에 붙인다. prefix 자체가 이미 영어("Korean", "female",
     "25 years old")라 번역기를 통과시킬 이유가 없고, 통과시키면 모델이 그 부분까지
     고쳐 쓸 수 있다.
+
+    사용자가 아바타와 다른 성별을 적으면 프롬프트에 둘 다 남는다
+    (예: "Korean, male, 25 years old. a blonde woman at the beach").
+    의도적으로 그대로 둔 것이다 — 사용자가 쓴 표현을 지우지 않고 모델이 섞도록
+    맡긴다. 버그로 보고 한쪽을 지우지 말 것.
     """
     user_part = to_english_prompt(prompt)
 
