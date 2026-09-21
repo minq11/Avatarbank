@@ -130,6 +130,69 @@
     </section>
 
     <!-- How It Works Section -->
+    <!--
+      검색 유입을 받는 본문. 위쪽은 이미지 중심이라 텍스트가 거의 없어서
+      "AI 프로필", "내 얼굴로 사진 만들기" 같은 검색에 걸릴 근거가 없었다.
+      키워드를 억지로 심지 않고, 실제로 궁금해할 내용을 문장으로 쓴다.
+    -->
+    <section id="about" class="about-section">
+      <div class="container">
+        <div class="section-header">
+          <h2 class="section-title">내 얼굴로 만드는 AI 프로필 사진</h2>
+          <p class="section-description">
+            스튜디오에 가지 않아도, 옷을 새로 사지 않아도 됩니다.
+            사진 몇 장만 있으면 원하는 장면의 내 사진이 나와요.
+          </p>
+        </div>
+
+        <div class="about-grid">
+          <article class="about-card">
+            <h3>템플릿이 아니라 자유 프롬프트</h3>
+            <p>
+              정해진 스타일 몇 가지 중에 고르는 방식이 아니에요.
+              <strong>"노을 지는 해변에서 흰 원피스"</strong> 처럼 원하는 장면을
+              한국어로 적으면 그대로 만들어집니다. 배경·의상·분위기·구도를
+              문장으로 직접 정할 수 있어요.
+            </p>
+          </article>
+
+          <article class="about-card">
+            <h3>만든 사진은 상업적으로 써도 됩니다</h3>
+            <p>
+              생성한 이미지는 요청한 이용자가 <strong>개인적·상업적으로 이용</strong>할 수 있어요
+              (<RouterLink to="/terms" class="about-link">이용약관 제7조</RouterLink>).
+              SNS 프로필, 블로그, 쇼핑몰 소개 이미지까지 용도 제한 없이 쓰세요.
+            </p>
+          </article>
+
+          <article class="about-card">
+            <h3>구독료 없이, 쓴 만큼만</h3>
+            <p>
+              매달 빠져나가는 구독료가 없어요. <strong>크레딧 1개로 이미지 1장</strong>,
+              필요한 만큼만 사서 쓰면 됩니다. 가입하면 무료 크레딧을 드리니 먼저
+              만들어 보고 정하세요. 쓰지 않은 크레딧은
+              <RouterLink to="/pricing" class="about-link">환불</RouterLink>도 됩니다.
+            </p>
+          </article>
+
+          <article class="about-card">
+            <h3>내 아바타를 친구·팬과 함께</h3>
+            <p>
+              만든 아바타로 <strong>리딤 링크</strong>를 발급해 나눠줄 수 있어요.
+              링크를 받은 사람은 가입 없이 들어와 내 얼굴로 이미지를 만들어 봅니다.
+              팬이 있는 크리에이터라면 이벤트 경품이나 멤버십 혜택으로 쓰기 좋아요.
+            </p>
+          </article>
+        </div>
+
+        <p class="about-more">
+          사진은 어떤 걸 올려야 하는지, 프롬프트는 어떻게 쓰는지는
+          <RouterLink to="/guide" class="about-link">이용 가이드</RouterLink>에 정리해 뒀어요.
+          가격은 <RouterLink to="/pricing" class="about-link">크레딧 안내</RouterLink>에서 확인하세요.
+        </p>
+      </div>
+    </section>
+
     <section id="how" class="how-section">
       <div class="container">
         <div class="section-header">
@@ -188,7 +251,7 @@
 
 <script setup lang="ts">
 import { onMounted, onUnmounted, watch } from "vue";
-import { useRouter } from "vue-router";
+import { RouterLink, useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 // 쇼케이스 이미지 — Vite 가 해시를 붙여 번들·캐싱한다.
 import sourcePicturesImg from "@/assets/showcase/source_pictures.jpg";
@@ -642,6 +705,75 @@ const steps = [
   background: #fafafa;
   border-top: 1px solid #f0f0f3;
   border-bottom: 1px solid #f0f0f3;
+}
+
+/* 검색 유입 본문 */
+.about-section {
+  padding: 5rem 0;
+}
+
+.about-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.5rem;
+}
+
+.about-card {
+  border: 1px solid #ececf0;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  background: #fff;
+}
+
+.about-card h3 {
+  margin: 0 0 0.6rem;
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: #0d0d0f;
+  /* 한글 제목이 어절 중간에서 끊기지 않도록 */
+  word-break: keep-all;
+}
+
+.about-card p {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.8;
+  color: #52525b;
+  word-break: keep-all;
+}
+
+.about-link {
+  color: #e24e12;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.about-link:hover {
+  text-decoration: underline;
+}
+
+.about-more {
+  margin: 2rem 0 0;
+  text-align: center;
+  font-size: 0.9375rem;
+  line-height: 1.8;
+  color: #52525b;
+  word-break: keep-all;
+}
+
+@media (max-width: 640px) {
+  .about-section {
+    padding: 3.5rem 0;
+  }
+
+  .about-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .about-card {
+    padding: 1.25rem;
+  }
 }
 
 .steps-grid {
