@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+
+# 로그인해야만 의미가 있거나, 색인돼서 좋을 게 없는 경로는 제외한다.
+# 개인 페이지가 검색에 노출되면 곤란하고, 리딤 링크는 크리에이터가 특정인에게
+# 나눠주는 일회성 주소라 공개 색인 대상이 아니다.
+Disallow: /my/
+Disallow: /admin/
+Disallow: /payments/
+Disallow: /r/
+
+Sitemap: https://avatarclub.net/sitemap.xml

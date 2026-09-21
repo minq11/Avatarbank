@@ -4,8 +4,58 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
-    <title>AvatarClub</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!--
+      SEO 기본. 이 값들은 "첫 화면"의 기본값이고, 라우트 이동 시에는
+      src/seo.ts 가 페이지별로 덮어쓴다.
+
+      제목에 한글 브랜드명("아바타클럽")을 넣는 게 핵심이다. 영문 AvatarClub 만
+      있으면 한글로 검색했을 때 매칭될 문자열이 문서 어디에도 없다.
+    -->
+    <title>아바타클럽 AvatarClub — 내 얼굴로 만드는 AI 아바타</title>
+    <meta
+      name="description"
+      content="사진 몇 장으로 내 얼굴을 학습시켜 AI 아바타를 만드세요. 원하는 장면을 한국어로 적으면 이미지가 됩니다. 구독료 없이 필요한 만큼 크레딧으로 이용하세요."
+    />
+    <link rel="canonical" href="https://avatarclub.net/" />
+
+    <!-- 카카오톡·슬랙 등에 링크를 붙였을 때 보이는 카드 -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="아바타클럽" />
+    <meta property="og:locale" content="ko_KR" />
+    <meta property="og:url" content="https://avatarclub.net/" />
+    <meta property="og:title" content="아바타클럽 — 내 얼굴로 만드는 AI 아바타" />
+    <meta
+      property="og:description"
+      content="사진 몇 장으로 내 얼굴을 학습시켜 AI 아바타를 만드세요. 원하는 장면을 한국어로 적으면 이미지가 됩니다."
+    />
+    <!--
+      링크 미리보기 이미지(og:image)는 아직 없다.
+      1200x630 이미지를 public/og-image.png 로 넣고 아래 두 줄의 주석을 풀 것.
+      없는 파일을 가리키면 카카오톡·슬랙에서 빈 카드가 뜨므로 그때까지는 비워둔다.
+      (이미지가 없으면 제목·설명만 있는 카드로 표시된다)
+    -->
+    <!-- <meta property="og:image" content="https://avatarclub.net/og-image.png" /> -->
+    <!-- <meta name="twitter:card" content="summary_large_image" /> -->
+    <meta name="twitter:card" content="summary" />
+
+    <!--
+      검색엔진에 사이트의 정체를 구조화해 알려준다. 브랜드명을 한글·영문 모두
+      alternateName 으로 등록해 "아바타클럽" 검색에 잡히게 한다.
+    -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "아바타클럽",
+        "alternateName": ["AvatarClub", "아바타 클럽"],
+        "url": "https://avatarclub.net/",
+        "inLanguage": "ko-KR",
+        "description": "사진 몇 장으로 내 얼굴을 학습시켜 AI 아바타를 만드는 서비스"
+      }
+    </script>
+
     <!--
       Pretendard — 한글 본문용 가변 폰트. 시스템 스택엔 한글 폰트가 없어
       Windows 에서 맑은 고딕으로 떨어지는데, 굵은 제목에서 획이 뭉개진다.

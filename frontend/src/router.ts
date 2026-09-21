@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory, RouteRecordRaw } from "vue-router";
+import { applyPageSeo } from "./seo";
 import LandingPage from "./views/LandingPage.vue";
 import MyGenerationsPage from "./views/MyGenerationsPage.vue";
 import MyAvatarsPage from "./views/MyAvatarsPage.vue";
@@ -71,6 +72,13 @@ const router = createRouter({
     if (to.hash) return { el: to.hash, behavior: "smooth" };
     return { top: 0 };
   },
+});
+
+// SPA 는 페이지를 옮겨도 <title> 과 meta 가 그대로 남는다. 검색엔진에는
+// 모든 주소가 같은 문서로 보여 개별 페이지가 따로 색인되지 않으므로,
+// 이동이 끝날 때마다 라우트에 맞는 값으로 덮어쓴다.
+router.afterEach((to) => {
+  applyPageSeo(to.name as string | undefined, to.fullPath);
 });
 
 export default router;
