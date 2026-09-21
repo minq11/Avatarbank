@@ -9,7 +9,7 @@
             <svg class="badge-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .962 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.582a.5.5 0 0 1 0 .962L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.962 0L9.937 15.5Z"/>
             </svg>
-            <span>크리에이터를 위한 AI 아바타 스튜디오</span>
+            <span>내 얼굴로 만드는 AI 아바타 스튜디오</span>
           </div>
 
           <!-- Headline -->
@@ -217,7 +217,7 @@
         <div class="section-header">
           <h2 class="section-title">이렇게 작동해요</h2>
           <p class="section-description">
-            아바타 등록부터 자유 생성, 그리고 팬 공유까지 — 네 단계면 충분해요
+            사진 올리기부터 원하는 장면 만들기까지 — 네 단계면 충분해요
           </p>
         </div>
 
@@ -229,7 +229,10 @@
           </div>
         </div>
 
-        <!-- 등록 심사 · 안전 정책 안내 -->
+        <!--
+          같은 사실이라도 "금지·제재" 로 쓰면 처음 온 사람에게는 불안 신호가 된다.
+          본인 확인과 필터는 이용자를 지키는 장치이므로 그렇게 읽히도록 쓴다.
+        -->
         <div class="notice-stack">
           <div class="review-notice">
             <svg class="review-notice-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -237,9 +240,9 @@
               <circle cx="12" cy="12" r="10" />
             </svg>
             <p class="review-notice-text">
-              학습을 요청하시면 관리자가 <strong>공식 인스타그램 DM</strong>으로 본인 확인을 진행해요.
-              DM으로 <strong>본인임이 인증된 뒤에만</strong> 학습이 시작되며, 승인 및 학습까지
-              <strong>2~7일</strong>이 소요됩니다.
+              <strong>내 얼굴은 나만 등록할 수 있어요.</strong>
+              학습 요청이 들어오면 공식 인스타그램 DM으로 본인 확인을 거친 뒤에만 시작해요.
+              남이 내 사진으로 아바타를 만들 수 없는 이유예요. (확인·학습까지 2~7일)
             </p>
           </div>
 
@@ -248,8 +251,9 @@
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
             </svg>
             <p class="review-notice-text">
-              <strong>음란물·범죄적 이미지는 등록도 생성도 허용하지 않아요.</strong>
-              AI 사진 출력 시 실시간 필터링이 되며, 위반 시 즉시 삭제되고 이용이 제한됩니다.
+              <strong>만들어지는 건 전 연령이 볼 수 있는 이미지뿐이에요.</strong>
+              선정적이거나 범죄에 쓰일 이미지는 출력 단계에서 실시간으로 걸러집니다.
+              내 얼굴이 엉뚱한 데 쓰일 걱정 없이 마음껏 만드세요.
             </p>
           </div>
         </div>
@@ -318,8 +322,8 @@ const steps = [
     description: "내 아바타로 원하는 장면·의상·분위기를 프롬프트로 자유롭게 만들어요. 완전히 내 마음대로.",
   },
   {
-    title: "팬에게 링크 공유 (선택)",
-    description: "원하면 리딤 링크를 발급해 팬에게 나눠주세요. 팬은 원하는 장면을 직접 묘사해 함께 만들 수 있어요.",
+    title: "친구·팬과 나눠 쓰기 (선택)",
+    description: "원하면 리딤 링크를 발급해 나눠주세요. 링크를 받은 사람은 가입 없이 들어와 원하는 장면을 직접 만들어 볼 수 있어요.",
   },
   {
     title: "실시간 현황 확인",
