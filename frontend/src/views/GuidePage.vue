@@ -91,7 +91,8 @@
             사용 횟수 설정을 꼭 확인하세요.
           </li>
           <li>
-            크레딧은 <strong>기간 만료로 사라지지 않아요.</strong> 많이 살수록 장당 단가가 내려가요.
+            크레딧의 유효기간은 <strong>마지막 구매일로부터 5년</strong>이에요. 많이 살수록 장당
+            단가가 내려가요.
           </li>
         </ul>
         <p class="doc-note">
@@ -197,7 +198,59 @@
 </template>
 
 <script setup lang="ts">
+import { onMounted, onUnmounted } from "vue";
 import { RouterLink } from "vue-router";
+import { injectJsonLd } from "../seo";
+
+/**
+ * 자주 묻는 질문 구조화 데이터.
+ *
+ * 구글이 검색 결과에 질문을 펼쳐 보여줄 수 있어(rich result) 노출 면적이 커진다.
+ * "AI 아바타 만드는 법" 같은 질문형 검색에 걸리는 것도 이쪽이다.
+ *
+ * 여기 답변은 아래 화면에 보이는 5번 섹션 문구와 같은 내용이어야 한다.
+ * 보이지 않는 내용을 구조화 데이터에만 넣으면 구글이 스팸으로 본다.
+ * 화면 문구를 고치면 여기도 같이 고칠 것.
+ */
+const FAQ = [
+  [
+    "생성이 실패했는데 크레딧이 차감됐나요?",
+    "실패하거나 필터에 차단된 생성은 차감되지 않습니다. 차감된 뒤 실패한 경우에는 자동으로 환원되니 잠시 후 잔액을 다시 확인해 주세요.",
+  ],
+  [
+    "크레딧에 유효기간이 있나요?",
+    "마지막 구매일로부터 5년간 쓸 수 있습니다. 사용하지 않은 크레딧은 환불도 가능합니다.",
+  ],
+  [
+    "아바타를 여러 개 만들 수 있나요?",
+    "만들 수 있습니다. 다만 모두 본인 얼굴이어야 하고, 아바타마다 학습 심사를 다시 거칩니다.",
+  ],
+  [
+    "발급한 링크를 회수할 수 있나요?",
+    "네. 스튜디오의 링크 목록에서 비활성화하면 즉시 사용이 중단됩니다. 이미 만들어진 이미지는 되돌릴 수 없습니다.",
+  ],
+  [
+    "내 얼굴이 도용된 것 같아요.",
+    "고객지원의 신고하기에서 접수해 주세요. 확인되면 해당 계정은 정지되고 아바타와 링크가 삭제됩니다.",
+  ],
+] as const;
+
+let removeJsonLd: (() => void) | undefined;
+
+onMounted(() => {
+  removeJsonLd = injectJsonLd("guide-faq-jsonld", {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: FAQ.map(([question, answer]) => ({
+      "@type": "Question",
+      name: question,
+      acceptedAnswer: { "@type": "Answer", text: answer },
+    })),
+  });
+});
+
+// SPA 는 문서가 유지되므로 떠날 때 지우지 않으면 다른 페이지에도 남는다.
+onUnmounted(() => removeJsonLd?.());
 </script>
 
 <style scoped>

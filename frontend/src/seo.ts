@@ -127,3 +127,24 @@ export function applyPageSeo(routeName: string | null | undefined, path: string)
   setMeta("property", "og:url", url);
   setLink("canonical", url);
 }
+
+/**
+ * 페이지 전용 구조화 데이터(JSON-LD)를 <head> 에 넣고, 제거 함수를 돌려준다.
+ *
+ * 컴포넌트가 사라질 때 반드시 제거해야 한다. SPA 는 문서가 유지되므로
+ * 남겨두면 다른 페이지에서도 그 데이터가 붙어 있는 것으로 읽힌다.
+ *
+ * 주의: 구조화 데이터의 내용은 화면에 실제로 보이는 내용과 일치해야 한다.
+ * 보이지 않는 내용을 넣으면 구글이 스팸으로 간주한다.
+ */
+export function injectJsonLd(id: string, data: unknown): () => void {
+  document.getElementById(id)?.remove();
+
+  const el = document.createElement("script");
+  el.type = "application/ld+json";
+  el.id = id;
+  el.textContent = JSON.stringify(data);
+  document.head.appendChild(el);
+
+  return () => document.getElementById(id)?.remove();
+}
