@@ -253,3 +253,64 @@
     font-size: 0.82rem;
   }
 }
+
+/*
+ * 문서 페이지 하단 전환 지점.
+ * /guide, /pricing 은 검색으로 바로 들어오는 착지 페이지인데 그동안
+ * 읽고 나서 갈 곳이 푸터 링크뿐이었다. 홈으로 돌아가 시작할 수 있게 한다.
+ */
+.doc-cta {
+  margin: 2.5rem 0 0;
+  padding: 2rem 1.5rem;
+  border: 1px solid #f0e2d9;
+  border-radius: 1rem;
+  background: #fff8f4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  text-align: center;
+}
+
+.doc-cta-title {
+  margin: 0;
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: #0d0d0f;
+  word-break: keep-all;
+}
+
+.doc-cta-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.85rem 1.75rem;
+  border-radius: 9999px;
+  background: #e24e12;
+  color: #fff;
+  font-size: 0.9688rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background-color 0.2s ease;
+}
+
+.doc-cta-btn:hover {
+  background: #c94310;
+}
+
+.doc-cta-note {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #71717a;
+  word-break: keep-all;
+}
+
+@media (max-width: 560px) {
+  .doc-cta {
+    padding: 1.5rem 1.125rem;
+  }
+
+  .doc-cta-btn {
+    width: 100%;
+  }
+}

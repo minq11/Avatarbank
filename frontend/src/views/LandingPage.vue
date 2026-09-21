@@ -138,7 +138,11 @@
     <section id="about" class="about-section">
       <div class="container">
         <div class="section-header">
-          <h2 class="section-title">내 얼굴로 만드는 AI 프로필 사진</h2>
+          <h2 class="section-title">
+            내 얼굴로 만드는
+            <em class="title-accent">안전</em>하고
+            <em class="title-accent">무궁무진</em>한 생성물
+          </h2>
           <p class="section-description">
             스튜디오에 가지 않아도, 옷을 새로 사지 않아도 됩니다.
             사진 몇 장만 있으면 원하는 장면의 내 사진이 나와요.
@@ -190,6 +194,21 @@
           <RouterLink to="/guide" class="about-link">이용 가이드</RouterLink>에 정리해 뒀어요.
           가격은 <RouterLink to="/pricing" class="about-link">크레딧 안내</RouterLink>에서 확인하세요.
         </p>
+
+        <!--
+          본문을 다 읽은 사람이 바로 넘어갈 수 있는 전환 지점.
+          하단 고정 CTA 가 따로 있지만, 모바일에서는 그걸 광고 배너로 보고
+          무시하는 경우가 많아 본문 끝에도 하나 둔다.
+        -->
+        <div class="about-cta">
+          <button type="button" class="btn-about-cta" @click="goCreateAvatar">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />
+            </svg>
+            지금 만들러 가기
+          </button>
+          <p class="about-cta-note">가입하면 무료 크레딧을 드려요 · 결제 정보 없이 시작</p>
+        </div>
       </div>
     </section>
 
@@ -712,34 +731,59 @@ const steps = [
   padding: 5rem 0;
 }
 
+/* 제목에서 강조할 두 단어. em 의 기울임은 한글에서 지저분해 보여 끈다. */
+.title-accent {
+  font-style: normal;
+  color: #e24e12;
+}
+
 .about-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 1.5rem;
+  /*
+   * 2열로 간다. minmax(260px) 로 두면 1120px 컨테이너에서 4열이 되는데,
+   * 한 줄에 한글 16자 남짓이라 문장이 계속 끊겨 읽기 힘들었다.
+   * 2열이면 한 줄 32자 안팎으로 본문 읽기에 적당한 길이가 된다.
+   */
+  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  gap: 1.25rem;
 }
 
 .about-card {
   border: 1px solid #ececf0;
   border-radius: 1rem;
-  padding: 1.5rem;
+  padding: 1.75rem;
   background: #fff;
+  /* 카드 높이가 제각각이면 시선이 흔들린다. 같은 행끼리 높이를 맞춘다. */
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
 .about-card h3 {
-  margin: 0 0 0.6rem;
-  font-size: 1.0625rem;
+  margin: 0;
+  font-size: 1.125rem;
   font-weight: 700;
+  line-height: 1.5;
   color: #0d0d0f;
   /* 한글 제목이 어절 중간에서 끊기지 않도록 */
   word-break: keep-all;
+  /* 제목 아래 얇은 강조선 — 카드 구분이 또렷해진다 */
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #f4f4f6;
 }
 
 .about-card p {
   margin: 0;
-  font-size: 0.9375rem;
-  line-height: 1.8;
-  color: #52525b;
+  font-size: 0.9688rem;
+  /* 한글은 라틴보다 행간이 넉넉해야 읽힌다 */
+  line-height: 1.9;
+  color: #4b4b55;
   word-break: keep-all;
+}
+
+.about-card strong {
+  color: #27272a;
+  font-weight: 700;
 }
 
 .about-link {
@@ -753,12 +797,51 @@ const steps = [
 }
 
 .about-more {
-  margin: 2rem 0 0;
+  margin: 2.25rem auto 0;
+  max-width: 44rem;
   text-align: center;
   font-size: 0.9375rem;
-  line-height: 1.8;
+  line-height: 1.9;
   color: #52525b;
   word-break: keep-all;
+}
+
+/* 본문 끝 전환 지점 */
+.about-cta {
+  margin-top: 2.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.btn-about-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.95rem 2rem;
+  border: none;
+  border-radius: 9999px;
+  background: #e24e12;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.btn-about-cta:hover {
+  background: #c94310;
+  transform: translateY(-1px);
+}
+
+.about-cta-note {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #71717a;
+  word-break: keep-all;
+  text-align: center;
 }
 
 @media (max-width: 640px) {
@@ -772,7 +855,22 @@ const steps = [
   }
 
   .about-card {
-    padding: 1.25rem;
+    padding: 1.375rem 1.25rem;
+  }
+
+  .about-card h3 {
+    font-size: 1.0625rem;
+  }
+
+  .about-card p {
+    font-size: 0.9375rem;
+    line-height: 1.85;
+  }
+
+  .btn-about-cta {
+    /* 좁은 화면에서는 손가락이 닿기 쉽게 가로로 꽉 채운다 */
+    width: 100%;
+    padding: 1rem 1.25rem;
   }
 }
 

@@ -101,6 +101,12 @@
         </p>
       </section>
 
+      <div class="doc-cta">
+        <p class="doc-cta-title">먼저 무료 크레딧으로 만들어 보세요</p>
+        <RouterLink to="/" class="doc-cta-btn">내 아바타 만들러 가기</RouterLink>
+        <p class="doc-cta-note">가입하면 무료 크레딧을 드려요 · 결제 정보 없이 시작</p>
+      </div>
+
       <footer class="doc-foot">
         <p class="doc-meta">
           관련 문서:
