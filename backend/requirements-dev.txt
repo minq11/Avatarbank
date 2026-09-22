@@ -1,0 +1,5 @@
+# 테스트용 의존성. 운영 이미지에는 넣지 않는다 (requirements.txt 와 분리한 이유).
+# 실행:  make test
+-r requirements.txt
+
+pytest==8.3.3

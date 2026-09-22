@@ -4,8 +4,9 @@
 #   make deploy   — 최신 코드 받아 다시 빌드하고 기동, 상태까지 확인
 #   make status   — 컨테이너 상태 + 헬스체크
 #   make prod-logs — 로그 따라보기
+#   make test     — 크레딧·결제 로직 회귀 테스트 (배포 전에)
 
-.PHONY: help build up down restart logs clean migrate deploy status health prod-restart translate-test translate-logs
+.PHONY: help build up down restart logs clean migrate deploy status health prod-restart translate-test translate-logs test
 
 PROD := docker compose -f docker-compose.prod.yml
 
@@ -64,6 +65,21 @@ health: ## nginx / 백엔드 응답 확인
 	@printf 'nginx   : '; curl -sf -m 5 http://localhost/healthz || echo '✗ 응답 없음'
 	@printf 'backend : '; curl -sfk -m 10 https://localhost/api/health || echo '✗ 응답 없음'
 	@echo ""
+
+# 테스트
+# 백엔드 이미지 안에서 돌린다 — 로컬에 파이썬 의존성을 깔지 않아도 되고,
+# 운영에 올라가는 것과 같은 버전으로 검증된다.
+# 테스트는 인메모리 SQLite 를 쓰므로 운영 DB 에 붙지 않는다 (서비스 중에도 안전).
+TEST_CMD := pip install -q -r requirements-dev.txt && python -m pytest
+
+test: ## 크레딧·결제 회귀 테스트. 돈 관련 코드를 고쳤으면 배포 전에 이걸 돌릴 것
+	@# 컨테이너가 떠 있으면 exec 가 빠르다. 내려가 있으면 일회용 컨테이너로 돌린다
+	@# (--no-deps: DB·프론트를 같이 띄우지 않는다).
+	@if $(PROD) ps --status running --services 2>/dev/null | grep -qx backend; then \
+		$(PROD) exec -T backend sh -c "$(TEST_CMD)"; \
+	else \
+		$(PROD) run --rm --no-deps -T backend sh -c "$(TEST_CMD)"; \
+	fi
 
 translate-test: ## 번역 동작 확인 (크레딧 소모 없음). 예: make translate-test P="노을 지는 바닷가"
 	@$(PROD) exec -T backend python -m app.translate $(if $(P),"$(P)",)
