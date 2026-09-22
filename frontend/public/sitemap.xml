@@ -3,6 +3,10 @@
   공개 색인 대상 페이지 목록.
   /my, /admin, /payments, /r 은 robots.txt 에서 제외했으므로 여기에도 넣지 않는다.
 
+  /studio 도 뺐다. 로그인하지 않으면 "로그인해 주세요" 한 줄만 보이는데
+  크롤러는 로그인을 못 하므로 내용 없는 페이지가 색인된다. 그런 페이지가
+  늘면 사이트 전체 평가에 불리하다.
+
   페이지를 추가하면 여기에도 넣을 것. 자동 생성 장치가 없어 수동 관리다.
 -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -20,11 +24,6 @@
     <loc>https://avatarclub.net/guide</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://avatarclub.net/studio</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
   </url>
   <url>
     <loc>https://avatarclub.net/support</loc>
