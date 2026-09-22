@@ -1,5 +1,17 @@
 <template>
   <div class="landing-page">
+    <!--
+      탈퇴 직후 안내. 탈퇴하면 로그인 상태가 풀려 이 페이지로 돌아오는데,
+      아무 말도 없으면 "처리가 된 건가?" 싶다. 마이페이지가 사라진 뒤라
+      확인을 여기서 해준다.
+    -->
+    <div v-if="justLeft" class="goodbye-banner" role="status">
+      <p>
+        <strong>탈퇴가 완료되었습니다.</strong>
+        계정과 아바타·학습 사진·생성물이 파기되었어요. 그동안 이용해 주셔서 감사합니다.
+      </p>
+    </div>
+
     <!-- Hero Section -->
     <section class="hero-section">
       <div class="hero-container">
@@ -273,8 +285,8 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, watch } from "vue";
-import { RouterLink, useRouter } from "vue-router";
+import { computed, onMounted, onUnmounted, watch } from "vue";
+import { RouterLink, useRoute, useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 // 쇼케이스 이미지 — Vite 가 해시를 붙여 번들·캐싱한다.
 import sourcePicturesImg from "@/assets/showcase/source_pictures.jpg";
@@ -282,6 +294,10 @@ import aiResultImg from "@/assets/showcase/ai_result.jpg";
 
 const authStore = useAuthStore();
 const router = useRouter();
+const route = useRoute();
+
+// 탈퇴 직후에만 붙는 쿼리 (마이페이지가 ?goodbye=1 로 보낸다).
+const justLeft = computed(() => route.query.goodbye === "1");
 
 // 로그인 상태면 마케팅 랜딩 대신 바로 크리에이터 스튜디오로 보낸다.
 function redirectIfLoggedIn() {
@@ -335,6 +351,22 @@ const steps = [
 <style scoped>
 .landing-page {
   width: 100%;
+}
+
+/* 탈퇴 완료 안내 */
+.goodbye-banner {
+  background: #f0fdf4;
+  border-bottom: 1px solid #bbf7d0;
+  padding: 0.9rem 1rem;
+}
+
+.goodbye-banner p {
+  max-width: 720px;
+  margin: 0 auto;
+  font-size: 0.9rem;
+  line-height: 1.7;
+  color: #166534;
+  text-align: center;
 }
 
 /*

@@ -194,8 +194,11 @@
             <strong>타인 얼굴 무단 등록이 확인된 경우 계정이 즉시 정지됩니다.</strong>
           </li>
           <li>
-            이용자는 언제든 계정 해지를 요청할 수 있으며, 해지 시 개인정보는
-            <RouterLink to="/privacy" class="doc-link">개인정보처리방침</RouterLink>에 따라 처리됩니다.
+            이용자는 언제든 <strong>계정 관리 → 회원 탈퇴</strong>에서 직접 계정을 해지할 수
+            있습니다. 해지 시 개인정보는
+            <RouterLink to="/privacy" class="doc-link">개인정보처리방침</RouterLink>에 따라 처리되며,
+            <strong>남은 크레딧은 소멸</strong>됩니다. 미사용 크레딧의 환불을 원하는 경우
+            탈퇴 전에 제4조에 따라 환불을 요청해야 합니다.
           </li>
           <li>
             조치에 이의가 있는 경우

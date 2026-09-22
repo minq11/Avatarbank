@@ -219,6 +219,10 @@
           <li>계정 정보 확인·수정: 로그인 후 <strong>계정 관리</strong> 메뉴</li>
           <li>아바타·생성물 삭제: <strong>내 아바타</strong> / <strong>내 생성물</strong> 메뉴</li>
           <li>
+            회원 탈퇴(전체 삭제): 로그인 후 <strong>계정 관리 → 회원 탈퇴</strong>.
+            별도 승인 절차 없이 즉시 처리되며, 아래 5항의 파기 범위가 그대로 적용됩니다.
+          </li>
+          <li>
             그 밖의 열람·삭제·처리정지 요청:
             <RouterLink to="/support" class="doc-link">문의하기</RouterLink>에서 분류를 "계정/로그인"으로
             선택해 접수

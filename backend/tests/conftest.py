@@ -25,6 +25,7 @@ from sqlalchemy import create_engine  # noqa: E402
 from sqlalchemy.dialects.postgresql import JSONB  # noqa: E402
 from sqlalchemy.ext.compiler import compiles  # noqa: E402
 from sqlalchemy.orm import sessionmaker  # noqa: E402
+from sqlalchemy.pool import StaticPool  # noqa: E402
 
 from app.db import Base  # noqa: E402
 from app.models import User  # noqa: E402
@@ -39,8 +40,20 @@ def _jsonb_on_sqlite(type_, compiler, **kw):  # noqa: ANN001, ANN201
 
 @pytest.fixture()
 def db():
-    """테스트 하나당 새 인메모리 DB. 테스트 간 상태가 새지 않는다."""
-    engine = create_engine("sqlite://")
+    """
+    테스트 하나당 새 인메모리 DB. 테스트 간 상태가 새지 않는다.
+
+    StaticPool + check_same_thread=False 인 이유: FastAPI TestClient 는 앱을
+    다른 스레드에서 돌린다. 기본 설정이면 인메모리 DB 는 연결마다 별개이고
+    SQLite 연결은 만든 스레드에만 묶여 있어서, 엔드포인트 테스트가
+    "SQLite objects created in a thread can only be used in that same thread"
+    로 죽는다. 연결 하나를 모든 스레드가 공유하게 고정한다.
+    """
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
     Base.metadata.create_all(bind=engine)
     session = sessionmaker(bind=engine)()
     try:

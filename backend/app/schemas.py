@@ -478,3 +478,23 @@ class InquiryReplyRequest(BaseModel):
         if not v:
             raise ValueError("답장 내용을 입력해 주세요.")
         return v
+
+
+# ---------------------------------------------------------------------------
+# 회원 탈퇴
+# ---------------------------------------------------------------------------
+
+
+class AccountDeleteRequest(BaseModel):
+    # 실수 방지용 확인 문구. 값 검증은 app.account 가 한다
+    # (기대 문구가 그쪽에 상수로 있어서 오류 메시지에 그대로 넣을 수 있다).
+    confirm: str = Field(min_length=1, max_length=50)
+
+
+class AccountDeleteResponse(BaseModel):
+    """탈퇴로 파기되는(또는 파기된) 것들. 확인 화면과 완료 응답에 같이 쓴다."""
+
+    avatars: int
+    generations: int
+    redeem_codes: int
+    forfeited_credits: int

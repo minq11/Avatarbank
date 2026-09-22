@@ -805,3 +805,38 @@ export const inquiriesApi = {
     return response.data;
   },
 };
+
+
+// ---------------------------------------------------------------------------
+// 회원 탈퇴
+// ---------------------------------------------------------------------------
+
+/** 탈퇴로 파기되는(또는 파기된) 것들. 확인 화면과 완료 응답에 같이 쓴다. */
+export interface AccountDeletionSummary {
+  avatars: number;
+  generations: number;
+  redeem_codes: number;
+  forfeited_credits: number;
+}
+
+/** 탈퇴 확인 문구. 백엔드 app/account.py 의 CONFIRM_PHRASE 와 같아야 한다. */
+export const ACCOUNT_DELETE_PHRASE = "탈퇴합니다";
+
+export const accountApi = {
+  /** 탈퇴하면 무엇이 사라지는지 미리 조회한다. 아무것도 바꾸지 않는다. */
+  deletionPreview: async (): Promise<AccountDeletionSummary> => {
+    const response = await api.get<AccountDeletionSummary>("/account/deletion-preview");
+    return response.data;
+  },
+  /**
+   * 회원 탈퇴. 되돌릴 수 없다.
+   * DELETE 가 의미상 맞지만 확인 문구를 본문으로 보내야 하고, DELETE 본문은
+   * 프록시나 클라이언트가 조용히 버리는 경우가 있어 POST 로 호출한다.
+   */
+  delete: async (confirm: string): Promise<AccountDeletionSummary> => {
+    const response = await api.post<AccountDeletionSummary>("/account/delete", {
+      confirm,
+    });
+    return response.data;
+  },
+};

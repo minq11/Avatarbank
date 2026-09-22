@@ -93,17 +93,109 @@
           </p>
         </form>
       </div>
+
+      <!--
+        회원 탈퇴. 개인정보처리방침 5항이 약속한 파기를 실제로 실행하는 곳이다.
+        되돌릴 수 없으므로 (1) 접힌 상태로 두고 (2) 무엇이 사라지는지 숫자로
+        보여주고 (3) 확인 문구를 입력받는다.
+      -->
+      <div class="card danger-card">
+        <h3 class="card-title">회원 탈퇴</h3>
+
+        <p class="danger-lead">
+          계정과 함께 아바타, 학습에 쓴 사진, 생성한 이미지가 모두 파기됩니다.
+          <strong>되돌릴 수 없습니다.</strong>
+        </p>
+
+        <button v-if="!deleteForm.open" type="button" class="btn ghost-danger" @click="openDelete">
+          탈퇴 절차 진행
+        </button>
+
+        <div v-else class="danger-body">
+          <div v-if="deleteForm.loadingPreview" class="danger-loading">확인 중…</div>
+
+          <template v-else>
+            <ul v-if="deleteForm.summary" class="danger-list">
+              <li>
+                내 아바타 <strong>{{ deleteForm.summary.avatars }}개</strong> — 학습 사진과
+                함께 파기
+              </li>
+              <li>
+                생성한 이미지 <strong>{{ deleteForm.summary.generations }}장</strong> —
+                프롬프트까지 삭제
+              </li>
+              <li v-if="deleteForm.summary.redeem_codes > 0">
+                공유 중인 링크 <strong>{{ deleteForm.summary.redeem_codes }}개</strong> —
+                즉시 사용 중단
+              </li>
+              <li :class="{ 'danger-highlight': deleteForm.summary.forfeited_credits > 0 }">
+                남은 크레딧
+                <strong>{{ deleteForm.summary.forfeited_credits }}개</strong> — 소멸되며
+                환불되지 않습니다
+              </li>
+            </ul>
+
+            <p v-if="hasCreditsLeft" class="danger-note">
+              환불을 원하시면 탈퇴 전에
+              <RouterLink to="/support" class="danger-link">고객지원</RouterLink>으로
+              요청해 주세요. 미사용 크레딧은 원결제 수단으로 환불됩니다.
+            </p>
+
+            <p class="danger-note">
+              전자상거래법에 따라 <strong>결제·환불 기록은 5년간</strong>, 고객 문의 기록은
+              3년간 보관됩니다. 그 외 개인정보는 즉시 파기됩니다.
+              (<RouterLink to="/privacy" class="danger-link">개인정보처리방침</RouterLink>)
+            </p>
+
+            <div class="form-group">
+              <label class="form-label">
+                확인을 위해 <strong>{{ DELETE_PHRASE }}</strong> 를 입력해 주세요
+              </label>
+              <input
+                v-model="deleteForm.confirm"
+                type="text"
+                class="form-input"
+                :placeholder="DELETE_PHRASE"
+                autocomplete="off"
+              />
+            </div>
+
+            <div class="danger-actions">
+              <button
+                type="button"
+                class="btn danger"
+                :disabled="deleteForm.loading || !canDelete"
+                @click="handleDelete"
+              >
+                {{ deleteForm.loading ? "처리 중…" : "탈퇴하기" }}
+              </button>
+              <button type="button" class="btn subtle" :disabled="deleteForm.loading" @click="closeDelete">
+                취소
+              </button>
+            </div>
+          </template>
+
+          <p v-if="deleteForm.message" class="form-message error">{{ deleteForm.message }}</p>
+        </div>
+      </div>
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
 import { computed, reactive } from "vue";
-import { RouterLink } from "vue-router";
+import { RouterLink, useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
-import { authApi } from "@/services/api";
+import {
+  ACCOUNT_DELETE_PHRASE,
+  accountApi,
+  authApi,
+  type AccountDeletionSummary,
+} from "@/services/api";
 
 const authStore = useAuthStore();
+const router = useRouter();
+const DELETE_PHRASE = ACCOUNT_DELETE_PHRASE;
 
 const nicknameForm = reactive({
   newNickname: "",
@@ -120,6 +212,18 @@ const passwordForm = reactive({
   message: "",
   error: false,
 });
+
+const deleteForm = reactive({
+  open: false,
+  loadingPreview: false,
+  loading: false,
+  confirm: "",
+  message: "",
+  summary: null as AccountDeletionSummary | null,
+});
+
+const hasCreditsLeft = computed(() => (deleteForm.summary?.forfeited_credits ?? 0) > 0);
+const canDelete = computed(() => deleteForm.confirm.trim() === DELETE_PHRASE);
 
 const canSubmitPassword = computed(
   () =>
@@ -168,6 +272,46 @@ async function handlePasswordSubmit() {
     passwordForm.error = true;
   } finally {
     passwordForm.loading = false;
+  }
+}
+
+/** 탈퇴 절차를 펼치고, 무엇이 사라지는지 서버에서 받아온다. */
+async function openDelete() {
+  deleteForm.open = true;
+  deleteForm.message = "";
+  deleteForm.loadingPreview = true;
+  try {
+    deleteForm.summary = await accountApi.deletionPreview();
+  } catch {
+    // 미리보기를 못 받아도 탈퇴 자체는 진행할 수 있어야 한다.
+    // 숫자만 비고 확인 문구 입력은 그대로 뜬다.
+    deleteForm.summary = null;
+  } finally {
+    deleteForm.loadingPreview = false;
+  }
+}
+
+function closeDelete() {
+  deleteForm.open = false;
+  deleteForm.confirm = "";
+  deleteForm.message = "";
+}
+
+async function handleDelete() {
+  if (!canDelete.value) return;
+  deleteForm.loading = true;
+  deleteForm.message = "";
+  try {
+    await accountApi.delete(deleteForm.confirm.trim());
+    // 서버에서 계정이 비활성화됐으므로 남아 있는 토큰은 이제 403 을 받는다.
+    // 화면에 로그인 상태가 남아 있으면 클릭마다 오류가 나므로 즉시 비운다.
+    authStore.logout();
+    router.push({ path: "/", query: { goodbye: "1" } });
+  } catch (e: unknown) {
+    const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+    deleteForm.message = msg ?? "탈퇴 처리에 실패했어요. 잠시 후 다시 시도해 주세요.";
+  } finally {
+    deleteForm.loading = false;
   }
 }
 </script>
@@ -263,6 +407,112 @@ async function handlePasswordSubmit() {
 }
 
 .btn.primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* 회원 탈퇴 — 되돌릴 수 없는 동작이라 다른 카드와 눈에 띄게 구분한다 */
+.danger-card {
+  border-color: #f0d2cb;
+  background: #fffaf8;
+}
+
+.danger-lead {
+  font-size: 0.925rem;
+  line-height: 1.7;
+  color: #6e6e77;
+  margin: 0 0 1.1rem;
+}
+
+.danger-lead strong {
+  color: #b91c1c;
+}
+
+.danger-body {
+  margin-top: 0.25rem;
+}
+
+.danger-loading {
+  font-size: 0.9rem;
+  color: #6e6e77;
+  padding: 0.5rem 0;
+}
+
+.danger-list {
+  margin: 0 0 1rem;
+  padding-left: 1.1rem;
+  font-size: 0.9rem;
+  line-height: 1.85;
+  color: #3a3a42;
+}
+
+.danger-highlight {
+  color: #b91c1c;
+}
+
+.danger-note {
+  font-size: 0.825rem;
+  line-height: 1.75;
+  color: #6e6e77;
+  margin: 0 0 0.9rem;
+  padding-left: 0.1rem;
+}
+
+.danger-link {
+  color: #e24e12;
+  text-decoration: underline;
+}
+
+.danger-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.btn.ghost-danger,
+.btn.danger,
+.btn.subtle {
+  padding: 0.6rem 1.25rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+
+.btn.ghost-danger {
+  color: #b91c1c;
+  background: transparent;
+  border: 1px solid #e7bdb5;
+}
+
+.btn.ghost-danger:hover {
+  background: #fdeeea;
+}
+
+.btn.danger {
+  color: #ffffff;
+  background: #b91c1c;
+  border: none;
+}
+
+.btn.danger:hover:not(:disabled) {
+  background: #991b1b;
+}
+
+.btn.subtle {
+  color: #3a3a42;
+  background: #ffffff;
+  border: 1px solid #d2d2d9;
+}
+
+.btn.subtle:hover:not(:disabled) {
+  background: #f4f4f5;
+}
+
+.btn.danger:disabled,
+.btn.subtle:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }

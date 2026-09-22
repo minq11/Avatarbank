@@ -36,6 +36,7 @@ from .models import (
     TrainingRequest,
     User,
 )
+from .account import router as account_router, signup_bonus_for
 from .fal_client import run_generation_sync
 from .inquiries import router as inquiries_router
 from .payments import router as payments_router, seed_credit_packs
@@ -145,6 +146,9 @@ app.include_router(payments_router)
 # 고객 문의 라우터 (고객지원 폼 / 관리자 답장)
 app.include_router(inquiries_router)
 
+# 회원 탈퇴 라우터 (탈퇴 미리보기 / 탈퇴 실행)
+app.include_router(account_router)
+
 
 @app.get("/health", tags=["system"])
 def health_check() -> dict:
@@ -194,7 +198,8 @@ def register(
 
     # 새 사용자 생성. 가입 축하 크레딧은 잔액에 바로 넣고 원장에도 남긴다
     # (생성 원가가 장당 10원대라, 체험 없이 이탈하는 것보다 주는 편이 낫다).
-    bonus = max(0, settings.SIGNUP_BONUS_CREDITS)
+    # 최근 탈퇴한 이메일이면 0 — 탈퇴·재가입을 반복해 크레딧을 받는 걸 막는다.
+    bonus = signup_bonus_for(db, payload.email)
     new_user = User(
         email=payload.email,
         nickname=payload.nickname,
@@ -341,7 +346,7 @@ def google_login(
         # 신규 가입 — 일반 가입과 동일하게 축하 크레딧 지급.
         # 구글 계정엔 비밀번호가 없으므로 아무도 모르는 랜덤 값을 해시해 저장한다
         # (이메일/비밀번호 로그인은 불가, 필요 시 비밀번호 변경 기능으로 설정).
-        bonus = max(0, settings.SIGNUP_BONUS_CREDITS)
+        bonus = signup_bonus_for(db, email)
         user = User(
             email=email,
             nickname=_unique_nickname_from_google(db, claims.get("name"), email),
